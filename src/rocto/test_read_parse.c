@@ -60,6 +60,8 @@ static void test_valid_input(void **state) {
 	assert_int_equal(parse->num_parms, type_params);
 
 	assert_null(err);
+	free(message);
+	free(parse);
 }
 
 static void test_too_many_parms(void **state) {
@@ -90,6 +92,9 @@ static void test_too_many_parms(void **state) {
 
 	assert_null(parse);
 	assert_non_null(err);
+
+	free_error_response(err);
+	free(message);
 }
 
 static void test_non_terminated_query(void **state) {
@@ -116,6 +121,9 @@ static void test_non_terminated_query(void **state) {
 
 	assert_null(parse);
 	assert_non_null(err);
+
+	free(message);
+	free_error_response(err);
 }
 
 static void test_non_terminated_dest(void **state) {
@@ -137,6 +145,9 @@ static void test_non_terminated_dest(void **state) {
 
 	assert_null(parse);
 	assert_non_null(err);
+
+	free_error_response(err);
+	free(message);
 }
 
 int main(void) {
