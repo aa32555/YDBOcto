@@ -289,7 +289,7 @@ CASE
    [ELSE result] 
    END
   
-CASE tests a condition_expression. If the condition_expression following WHEN is TRUE, then the value is the "result" following THEN. If the condition_expression is FALSE, the value is the "result" following ELSE. 
+CASE tests a condition_expression. If the condition_expression following WHEN is TRUE, then the value is the "result" following THEN. If the condition_expression is FALSE, the value is the "result" following ELSE, or a NULL value if ELSE is omitted.
 
 -------------
 Other
