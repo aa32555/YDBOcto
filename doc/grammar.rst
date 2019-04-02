@@ -279,6 +279,18 @@ The keyword ALL affects the resulting rows such that duplicate results are allow
 .. parsed-literal::
    SELECT LastName FROM Employee EXCEPT SELECT LastName FROM AddressBook;
 
+--------------
+CASE
+--------------
+
+.. parsed-literal::
+   CASE WHEN condition_expression THEN result
+   [WHEN .... ] 
+   [ELSE result] 
+   END
+  
+CASE tests a condition_expression. If the condition_expression following WHEN is TRUE, then the value is the "result" following THEN. If the condition_expression is FALSE, the value is the "result" following ELSE. 
+
 -------------
 Other
 -------------
