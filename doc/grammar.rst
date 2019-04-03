@@ -322,6 +322,19 @@ CASE
   
 CASE tests a condition_expression. If the condition_expression following any of the WHEN keywords is TRUE, then the value is the "result" following THEN. If none of the conditions are matched, the value is the "result" following ELSE. The result is NULL if ELSE is omitted and none of the conditions are matched.
 
+-----------------
+Operators
+-----------------
+
+The comparative operators in Octo are:
+
+* EQUALS =
+* NOT EQUALS <>
+* LESS THAN <
+* GREATER THAN >
+* LESS THAN OR EQUALS <=
+* GREATER THAN OR EQUALS >=
+
 ----------
 Functions
 ----------
@@ -346,41 +359,6 @@ Similarly, an extrinsic (user-defined) function $$AGE can be added to Octo using
 
 .. parsed-literal::
    YDB> set ^%ydboctoocto("functions","AGE")="$$AGE"
-
-
--------------
-Other
--------------
-
-The following rule for a row_value_constructor is currently a deviation from BNF due to a Reduce-Reduce conflict in the grammar:
-
-.. parsed-literal::
-   row_value_constructor : [(][value_expression | null_specification | default_specification] [, ....][)];
-
-A primary value expression is denoted as follows:
-
-.. parsed-literal::
-   value_expression: unsigned_value_specification | column_reference | COUNT (\*|[set_quantifier] value_expression) | general_set_function | scalar_subquery | (value_expression);
-
-The value expression can contain an unsigned value, a column reference, a set function or a subquery.
-
-general_set_function refers to functions on sets like AVG, SUM, MIN, MAX etc. A set function can also contain the keyword COUNT, to count the number of resulting columns or rows that result from the query.
-
-A query expression can be a joined table or a non joined query expression.
-
-.. parsed-literal::
-   query_expression: non_join_query_expression | joined_table;
-
-The non_join_query_expression includes simple tables and column lists.
-
-The comparative operators are:
-
-* EQUALS =
-* NOT EQUALS <>
-* LESS THAN <
-* GREATER THAN >
-* LESS THAN OR EQUALS <=
-* GREATER THAN OR EQUALS >=
 
 
 -------------------------
