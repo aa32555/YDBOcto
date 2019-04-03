@@ -340,7 +340,7 @@ The default configured Octo prefix is "^%ydbocto".
 So, for example, if you want to add a function in Octo for the intrinsic function $PIECE, use:
 
 .. parsed-literal::
-   YDB> set ^%ydboctoocto("functions","PIECE")="$PIECE"
+   YDB> set ^%ydboctoocto("functions","MPIECE")="$PIECE"
 
 Similarly, an extrinsic (user-defined) function $$AGE can be added to Octo using:
 
