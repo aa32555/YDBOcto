@@ -339,7 +339,7 @@ For example,
 To set default values not restricted to the session, use:
 
 .. parsed-literal::
-   set ^%ydboctoocto("variables",<variable name>="My value"
+   set ^%ydboctoocto("variables","<variable name>")="My value"
 
 For example,
 
