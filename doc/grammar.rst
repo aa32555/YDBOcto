@@ -215,6 +215,8 @@ Example:
 INSERT
 --------------
 
+*(Currently not supported.)*
+
 .. parsed-literal::
    INSERT INTO table_name ( column name [, column name ...]) [ VALUES ... | (SELECT ...)];
 
@@ -228,6 +230,8 @@ Example:
 --------------
 UPDATE
 --------------
+
+*(Currently not supported.)*
 
 .. parsed-literal::
    UPDATE table_name SET object_column EQUALS update_source [WHERE search_condition];
