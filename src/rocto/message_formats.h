@@ -133,6 +133,12 @@ typedef struct __attribute__((packed)) {
 	unsigned int length;
 } CloseComplete;
 
+// F
+typedef struct __attribute__((packed)) {
+	unsigned int length;
+	int request_code;
+} SSLRequest;
+
 // B
 typedef struct __attribute__((packed)) {
   char *command_tag;
