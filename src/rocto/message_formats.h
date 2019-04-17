@@ -124,6 +124,12 @@ typedef struct {
 } StartupMessageParm;
 
 // F
+typedef struct __attribute__((packed)) {
+	unsigned int length;
+	int request_code;
+} SSLRequest;
+
+// F
 // This message is a special case; it's two hard-coded integers, followed by a series of
 //  string => string mappings
 typedef struct __attribute__((packed)) {

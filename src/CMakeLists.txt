@@ -156,6 +156,7 @@ add_library(librocto OBJECT
   default_octo_conf.h
   rocto/read_bind.c
   rocto/read_startup_message.c
+  rocto/read_ssl_request.c
   rocto/read_query.c
   rocto/read_parse.c
   rocto/read_execute.c
