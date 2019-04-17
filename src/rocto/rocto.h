@@ -68,6 +68,7 @@ Describe *read_describe(BaseMessage *message, ErrorResponse **err);
 
 // This is a special case because it must read more from the buffer
 StartupMessage *read_startup_message(RoctoSession *session, char *data, int data_length, ErrorResponse **err);
+SSLRequest *read_ssl_request(RoctoSession *session, char *data, int data_length, ErrorResponse **err);
 
 // handle_* messages respond to a message of a given type, using send_message if needed
 //  and returns 0 if the exchange is a "success", or non-zero if there was a problem
