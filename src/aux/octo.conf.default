@@ -14,7 +14,7 @@ rocto = {
   port = 1337
   // Authentication methods; supported options are "md5"
   authentication_method = "md5"
-  ssl_cert_file = "/home/jon/YDBOcto/build/cert.key"
+  ssl_cert_file = "/home/jon/YDBOcto/build/cert.crt"
   ssl_key_file = "/home/jon/YDBOcto/build/key.key"
   ssl_on = true
 }
