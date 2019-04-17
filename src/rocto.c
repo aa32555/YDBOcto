@@ -24,6 +24,9 @@
 #include <assert.h>
 #include <arpa/inet.h>
 
+#include <openssl/ssl.h>
+#include <openssl/conf.h>
+
 #include "octo.h"
 #include "rocto/rocto.h"
 #include "rocto/message_formats.h"
@@ -32,6 +35,9 @@
 int main(int argc, char **argv) {
 	BaseMessage *base_message;
 	StartupMessage *startup_message;
+	SSLRequest *ssl_request;
+	SSL_CTX *ossl_context;
+	SSL *ossl_connection;
 	ErrorResponse *err;
 	AuthenticationMD5Password *md5auth;
 	AuthenticationOk *authok;
@@ -98,11 +104,52 @@ int main(int argc, char **argv) {
 		// Establish the connection first
 		session.session_id = NULL;
 		read_bytes(&session, buffer, MAX_STR_CONST, sizeof(int) * 2);
-		startup_message = read_startup_message(&session, buffer, sizeof(int) * 2, &err);
-		if(startup_message == NULL) {
-			send_message(&session, (BaseMessage*)(&err->type));
-			free(err);
-			break;
+		// Attempt SSL connection, if configured
+		if (0 == config->rocto_config.ssl_on) {
+			ssl_request = NULL;
+		} else {
+			ssl_request = read_ssl_request(&session, buffer, sizeof(int) * 2, &err);
+		}
+		if (NULL != ssl_request) {
+			// Initialize OpenSSL
+			OPENSSL_init_ssl();
+			CONF_modules_load_file(NULL, NULL, 0);
+			// Initialize SSL context, load certs/keys
+			ossl_context = SSL_CTX_new(TLS_server_method());
+			SSL_CTX_set_options(ossl_context);
+			result = SSL_use_certificate_chain_file(ossl_context, config->rocto_config.ssl_cert_file);
+			if (result != 1) {
+				WARNING(ERR_ROCTO_OSSL_CERT_LOAD, config->rocto_config.ssl_cert_file);
+				break;
+			}
+			result = SSL_use_PrivateKey_file(ossl_context, config->rocto_config.ssl_key_file, SSL_FILETYPE_PEM);
+			if (result != 1) {
+				WARNING(ERR_ROCTO_OSSL_KEY_LOAD, config->rocto_config.ssl_cert_key);
+				break;
+			}
+			// Set up SSL connection
+			ossl_connection = SSL_new(ossl_context);
+			if (NULL == ossl_connection) {
+				WARNING(ERR_ROCTO_OSSL_CONN_FAILED);
+				break;
+			}
+			SSL_set_fd(ossl_connection, cfd);
+			ossl_err = SSL_accept(cfd);
+			if (0 >= ssl_err) {
+				WARNING(ERR_ROCTO_OSSL_HANDSHAKE_FAILED);
+				SSL_shutdown(ossl_connection);
+				SSL_free(ossl_connection);
+				break;
+			}
+		}
+		else {
+			// Attempt unencrypted connection if SSL not requested
+			startup_message = read_startup_message(&session, buffer, sizeof(int) * 2, &err);
+			if(startup_message == NULL) {
+				send_message(&session, (BaseMessage*)(&err->type));
+				free(err);
+				break;
+			}
 		}
 		// Pretend to require md5 authentication
 		md5auth = make_authentication_md5_password();

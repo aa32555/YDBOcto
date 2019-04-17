@@ -258,6 +258,18 @@ int octo_init(int argc, char **argv, int scan_tables) {
 			== CONFIG_FALSE) {
 		FATAL(ERR_BAD_CONFIG, "rocto.port");
 	}
+	if(config_lookup_string(config_file, "rocto.ssl_cert_file", &config->rocto_config.ssl_cert_file)
+			== CONFIG_FALSE) {
+		FATAL(ERR_BAD_CONFIG, "rocto.ssl_cert_file");
+	}
+	if(config_lookup_string(config_file, "rocto.ssl_key_file", &config->rocto_config.ssl_key_file)
+			== CONFIG_FALSE) {
+		FATAL(ERR_BAD_CONFIG, "rocto.ssl_key_file");
+	}
+	if(config_lookup_bool(config_file, "rocto.ssl_on", &config->rocto_config.ssl_on)
+			== CONFIG_FALSE) {
+		FATAL(ERR_BAD_CONFIG, "rocto.ssl_on");
+	}
 
 	// Read in YDB settings
 	ydb_settings = config_lookup(config_file, "yottadb");
