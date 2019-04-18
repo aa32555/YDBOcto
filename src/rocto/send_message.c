@@ -18,6 +18,7 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <openssl/ssl.h>
 
 // Used to convert between network and host endian
 #include <arpa/inet.h>
@@ -29,15 +30,41 @@ int send_message(RoctoSession *session, BaseMessage *message) {
 	int result;
 
 	TRACE(ERR_ENTERING_FUNCTION, "send_message");
-
-	// +1 for the message format flag
 	TRACE(ERR_SEND_MESSAGE, message->type, ntohl(message->length));
-	result = send(session->connection_fd, (char*)message, ntohl(message->length) + 1, 0);
-	if(result < 0) {
-		if(errno == ECONNRESET)
+
+	// +1 for the message type flag
+	if (session->ssl_active) {
+		result = SSL_write(session->ossl_connection, (char*)message, ntohl(message->length) + 1);
+		if (result <= 0 ) {
+			ossl_error = SSL_get_error(session->ossl_connection, result);
+			// Using blocking I/O - this error should never happen
+			if (ossl_error == SSL_ERROR_WANT_WRITE) {
+				ossl_error_code = ERR_peek_last_error();
+				err = ERR_error_string(ossl_error_code, err);
+				FATAL(ERR_ROCTO_OSSL_WRITE_FAILED, err);
+			}
+			if (ossl_error == SSL_ERROR_SYSCALL) {
+				if(errno == ECONNRESET)
+					return 1;
+				ossl_error_code = ERR_peek_last_error();
+				err = ERR_error_string(ossl_error_code, err);
+				FATAL(ERR_SYSCALL, "unknown (OpenSSL)", errno, strerror(errno));
+			}
+			if (ossl_error == SSL_ERROR_SSL) {
+				ossl_error_code = ERR_peek_last_error();
+				err = ERR_error_string(ossl_error_code, err);
+				FATAL(ERR_ROCTO_OSSL_WRITE_FAILED, err);
+			}
 			return 1;
-		FATAL(ERR_SYSCALL, "send", errno, strerror(errno));
-		return 1;
+		}
+	} else {
+		result = send(session->connection_fd, (char*)message, ntohl(message->length) + 1, 0);
+		if(result < 0) {
+			if(errno == ECONNRESET)
+				return 1;
+			FATAL(ERR_SYSCALL, "send", errno, strerror(errno));
+			return 1;
+		}
 	}
 	return 0;
 }
