@@ -23,6 +23,9 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 // Used to convert between network and host endian
 #include <arpa/inet.h>
 
@@ -30,7 +33,9 @@
 #include "message_formats.h"
 
 int read_bytes(RoctoSession *session, char *buffer, int buffer_size, int bytes_to_read) {
-	int read_so_far = 0, read_now = 0;
+	int read_so_far = 0, read_now = 0, ossl_error = 0;
+	unsigned long ossl_error_code = 0;
+	char *err = NULL;
 
 	if(bytes_to_read > buffer_size) {
 		WARNING(ERR_READ_TOO_LARGE, bytes_to_read, buffer_size);
@@ -40,20 +45,55 @@ int read_bytes(RoctoSession *session, char *buffer, int buffer_size, int bytes_t
 		return 1;
 	}
 
-	while(read_so_far < bytes_to_read) {
-		read_now = recv(session->connection_fd, &buffer[read_so_far],
-				bytes_to_read - read_so_far, 0);
-		if(read_now < 0) {
-			if(errno == EINTR)
-				continue;
-			WARNING(ERR_SYSCALL, "read", errno, strerror(errno));
-			return 1;
-		} else if(read_now == 0) {
-			// This means the socket was cleanly closed
-			return 1;
+	if (session->ssl_active) {
+		while(read_so_far < bytes_to_read) {
+			read_so_far = SSL_read(session->ossl_connection, &buffer[read_so_far],
+					bytes_to_read - read_so_far);
+			if(read_so_far <= 0) {
+				ossl_error = SSL_get_error(session->ossl_connection, read_so_far);
+				if (ossl_error == SSL_ERROR_ZERO_RETURN) {
+					ossl_error_code = ERR_peek_last_error();
+					err = ERR_error_string(ossl_error_code, err);
+					WARNING(ERR_ROCTO_OSSL_READ_FAILED, err);
+				}
+				// Using blocking I/O - all bytes should be read
+				if (ossl_error == SSL_ERROR_WANT_READ) {
+					if(errno == EINTR)
+						continue;
+					ossl_error_code = ERR_peek_last_error();
+					err = ERR_error_string(ossl_error_code, err);
+					WARNING(ERR_ROCTO_OSSL_READ_FAILED, err);
+				}
+				if (ossl_error == SSL_ERROR_SYSCALL) {
+					ossl_error_code = ERR_peek_last_error();
+					err = ERR_error_string(ossl_error_code, err);
+					FATAL(ERR_SYSCALL, "unknown (OpenSSL)", errno, strerror(errno));
+				}
+				if (ossl_error == SSL_ERROR_SSL) {
+					ossl_error_code = ERR_peek_last_error();
+					err = ERR_error_string(ossl_error_code, err);
+					FATAL(ERR_ROCTO_OSSL_READ_FAILED, err);
+				}
+				return 1;
+			}
+			read_so_far += read_now;
 		}
-		read_so_far += read_now;
-	};
+	} else {
+		while(read_so_far < bytes_to_read) {
+			read_now = recv(session->connection_fd, &buffer[read_so_far],
+					bytes_to_read - read_so_far, 0);
+			if(read_now < 0) {
+				if(errno == EINTR)
+					continue;
+				WARNING(ERR_SYSCALL, "read", errno, strerror(errno));
+				return 1;
+			} else if(read_now == 0) {
+				// This means the socket was cleanly closed
+				return 1;
+			}
+			read_so_far += read_now;
+		}
+	}
 
 	return 0;
 }
