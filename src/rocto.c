@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
 	SSLRequest *ssl_request;
 	SSL_CTX *ossl_context;
 	SSL *ossl_connection;
+	int ossl_err;
 	ErrorResponse *err;
 	AuthenticationMD5Password *md5auth;
 	AuthenticationOk *authok;
@@ -101,6 +102,7 @@ int main(int argc, char **argv) {
 		// First we read the startup message, which has a special format
 		// 2x32-bit ints
 		session.connection_fd = cfd;
+		session.ssl_active = FALSE;
 		// Establish the connection first
 		session.session_id = NULL;
 		read_bytes(&session, buffer, MAX_STR_CONST, sizeof(int) * 2);
@@ -112,19 +114,21 @@ int main(int argc, char **argv) {
 		}
 		if (NULL != ssl_request) {
 			// Initialize OpenSSL
-			OPENSSL_init_ssl();
+			OPENSSL_init_ssl(OPENSSL_INIT_LOAD_SSL_STRINGS, NULL);
 			CONF_modules_load_file(NULL, NULL, 0);
 			// Initialize SSL context, load certs/keys
 			ossl_context = SSL_CTX_new(TLS_server_method());
-			SSL_CTX_set_options(ossl_context);
-			result = SSL_use_certificate_chain_file(ossl_context, config->rocto_config.ssl_cert_file);
+			SSL_CTX_set_options(ossl_context, SSL_OP_SINGLE_DH_USE);	// Second arg is dummy option - fix later
+			// Sets certificate for ALL connections in context - for single connection use "SSL_use_certificate..."
+			result = SSL_CTX_use_certificate_chain_file(ossl_context, config->rocto_config.ssl_cert_file);
 			if (result != 1) {
 				WARNING(ERR_ROCTO_OSSL_CERT_LOAD, config->rocto_config.ssl_cert_file);
 				break;
 			}
-			result = SSL_use_PrivateKey_file(ossl_context, config->rocto_config.ssl_key_file, SSL_FILETYPE_PEM);
+			// Sets key for ALL connections in context - for single connection use "SSL_use_PrivateKey_file"
+			result = SSL_CTX_use_PrivateKey_file(ossl_context, config->rocto_config.ssl_key_file, SSL_FILETYPE_PEM);
 			if (result != 1) {
-				WARNING(ERR_ROCTO_OSSL_KEY_LOAD, config->rocto_config.ssl_cert_key);
+				WARNING(ERR_ROCTO_OSSL_KEY_LOAD, config->rocto_config.ssl_key_file);
 				break;
 			}
 			// Set up SSL connection
@@ -134,13 +138,14 @@ int main(int argc, char **argv) {
 				break;
 			}
 			SSL_set_fd(ossl_connection, cfd);
-			ossl_err = SSL_accept(cfd);
-			if (0 >= ssl_err) {
+			ossl_err = SSL_accept(ossl_connection);
+			if (0 >= ossl_err) {
 				WARNING(ERR_ROCTO_OSSL_HANDSHAKE_FAILED);
 				SSL_shutdown(ossl_connection);
 				SSL_free(ossl_connection);
 				break;
 			}
+			session.ssl_active = TRUE;
 		}
 		else {
 			// Attempt unencrypted connection if SSL not requested

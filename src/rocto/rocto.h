@@ -16,6 +16,7 @@
 #ifndef OCTOD_H
 #define OCTOD_H
 
+#include <openssl/ssl.h>
 
 #include <libyottadb.h>
 
@@ -25,6 +26,8 @@
 typedef struct {
 	int connection_fd;
 	ydb_buffer_t *session_id;
+	int ssl_active;
+	SSL *ossl_connection;
 } RoctoSession;
 
 typedef struct {
