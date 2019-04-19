@@ -49,6 +49,8 @@ ADD_UNIT_TEST_WITH_OPTIONS(test_make_authentication_ok src/rocto/test_make_authe
 ADD_UNIT_TEST_WITH_OPTIONS(test_read_parse src/rocto/test_read_parse "")
 set(functions_to_wrap recv SSL_read SSL_get_error ERR_peek_last_error ERR_error_string octo_log)
 ADD_UNIT_TEST_WITH_OPTIONS(test_read_bytes src/rocto/test_read_bytes "${functions_to_wrap}")
+set(functions_to_wrap send SSL_write SSL_get_error ERR_peek_last_error ERR_error_string octo_log)
+ADD_UNIT_TEST_WITH_OPTIONS(test_send_message src/rocto/test_send_message "${functions_to_wrap}")
 ADD_UNIT_TEST_WITH_OPTIONS(test_read_sync src/rocto/test_read_sync "")
 ADD_UNIT_TEST_WITH_OPTIONS(test_read_execute src/rocto/test_read_execute "")
 ADD_UNIT_TEST_WITH_OPTIONS(test_make_parse_complete src/rocto/test_make_parse_complete "")
