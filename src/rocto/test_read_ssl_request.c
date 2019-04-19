@@ -31,7 +31,7 @@
 static void test_valid_input(void **state) {
 	// Test a single SSLRequest message
 	// most significant 16 bits: 1234, least significant 16 bits: 5679
-	unsigned int request_code = 0x12345679;
+	unsigned int request_code = 80877103;
 	unsigned int message_length = sizeof(SSLRequest);
 	ErrorResponse *err = NULL;
 
@@ -56,7 +56,7 @@ static void test_valid_input(void **state) {
 static void test_invalid_length(void **state) {
 	// Test a single SSLRequest message
 	// most significant 16 bits: 1234, least significant 16 bits: 5679
-	unsigned int request_code = 0x12345679;
+	unsigned int request_code = 80877103;
 	unsigned int message_length = 9;
 	ErrorResponse *err = NULL;
 	ErrorBuffer err_buff;

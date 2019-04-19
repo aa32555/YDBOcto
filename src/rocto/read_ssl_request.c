@@ -31,6 +31,10 @@ SSLRequest *read_ssl_request(RoctoSession *session, char *data, int data_length,
 	err_buff.offset = 0;
 	// Length plus request code
 	unsigned int expected_length = sizeof(unsigned int) + sizeof(int);
+	// Request code format:
+	// 	decimal value of most significant 16 bits:  1234
+	// 	decimal value of least significant 16 bits: 5679
+	int expected_request_code = 80877103;
 
 	// Read length and protocol type
 	ret = (SSLRequest*)malloc(sizeof(SSLRequest));
@@ -51,10 +55,7 @@ SSLRequest *read_ssl_request(RoctoSession *session, char *data, int data_length,
 		return NULL;
 	}
 
-	// Request code format:
-	// 	most significant 16 bits:  1234
-	// 	least significant 16 bits: 5679
-	if(ret->request_code != 0x12345679) {
+	if (expected_request_code != ret->request_code) {
 		error_message = format_error_string(&err_buff, ERR_ROCTO_INVALID_INT_VALUE,
 				"SSLRequest", "request code", ret->request_code, "80877103");
 		*err = make_error_response(PSQL_Error_FATAL,
