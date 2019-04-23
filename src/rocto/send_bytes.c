@@ -28,16 +28,36 @@
 #include "rocto.h"
 #include "message_formats.h"
 
-int send_message(RoctoSession *session, BaseMessage *message) {
+int send_bytes(RoctoSession *session, char *message, size_t length) {
 	int result = 0, ossl_error = 0;
 	unsigned long ossl_error_code = 0;
 	char *err = NULL;
 
-	TRACE(ERR_ENTERING_FUNCTION, "send_message");
-	TRACE(ERR_SEND_MESSAGE, message->type, ntohl(message->length));
-
-
-	// +1 for message type indicator
-	result = send_bytes(session, (char*)message, ntohl(message->length) + 1);
-	return result;
+	if (session->ssl_active) {
+		result = SSL_write(session->ossl_connection, message, length);
+		if (result <= 0 ) {
+			ossl_error = SSL_get_error(session->ossl_connection, result);
+			ossl_error_code = ERR_peek_last_error();
+			err = ERR_error_string(ossl_error_code, err);
+			if(errno == ECONNRESET) {
+				return 1;
+			}
+			else if (ossl_error == SSL_ERROR_SYSCALL) {
+				FATAL(ERR_SYSCALL, "unknown (OpenSSL)", errno, strerror(errno));
+			}
+			else {
+				FATAL(ERR_ROCTO_OSSL_WRITE_FAILED, err);
+			}
+			return 1;
+		}
+	} else {
+		result = send(session->connection_fd, message, length, 0);
+		if(result < 0) {
+			if(errno == ECONNRESET)
+				return 1;
+			FATAL(ERR_SYSCALL, "send", errno, strerror(errno));
+			return 1;
+		}
+	}
+	return 0;
 }
