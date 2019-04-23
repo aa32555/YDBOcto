@@ -47,33 +47,21 @@ int read_bytes(RoctoSession *session, char *buffer, int buffer_size, int bytes_t
 
 	if (session->ssl_active) {
 		while(read_so_far < bytes_to_read) {
-			read_so_far = SSL_read(session->ossl_connection, &buffer[read_so_far],
+			read_now = SSL_read(session->ossl_connection, &buffer[read_so_far],
 					bytes_to_read - read_so_far);
-			if(read_so_far <= 0) {
+			if(read_now <= 0) {
 				ossl_error = SSL_get_error(session->ossl_connection, read_so_far);
-				if (ossl_error == SSL_ERROR_ZERO_RETURN) {
-					ossl_error_code = ERR_peek_last_error();
-					err = ERR_error_string(ossl_error_code, err);
-					WARNING(ERR_ROCTO_OSSL_READ_FAILED, err);
-				}
-				// Using blocking I/O - all bytes should be read
-				if (ossl_error == SSL_ERROR_WANT_READ) {
-					if(errno == EINTR)
-						continue;
-					ossl_error_code = ERR_peek_last_error();
-					err = ERR_error_string(ossl_error_code, err);
-					WARNING(ERR_ROCTO_OSSL_READ_FAILED, err);
-				}
+				ossl_error_code = ERR_peek_last_error();
+				err = ERR_error_string(ossl_error_code, err);
+				if(errno == EINTR)
+					continue;
 				if (ossl_error == SSL_ERROR_SYSCALL) {
-					ossl_error_code = ERR_peek_last_error();
-					err = ERR_error_string(ossl_error_code, err);
 					FATAL(ERR_SYSCALL, "unknown (OpenSSL)", errno, strerror(errno));
 				}
 				if (ossl_error == SSL_ERROR_SSL) {
-					ossl_error_code = ERR_peek_last_error();
-					err = ERR_error_string(ossl_error_code, err);
 					FATAL(ERR_ROCTO_OSSL_READ_FAILED, err);
 				}
+				WARNING(ERR_ROCTO_OSSL_READ_FAILED, err);
 				return 1;
 			}
 			read_so_far += read_now;

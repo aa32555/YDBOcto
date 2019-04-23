@@ -182,6 +182,7 @@ add_library(librocto OBJECT
   rocto/send_message.c
   rocto/read_message.c
   rocto/read_bytes.c
+  rocto/send_bytes.c
   rocto/rocto_main_loop.c
   rocto/free_error_response.c
   rocto/free_data_row.c

@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
 	memset(&addressv6, 0, sizeof(struct sockaddr_in6));
 	address = (struct sockaddr_in *)(&addressv6);
 	address->sin_family = AF_INET;
+	addrlen = sizeof(struct sockaddr_in6);
 	if(inet_pton(AF_INET, config->rocto_config.address, &address->sin_addr) != 1) {
 		addressv6.sin6_family = AF_INET6;
 		if(inet_pton(AF_INET6, config->rocto_config.address, &addressv6.sin6_addr) != 1) {
@@ -71,8 +72,7 @@ int main(int argc, char **argv) {
 	}
 	address->sin_port = htons(config->rocto_config.port);
 
-	if((sfd = socket(address->sin_family, SOCK_STREAM, 0)) == -1)
-	{
+	if((sfd = socket(address->sin_family, SOCK_STREAM, 0)) == -1) {
 		FATAL(ERR_SYSCALL, "socket", errno, strerror(errno));
 	}
 
@@ -92,6 +92,7 @@ int main(int argc, char **argv) {
 		if(listen(sfd, 3) < 0) {
 			FATAL(ERR_SYSCALL, "listen", errno, strerror(errno));
 		}
+		// printf("\nsfd: %d\naddress: %p\naddrlen: %lu\n", sfd, &address, addrlen);
 		if((cfd = accept(sfd, (struct sockaddr *)&address, &addrlen)) < 0) {
 			FATAL(ERR_SYSCALL, "accept", errno, strerror(errno));
 		}
@@ -113,6 +114,13 @@ int main(int argc, char **argv) {
 			ssl_request = read_ssl_request(&session, buffer, sizeof(int) * 2, &err);
 		}
 		if (NULL != ssl_request) {
+			result = send_bytes(&session, "S", sizeof(char));
+			if (0 != result) {
+				WARNING(ERR_ROCTO_SEND_FAILED, "failed to send SSL confirmation byte");
+				SSL_shutdown(ossl_connection);
+				SSL_free(ossl_connection);
+				break;
+			}
 			// Initialize OpenSSL
 			OPENSSL_init_ssl(OPENSSL_INIT_LOAD_SSL_STRINGS, NULL);
 			CONF_modules_load_file(NULL, NULL, 0);
@@ -133,11 +141,13 @@ int main(int argc, char **argv) {
 			}
 			// Set up SSL connection
 			ossl_connection = SSL_new(ossl_context);
+			session.ossl_connection = ossl_connection;
 			if (NULL == ossl_connection) {
 				WARNING(ERR_ROCTO_OSSL_CONN_FAILED);
 				break;
 			}
 			SSL_set_fd(ossl_connection, cfd);
+			// Send confirmation of SSL request
 			ossl_err = SSL_accept(ossl_connection);
 			if (0 >= ossl_err) {
 				WARNING(ERR_ROCTO_OSSL_HANDSHAKE_FAILED);
@@ -146,15 +156,14 @@ int main(int argc, char **argv) {
 				break;
 			}
 			session.ssl_active = TRUE;
+			read_bytes(&session, buffer, MAX_STR_CONST, sizeof(int) * 2);
 		}
-		else {
-			// Attempt unencrypted connection if SSL not requested
-			startup_message = read_startup_message(&session, buffer, sizeof(int) * 2, &err);
-			if(startup_message == NULL) {
-				send_message(&session, (BaseMessage*)(&err->type));
-				free(err);
-				break;
-			}
+		// Attempt unencrypted connection if SSL not requested
+		startup_message = read_startup_message(&session, buffer, sizeof(int) * 2, &err);
+		if(startup_message == NULL) {
+			send_message(&session, (BaseMessage*)(&err->type));
+			free(err);
+			break;
 		}
 		// Pretend to require md5 authentication
 		md5auth = make_authentication_md5_password();

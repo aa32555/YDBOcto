@@ -37,6 +37,7 @@ typedef struct {
 } QueryResponseParms;
 
 int send_message(RoctoSession *session, BaseMessage *message);
+int send_bytes(RoctoSession *session, char *message, size_t length);
 BaseMessage *read_message(RoctoSession *session, char *buffer, int buffer_size);
 int read_bytes(RoctoSession *session, char *buffer, int buffer_size, int bytes_to_read);
 int rocto_main_loop(RoctoSession *session);
