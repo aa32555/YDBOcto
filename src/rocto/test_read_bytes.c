@@ -26,10 +26,9 @@
 // Used to convert between network and host endian
 #include <arpa/inet.h>
 
-#include <openssl/ssl.h>
-
 #include "rocto.h"
 #include "message_formats.h"
+#include "../gtmcrypt/gtm_tls_interface.h"
 
 int __wrap_recv(int *socfd, void *buf, size_t len, int flags) {
 	int expected_return = mock_type(int);
@@ -37,26 +36,19 @@ int __wrap_recv(int *socfd, void *buf, size_t len, int flags) {
 	return expected_return;
 }
 
-int __wrap_SSL_read(SSL *ossl_connection, void *buf, size_t len) {
+int __wrap_gtm_tls_recv(gtm_tls_socket_t  *tls_socket, void *buf, size_t len) {
 	int expected_return = mock_type(int);
 	errno = mock_type(int);
 	return expected_return;
 }
 
-unsigned long __wrap_SSL_get_error(const SSL *ossl_connection, int ret) {
+unsigned long __wrap_gtm_tls_get_error() {
 	int expected_return = mock_type(int);
 	return expected_return;
 }
 
-unsigned long __wrap_ERR_peek_last_error() {
+unsigned long __wrap_gtm_tls_errno() {
 	int expected_return = mock_type(int);
-	return expected_return;
-}
-
-char *__wrap_ERR_error_string(unsigned long error_code, char *buf) {
-	unsigned long expected_error_code = mock_type(unsigned long);
-	char *expected_return = mock_type(char *);
-	assert_int_equal(error_code, expected_error_code);
 	return expected_return;
 }
 

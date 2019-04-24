@@ -24,22 +24,22 @@
 #include <assert.h>
 #include <arpa/inet.h>
 
-#include <openssl/ssl.h>
-#include <openssl/conf.h>
-
 #include "octo.h"
 #include "rocto/rocto.h"
 #include "rocto/message_formats.h"
 #include "helpers.h"
+#include "rocto/gtmcrypt/gtm_tls_interface.h"
 
 int main(int argc, char **argv) {
 	BaseMessage *base_message;
 	StartupMessage *startup_message;
 	SSLRequest *ssl_request;
-	SSL_CTX *ossl_context;
-	SSL *ossl_connection;
-	int ossl_err;
+	gtm_tls_conn_info tls_connection;
+	gtm_tls_ctx_t *tls_context = NULL;
+	gtm_tls_socket_t *tls_socket = NULL;
+	int tls_errno;
 	ErrorResponse *err;
+	const char *err_str;
 	AuthenticationMD5Password *md5auth;
 	AuthenticationOk *authok;
 	ParameterStatus *parameter_status;
@@ -117,42 +117,73 @@ int main(int argc, char **argv) {
 			result = send_bytes(&session, "S", sizeof(char));
 			if (0 != result) {
 				WARNING(ERR_ROCTO_SEND_FAILED, "failed to send SSL confirmation byte");
-				SSL_shutdown(ossl_connection);
-				SSL_free(ossl_connection);
+				gtm_tls_socket_close(tls_socket);
+				gtm_tls_session_close(&tls_socket);
+				gtm_tls_fini(&tls_context);
 				break;
 			}
-			// Initialize OpenSSL
-			OPENSSL_init_ssl(OPENSSL_INIT_LOAD_SSL_STRINGS, NULL);
-			CONF_modules_load_file(NULL, NULL, 0);
-			// Initialize SSL context, load certs/keys
-			ossl_context = SSL_CTX_new(TLS_server_method());
-			SSL_CTX_set_options(ossl_context, SSL_OP_SINGLE_DH_USE);	// Second arg is dummy option - fix later
-			// Sets certificate for ALL connections in context - for single connection use "SSL_use_certificate..."
-			result = SSL_CTX_use_certificate_chain_file(ossl_context, config->rocto_config.ssl_cert_file);
-			if (result != 1) {
-				WARNING(ERR_ROCTO_OSSL_CERT_LOAD, config->rocto_config.ssl_cert_file);
+			// Initialize TLS context: load config, certs, keys, etc.
+			tls_context = gtm_tls_init(0x1, 0);
+			if (INVALID_TLS_CONTEXT == tls_context) {
+				tls_errno = gtm_tls_errno();
+				if (-1 == tls_errno) {
+					err_str = gtm_tls_get_error();
+					WARNING(ERR_ROCTO_TLS_INIT, err_str);
+				} else {
+					WARNING(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
+				}
 				break;
 			}
-			// Sets key for ALL connections in context - for single connection use "SSL_use_PrivateKey_file"
-			result = SSL_CTX_use_PrivateKey_file(ossl_context, config->rocto_config.ssl_key_file, SSL_FILETYPE_PEM);
-			if (result != 1) {
-				WARNING(ERR_ROCTO_OSSL_KEY_LOAD, config->rocto_config.ssl_key_file);
+			// Set up TLS socket
+			tls_socket = gtm_tls_socket(tls_context, tls_socket, cfd, "DEVELOPMENT", 0);
+			if (INVALID_TLS_SOCKET == tls_socket) {
+				tls_errno = gtm_tls_errno();
+				if (-1 == tls_errno) {
+					err_str = gtm_tls_get_error();
+					WARNING(ERR_ROCTO_TLS_SOCKET, err_str);
+				} else {
+					WARNING(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
+				}
 				break;
 			}
-			// Set up SSL connection
-			ossl_connection = SSL_new(ossl_context);
-			session.ossl_connection = ossl_connection;
-			if (NULL == ossl_connection) {
-				WARNING(ERR_ROCTO_OSSL_CONN_FAILED);
+			// Retrieve connection information
+			result = gtm_tls_get_conn_info(tls_socket, &tls_connection);
+			if (0 != result) {
+				if (-1 == result) {
+					tls_errno = gtm_tls_errno();
+					if (-1 == tls_errno) {
+						err_str = gtm_tls_get_error();
+						WARNING(ERR_ROCTO_TLS_CONNECTION, err_str);
+					} else {
+						WARNING(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
+					}
+				} else if (GTMTLS_WANT_READ) {
+					WARNING(ERR_ROCTO_TLS_WANT_READ);
+				} else if (GTMTLS_WANT_WRITE) {
+					WARNING(ERR_ROCTO_TLS_WANT_WRITE);
+				} else {
+					WARNING(ERR_ROCTO_TLS_UNKNOWN, "failed to accept incoming connection(s)");
+				}
 				break;
 			}
-			SSL_set_fd(ossl_connection, cfd);
-			// Send confirmation of SSL request
-			ossl_err = SSL_accept(ossl_connection);
-			if (0 >= ossl_err) {
-				WARNING(ERR_ROCTO_OSSL_HANDSHAKE_FAILED);
-				SSL_shutdown(ossl_connection);
-				SSL_free(ossl_connection);
+			// Accept incoming TLS connections
+			result = gtm_tls_accept(tls_socket);
+			if (0 != result) {
+				if (-1 == result) {
+					tls_errno = gtm_tls_errno();
+					if (-1 == tls_errno) {
+						err_str = gtm_tls_get_error();
+						WARNING(ERR_ROCTO_TLS_ACCEPT, err_str);
+					} else {
+						WARNING(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
+					}
+				} else if (GTMTLS_WANT_READ) {
+					WARNING(ERR_ROCTO_TLS_WANT_READ);
+				} else if (GTMTLS_WANT_WRITE) {
+					WARNING(ERR_ROCTO_TLS_WANT_WRITE);
+				} else {
+					WARNING(ERR_ROCTO_TLS_UNKNOWN, "failed to accept incoming connection(s)");
+				}
 				break;
 			}
 			session.ssl_active = TRUE;

@@ -16,18 +16,17 @@
 #ifndef OCTOD_H
 #define OCTOD_H
 
-#include <openssl/ssl.h>
-
 #include <libyottadb.h>
 
 #include "physical_plan.h"
 #include "message_formats.h"
+#include "gtmcrypt/gtm_tls_interface.h"
 
 typedef struct {
 	int connection_fd;
 	ydb_buffer_t *session_id;
 	int ssl_active;
-	SSL *ossl_connection;
+	gtm_tls_socket_t *tls_socket;
 } RoctoSession;
 
 typedef struct {

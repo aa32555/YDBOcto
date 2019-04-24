@@ -23,19 +23,16 @@
 #include <errno.h>
 #include <assert.h>
 
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-
 // Used to convert between network and host endian
 #include <arpa/inet.h>
 
 #include "rocto.h"
 #include "message_formats.h"
+#include "gtmcrypt/gtm_tls_interface.h"
 
 int read_bytes(RoctoSession *session, char *buffer, int buffer_size, int bytes_to_read) {
-	int read_so_far = 0, read_now = 0, ossl_error = 0;
-	unsigned long ossl_error_code = 0;
-	char *err = NULL;
+	int read_so_far = 0, read_now = 0, tls_errno = 0;
+	char *err_str = NULL;
 
 	if(bytes_to_read > buffer_size) {
 		WARNING(ERR_READ_TOO_LARGE, bytes_to_read, buffer_size);
@@ -47,21 +44,22 @@ int read_bytes(RoctoSession *session, char *buffer, int buffer_size, int bytes_t
 
 	if (session->ssl_active) {
 		while(read_so_far < bytes_to_read) {
-			read_now = SSL_read(session->ossl_connection, &buffer[read_so_far],
+			read_now = gtm_tls_recv(session->tls_socket, &buffer[read_so_far],
 					bytes_to_read - read_so_far);
 			if(read_now <= 0) {
-				ossl_error = SSL_get_error(session->ossl_connection, read_so_far);
-				ossl_error_code = ERR_peek_last_error();
-				err = ERR_error_string(ossl_error_code, err);
-				if(errno == EINTR)
-					continue;
-				if (ossl_error == SSL_ERROR_SYSCALL) {
-					FATAL(ERR_SYSCALL, "unknown (OpenSSL)", errno, strerror(errno));
+				if (-1 == read_now) {
+					tls_errno = gtm_tls_errno();
+					if(tls_errno == EINTR) {
+						continue;
+					}
+					else if (-1 == tls_errno) {
+						err_str = gtm_tls_get_error();
+						FATAL(ERR_ROCTO_TLS_READ_FAILED, err_str);
+					}
+					else {
+						FATAL(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
+					}
 				}
-				if (ossl_error == SSL_ERROR_SSL) {
-					FATAL(ERR_ROCTO_OSSL_READ_FAILED, err);
-				}
-				WARNING(ERR_ROCTO_OSSL_READ_FAILED, err);
 				return 1;
 			}
 			read_so_far += read_now;
