@@ -19,34 +19,32 @@
 #include <errno.h>
 #include <assert.h>
 
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-
 // Used to convert between network and host endian
 #include <arpa/inet.h>
 
 #include "rocto.h"
 #include "message_formats.h"
+#include "gtmcrypt/gtm_tls_interface.h"
 
 int send_bytes(RoctoSession *session, char *message, size_t length) {
-	int result = 0, ossl_error = 0;
-	unsigned long ossl_error_code = 0;
-	char *err = NULL;
+	int result = 0, tls_errno = 0;
+	char *err_str = NULL;
 
 	if (session->ssl_active) {
-		result = SSL_write(session->ossl_connection, message, length);
+		result = gtm_tls_send(session->tls_socket, message, length);
 		if (result <= 0 ) {
-			ossl_error = SSL_get_error(session->ossl_connection, result);
-			ossl_error_code = ERR_peek_last_error();
-			err = ERR_error_string(ossl_error_code, err);
-			if(errno == ECONNRESET) {
-				return 1;
-			}
-			else if (ossl_error == SSL_ERROR_SYSCALL) {
-				FATAL(ERR_SYSCALL, "unknown (OpenSSL)", errno, strerror(errno));
-			}
-			else {
-				FATAL(ERR_ROCTO_OSSL_WRITE_FAILED, err);
+			if (-1 == result) {
+				tls_errno = gtm_tls_errno();
+				if(tls_errno == ECONNRESET) {
+					return 1;
+				}
+				else if (-1 == tls_errno) {
+					err_str = gtm_tls_get_error();
+					FATAL(ERR_ROCTO_TLS_WRITE_FAILED, err_str);
+				}
+				else {
+					FATAL(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
+				}
 			}
 			return 1;
 		}
