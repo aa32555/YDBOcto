@@ -28,11 +28,11 @@
 
 #include "rocto.h"
 #include "message_formats.h"
-#include "gtmcrypt/gtm_tls_interface.h"
+#include "../gtmcrypt/gtm_tls_interface.h"
 
 int read_bytes(RoctoSession *session, char *buffer, int buffer_size, int bytes_to_read) {
 	int read_so_far = 0, read_now = 0, tls_errno = 0;
-	char *err_str = NULL;
+	const char *err_str = NULL;
 
 	if(bytes_to_read > buffer_size) {
 		WARNING(ERR_READ_TOO_LARGE, bytes_to_read, buffer_size);

@@ -51,9 +51,6 @@ include_directories("${OPENSSL_INCLUDE_DIR}")
 include_directories("${CONFIG_INCLUDE_DIR}")
 link_directories("${YOTTADB_INCLUDE_DIRS}")
 
-include_directories("/usr/library/R124/pro/plugin")
-link_directories("/usr/library/R124/pro/plugin")
-
 add_library(libhelpers OBJECT
   helpers/set.c
   helpers/get.c
@@ -152,11 +149,13 @@ add_executable(octo
   $<TARGET_OBJECTS:libhelpers>
 )
 
-add_library(gtmtls SHARED IMPORTED)
+# include_directories("/usr/library/R124/pro/plugin")
+# link_directories("/usr/library/R124/pro/plugin")
+
+add_library(gtmtls SHARED IMPORTED GLOBAL)
 set_target_properties(gtmtls PROPERTIES
   IMPORTED_LOCATION "/usr/library/R124/pro/plugin/libgtmtls.so"
-  INTERFACE_INCLUDE_DIRECTORIES "/usr/library/R124/pro/plugin/"
-  )
+)
 
 add_library(librocto OBJECT
   default_octo_conf.h
@@ -208,9 +207,10 @@ add_library(librocto OBJECT
   rocto/read_row_description.c
 )
 
+target_link_libraries(librocto gtmtls)
+
 add_executable(rocto
   rocto.c
-  gtmtls
   $<TARGET_OBJECTS:librocto>
   $<TARGET_OBJECTS:libocto>
   $<TARGET_OBJECTS:libhelpers>
@@ -274,7 +274,7 @@ set_property(TARGET octo PROPERTY C_STANDARD 11)
 set_property(TARGET rocto PROPERTY C_STANDARD 11)
 
 target_link_libraries(octo ${YOTTADB_LIBRARIES} ${Readline_LIBRARY} ${CONFIG_LIBRARY} ${OPENSSL_LIBRARIES})
-target_link_libraries(rocto gtmtls ${YOTTADB_LIBRARIES} ${Readline_LIBRARY} ${CONFIG_LIBRARY} ${OPENSSL_LIBRARIES})
+target_link_libraries(rocto ${YOTTADB_LIBRARIES} ${Readline_LIBRARY} ${CONFIG_LIBRARY} ${OPENSSL_LIBRARIES} gtmtls)
 target_link_libraries(pparser ${YOTTADB_LIBRARIES} ${Readline_LIBRARY} ${CONFIG_LIBRARY} ${OPENSSL_LIBRARIES})
 
 enable_testing()

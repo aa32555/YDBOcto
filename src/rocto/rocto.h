@@ -20,7 +20,7 @@
 
 #include "physical_plan.h"
 #include "message_formats.h"
-#include "gtmcrypt/gtm_tls_interface.h"
+#include "../gtmcrypt/gtm_tls_interface.h"
 
 typedef struct {
 	int connection_fd;
