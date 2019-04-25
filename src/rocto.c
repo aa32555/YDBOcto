@@ -28,7 +28,7 @@
 #include "rocto/rocto.h"
 #include "rocto/message_formats.h"
 #include "helpers.h"
-#include "rocto/gtmcrypt/gtm_tls_interface.h"
+#include "gtmcrypt/gtm_tls_interface.h"
 
 int main(int argc, char **argv) {
 	BaseMessage *base_message;
@@ -126,11 +126,12 @@ int main(int argc, char **argv) {
 			tls_context = gtm_tls_init(0x1, 0);
 			if (INVALID_TLS_CONTEXT == tls_context) {
 				tls_errno = gtm_tls_errno();
-				if (-1 == tls_errno) {
+				if (0 < tls_errno) {
+					err_str = gtm_tls_get_error();
+					WARNING(ERR_SYSCALL, err_str, tls_errno, strerror(tls_errno));
+				} else {
 					err_str = gtm_tls_get_error();
 					WARNING(ERR_ROCTO_TLS_INIT, err_str);
-				} else {
-					WARNING(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
 				}
 				break;
 			}
@@ -138,11 +139,12 @@ int main(int argc, char **argv) {
 			tls_socket = gtm_tls_socket(tls_context, tls_socket, cfd, "DEVELOPMENT", 0);
 			if (INVALID_TLS_SOCKET == tls_socket) {
 				tls_errno = gtm_tls_errno();
-				if (-1 == tls_errno) {
+				if (0 < tls_errno) {
+					err_str = gtm_tls_get_error();
+					WARNING(ERR_SYSCALL, err_str, tls_errno, strerror(tls_errno));
+				} else {
 					err_str = gtm_tls_get_error();
 					WARNING(ERR_ROCTO_TLS_SOCKET, err_str);
-				} else {
-					WARNING(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
 				}
 				break;
 			}
@@ -151,11 +153,12 @@ int main(int argc, char **argv) {
 			if (0 != result) {
 				if (-1 == result) {
 					tls_errno = gtm_tls_errno();
-					if (-1 == tls_errno) {
+					if (0 < tls_errno) {
+						err_str = gtm_tls_get_error();
+						WARNING(ERR_SYSCALL, err_str, tls_errno, strerror(tls_errno));
+					} else {
 						err_str = gtm_tls_get_error();
 						WARNING(ERR_ROCTO_TLS_CONNECTION, err_str);
-					} else {
-						WARNING(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
 					}
 				} else if (GTMTLS_WANT_READ) {
 					WARNING(ERR_ROCTO_TLS_WANT_READ);

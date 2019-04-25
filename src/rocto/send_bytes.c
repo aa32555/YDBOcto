@@ -24,11 +24,11 @@
 
 #include "rocto.h"
 #include "message_formats.h"
-#include "gtmcrypt/gtm_tls_interface.h"
+#include "../gtmcrypt/gtm_tls_interface.h"
 
 int send_bytes(RoctoSession *session, char *message, size_t length) {
 	int result = 0, tls_errno = 0;
-	char *err_str = NULL;
+	const char *err_str = NULL;
 
 	if (session->ssl_active) {
 		result = gtm_tls_send(session->tls_socket, message, length);
