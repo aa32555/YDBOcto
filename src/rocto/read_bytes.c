@@ -28,7 +28,7 @@
 
 #include "rocto.h"
 #include "message_formats.h"
-#include "../gtmcrypt/gtm_tls_interface.h"
+// #include "../gtmcrypt/gtm_tls_interface.h"
 
 int read_bytes(RoctoSession *session, char *buffer, int buffer_size, int bytes_to_read) {
 	int read_so_far = 0, read_now = 0, tls_errno = 0;
@@ -47,20 +47,18 @@ int read_bytes(RoctoSession *session, char *buffer, int buffer_size, int bytes_t
 			read_now = gtm_tls_recv(session->tls_socket, &buffer[read_so_far],
 					bytes_to_read - read_so_far);
 			if(read_now <= 0) {
+				tls_errno = gtm_tls_errno();
+				err_str = gtm_tls_get_error();
 				if (-1 == read_now) {
-					tls_errno = gtm_tls_errno();
-					if(tls_errno == EINTR) {
+					if (tls_errno == EINTR) {
 						continue;
-					}
-					else if (-1 == tls_errno) {
-						err_str = gtm_tls_get_error();
-						FATAL(ERR_ROCTO_TLS_READ_FAILED, err_str);
-					}
-					else {
+					} else {
 						FATAL(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
 					}
+				} else {
+					FATAL(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
+					return 1;
 				}
-				return 1;
 			}
 			read_so_far += read_now;
 		}

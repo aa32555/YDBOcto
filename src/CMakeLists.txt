@@ -153,7 +153,7 @@ add_executable(octo
 
 add_library(gtmtls SHARED IMPORTED GLOBAL)
 set_target_properties(gtmtls PROPERTIES
-  IMPORTED_LOCATION "/usr/library/R124/pro/plugin/libgtmtls.so"
+  IMPORTED_LOCATION "/usr/library/V998_R124/dbg/plugin/libgtmtls.so"
 )
 
 add_library(librocto OBJECT
