@@ -81,12 +81,9 @@ int main(int argc, char **argv) {
 		FATAL(ERR_SYSCALL, "setsockopt", errno, strerror(errno));
 	}
 
-
-
 	if(bind(sfd, (struct sockaddr *)&addressv6, sizeof(addressv6)) < 0) {
 		FATAL(ERR_SYSCALL, "bind", errno, strerror(errno));
 	}
-
 
 	while (TRUE) {
 		if(listen(sfd, 3) < 0) {
@@ -97,9 +94,11 @@ int main(int argc, char **argv) {
 			FATAL(ERR_SYSCALL, "accept", errno, strerror(errno));
 		}
 		child_id = fork();
+		printf("child_id: %d\n", child_id);
 		if(child_id != 0)
 			continue;
 		INFO(ERR_CLIENT_CONNECTED);
+			printf("Post fork\n");
 		// First we read the startup message, which has a special format
 		// 2x32-bit ints
 		session.connection_fd = cfd;
@@ -114,6 +113,7 @@ int main(int argc, char **argv) {
 			ssl_request = read_ssl_request(&session, buffer, sizeof(int) * 2, &err);
 		}
 		if (NULL != ssl_request) {
+			printf("In SSL setup\n");
 			result = send_bytes(&session, "S", sizeof(char));
 			if (0 != result) {
 				WARNING(ERR_ROCTO_SEND_FAILED, "failed to send SSL confirmation byte");
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
 				break;
 			}
 			// Initialize TLS context: load config, certs, keys, etc.
-			tls_context = gtm_tls_init(0x1, 0);
+			tls_context = gtm_tls_init(GTM_TLS_API_VERSION, GTMTLS_OP_INTERACTIVE_MODE);
 			if (INVALID_TLS_CONTEXT == tls_context) {
 				tls_errno = gtm_tls_errno();
 				if (0 < tls_errno) {
@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
 				break;
 			}
 			// Set up TLS socket
-			tls_socket = gtm_tls_socket(tls_context, tls_socket, cfd, "DEVELOPMENT", 0);
+ 			tls_socket = gtm_tls_socket(tls_context, NULL, cfd, "DEVELOPMENT", GTMTLS_OP_SOCKET_DEV);
 			if (INVALID_TLS_SOCKET == tls_socket) {
 				tls_errno = gtm_tls_errno();
 				if (0 < tls_errno) {
@@ -149,6 +149,7 @@ int main(int argc, char **argv) {
 				break;
 			}
 			// Retrieve connection information
+			/*
 			result = gtm_tls_get_conn_info(tls_socket, &tls_connection);
 			if (0 != result) {
 				if (-1 == result) {
@@ -169,6 +170,7 @@ int main(int argc, char **argv) {
 				}
 				break;
 			}
+			*/
 			// Accept incoming TLS connections
 			result = gtm_tls_accept(tls_socket);
 			if (0 != result) {
@@ -189,9 +191,11 @@ int main(int argc, char **argv) {
 				}
 				break;
 			}
+			session.tls_socket = tls_socket;
 			session.ssl_active = TRUE;
 			read_bytes(&session, buffer, MAX_STR_CONST, sizeof(int) * 2);
 		}
+			printf("POST SSL setup\n");
 		// Attempt unencrypted connection if SSL not requested
 		startup_message = read_startup_message(&session, buffer, sizeof(int) * 2, &err);
 		if(startup_message == NULL) {
@@ -199,6 +203,7 @@ int main(int argc, char **argv) {
 			free(err);
 			break;
 		}
+			printf("POST startup message\n");
 		// Pretend to require md5 authentication
 		md5auth = make_authentication_md5_password();
 		result = send_message(&session, (BaseMessage*)(&md5auth->type));
@@ -206,15 +211,18 @@ int main(int argc, char **argv) {
 			break;
 		free(md5auth);
 
+			printf("PRE fake auth\n");
 		// This next message is the user sending the password; ignore it
 		base_message = read_message(&session, buffer, MAX_STR_CONST);
 		if(base_message == NULL)
 			break;
 
+			printf("POST fake auth\n");
 		// Ok
 		authok = make_authentication_ok();
 		send_message(&session, (BaseMessage*)(&authok->type));
 		free(authok);
+			printf("POST auth ok\n");
 
 		// Enter the main loop
 		global_buffer = &(ydb_buffers[0]);
@@ -277,7 +285,9 @@ int main(int argc, char **argv) {
 		free(var_value.buf_addr);
 		free(var_defaults);
 		free(var_sets);
+		printf("PRE rocto loop");
 		rocto_main_loop(&session);
+		printf("POST rocto loop");
 		break;
 	}
 
