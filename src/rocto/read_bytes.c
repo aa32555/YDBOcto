@@ -46,18 +46,23 @@ int read_bytes(RoctoSession *session, char *buffer, int buffer_size, int bytes_t
 		while(read_so_far < bytes_to_read) {
 			read_now = gtm_tls_recv(session->tls_socket, &buffer[read_so_far],
 					bytes_to_read - read_so_far);
-			if(read_now <= 0) {
+			// printf("read_now: %d\n", read_now);
+			if (GTMTLS_WANT_READ == read_now) {
+					continue;
+			}
+			if (read_now < 0) {
 				tls_errno = gtm_tls_errno();
 				err_str = gtm_tls_get_error();
-				if (-1 == read_now) {
-					if (tls_errno == EINTR) {
-						continue;
-					} else {
-						FATAL(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
-					}
-				} else {
-					FATAL(ERR_SYSCALL, "unknown", tls_errno, strerror(tls_errno));
+				// printf("tls_errno: %d\n", tls_errno);
+				if (tls_errno == EINTR) {
+					continue;
+				} else if (tls_errno == ECONNRESET) {
+					errno = ECONNRESET;
+					INFO(ERR_ROCTO_CLEAN_DISCONNECT);
 					return 1;
+				} else {
+					WARNING(ERR_ROCTO_TLS_READ_FAILED, err_str);
+					FATAL(ERR_SYSCALL, "gtm_tls_recv", tls_errno, strerror(tls_errno));
 				}
 			}
 			read_so_far += read_now;
@@ -73,6 +78,7 @@ int read_bytes(RoctoSession *session, char *buffer, int buffer_size, int bytes_t
 				return 1;
 			} else if(read_now == 0) {
 				// This means the socket was cleanly closed
+				WARNING(ERR_ROCTO_CLEAN_DISCONNECT);
 				return 1;
 			}
 			read_so_far += read_now;

@@ -40,6 +40,8 @@ int main(int argc, char **argv) {
 	int tls_errno;
 	ErrorResponse *err;
 	const char *err_str;
+	ErrorBuffer err_buff;
+	const char *error_message;
 	AuthenticationMD5Password *md5auth;
 	AuthenticationOk *authok;
 	ParameterStatus *parameter_status;
@@ -51,6 +53,7 @@ int main(int argc, char **argv) {
 	char buffer[MAX_STR_CONST];
 	RoctoSession session;
 	StartupMessageParm message_parm;
+	err_buff.offset = 0;
 
 	ydb_buffer_t ydb_buffers[2], *var_defaults, *var_sets, var_value;
 	ydb_buffer_t *global_buffer = &(ydb_buffers[0]), *session_id_buffer = &(ydb_buffers[1]);
@@ -76,7 +79,7 @@ int main(int argc, char **argv) {
 		FATAL(ERR_SYSCALL, "socket", errno, strerror(errno));
 	}
 
-	opt = 0;
+	opt = 1;
 	if(setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) == -1) {
 		FATAL(ERR_SYSCALL, "setsockopt", errno, strerror(errno));
 	}
@@ -94,11 +97,9 @@ int main(int argc, char **argv) {
 			FATAL(ERR_SYSCALL, "accept", errno, strerror(errno));
 		}
 		child_id = fork();
-		printf("child_id: %d\n", child_id);
 		if(child_id != 0)
 			continue;
 		INFO(ERR_CLIENT_CONNECTED);
-			printf("Post fork\n");
 		// First we read the startup message, which has a special format
 		// 2x32-bit ints
 		session.connection_fd = cfd;
@@ -107,13 +108,8 @@ int main(int argc, char **argv) {
 		session.session_id = NULL;
 		read_bytes(&session, buffer, MAX_STR_CONST, sizeof(int) * 2);
 		// Attempt SSL connection, if configured
-		if (0 == config->rocto_config.ssl_on) {
-			ssl_request = NULL;
-		} else {
-			ssl_request = read_ssl_request(&session, buffer, sizeof(int) * 2, &err);
-		}
-		if (NULL != ssl_request) {
-			printf("In SSL setup\n");
+		ssl_request = read_ssl_request(&session, buffer, sizeof(int) * 2, &err);
+		if (NULL != ssl_request && TRUE == config->rocto_config.ssl_on) {
 			result = send_bytes(&session, "S", sizeof(char));
 			if (0 != result) {
 				WARNING(ERR_ROCTO_SEND_FAILED, "failed to send SSL confirmation byte");
@@ -148,29 +144,6 @@ int main(int argc, char **argv) {
 				}
 				break;
 			}
-			// Retrieve connection information
-			/*
-			result = gtm_tls_get_conn_info(tls_socket, &tls_connection);
-			if (0 != result) {
-				if (-1 == result) {
-					tls_errno = gtm_tls_errno();
-					if (0 < tls_errno) {
-						err_str = gtm_tls_get_error();
-						WARNING(ERR_SYSCALL, err_str, tls_errno, strerror(tls_errno));
-					} else {
-						err_str = gtm_tls_get_error();
-						WARNING(ERR_ROCTO_TLS_CONNECTION, err_str);
-					}
-				} else if (GTMTLS_WANT_READ) {
-					WARNING(ERR_ROCTO_TLS_WANT_READ);
-				} else if (GTMTLS_WANT_WRITE) {
-					WARNING(ERR_ROCTO_TLS_WANT_WRITE);
-				} else {
-					WARNING(ERR_ROCTO_TLS_UNKNOWN, "failed to accept incoming connection(s)");
-				}
-				break;
-			}
-			*/
 			// Accept incoming TLS connections
 			result = gtm_tls_accept(tls_socket);
 			if (0 != result) {
@@ -194,8 +167,11 @@ int main(int argc, char **argv) {
 			session.tls_socket = tls_socket;
 			session.ssl_active = TRUE;
 			read_bytes(&session, buffer, MAX_STR_CONST, sizeof(int) * 2);
+		} else if (NULL != ssl_request && FALSE == config->rocto_config.ssl_on) {
+			result = send_bytes(&session, "N", sizeof(char));
+			read_bytes(&session, buffer, MAX_STR_CONST, sizeof(int) * 2);
 		}
-			printf("POST SSL setup\n");
+
 		// Attempt unencrypted connection if SSL not requested
 		startup_message = read_startup_message(&session, buffer, sizeof(int) * 2, &err);
 		if(startup_message == NULL) {
@@ -203,26 +179,48 @@ int main(int argc, char **argv) {
 			free(err);
 			break;
 		}
-			printf("POST startup message\n");
+
 		// Pretend to require md5 authentication
 		md5auth = make_authentication_md5_password();
 		result = send_message(&session, (BaseMessage*)(&md5auth->type));
-		if(result)
+		if(result) {
+			WARNING(ERR_ROCTO_SEND_FAILED, "failed to send MD5 authentication required");
+			error_message = format_error_string(&err_buff, ERR_ROCTO_SEND_FAILED,
+					"failed to send MD5 authentication required");
+			err = make_error_response(PSQL_Error_ERROR,
+						   PSQL_Code_Protocol_Violation,
+						   error_message,
+						   0);
+			send_message(&session, (BaseMessage*)(&err->type));
+			free(err);
+			free(md5auth);
 			break;
+		}
 		free(md5auth);
 
-			printf("PRE fake auth\n");
 		// This next message is the user sending the password; ignore it
 		base_message = read_message(&session, buffer, MAX_STR_CONST);
-		if(base_message == NULL)
+		if(base_message == NULL) {
+			if (ECONNRESET == errno) {
+				INFO(ERR_SYSCALL, "read_message", errno, strerror(errno));
+				errno = 0;
+			} else {
+				WARNING(ERR_ROCTO_READ_FAILED, "failed to read MD5 password");
+				error_message = format_error_string(&err_buff, ERR_ROCTO_READ_FAILED, "failed to read MD5 password");
+				err = make_error_response(PSQL_Error_ERROR,
+							   PSQL_Code_Protocol_Violation,
+							   error_message,
+							   0);
+				send_message(&session, (BaseMessage*)(&err->type));
+				free(err);
+			}
 			break;
+		}
 
-			printf("POST fake auth\n");
 		// Ok
 		authok = make_authentication_ok();
 		send_message(&session, (BaseMessage*)(&authok->type));
 		free(authok);
-			printf("POST auth ok\n");
 
 		// Enter the main loop
 		global_buffer = &(ydb_buffers[0]);
@@ -285,12 +283,9 @@ int main(int argc, char **argv) {
 		free(var_value.buf_addr);
 		free(var_defaults);
 		free(var_sets);
-		printf("PRE rocto loop");
 		rocto_main_loop(&session);
-		printf("POST rocto loop");
 		break;
 	}
-
 
 	return 0;
 }
