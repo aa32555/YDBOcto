@@ -11,3 +11,5 @@ gen_cscope.sh
 TAGS
 
 roctolist.md
+src/gtmcrypt/
+formatlist.md
