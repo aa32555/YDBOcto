@@ -137,6 +137,7 @@ add_library(libocto OBJECT
   optimization_transforms/generate_logical_plan.c
   physical/generate_physical_plan.c
   physical/emit_physical_plan.c
+  physical/hash_canonical_query.c
   m_templates/print_dots.c
   m_escape_string2.c
   ${BISON_OctoParser_OUTPUTS}

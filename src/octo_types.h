@@ -308,7 +308,10 @@ struct SqlInsertStatement
 
 struct SqlDropStatement
 {
-	SqlStatement *table_name, *optional_keyword;
+	// SqlValue
+	SqlStatement *table_name;
+	// SqlOptionalKeyword
+	SqlStatement *optional_keyword;
 };
 
 

@@ -24,6 +24,8 @@
 #include <libyottadb.h>
 #include <gtmxc_types.h>
 
+#include <openssl/evp.h>
+
 #include "octo.h"
 #include "octo_types.h"
 #include "physical_plan.h"
@@ -50,6 +52,7 @@ int run_query(char *query, void (*callback)(SqlStatement *, PhysicalPlan *, int,
 	ydb_buffer_t z_status, z_status_value;
 	gtm_char_t      err_msgbuf[MAX_STR_CONST];
 	gtm_long_t cursorId;
+	EVP_MD_CTX *mdctx = NULL;
 
 	memory_chunks = alloc_chunk(MEMORY_CHUNK_SIZE);
 
@@ -100,6 +103,13 @@ int run_query(char *query, void (*callback)(SqlStatement *, PhysicalPlan *, int,
 	}
 	switch(result->type) {
 	case select_STATEMENT:
+		if(mdctx == NULL && ((mdctx = EVP_MD_CTX_new()) == NULL)) {
+			FATAL(ERR_LIBSSL_ERROR);
+		}
+		if(1 != EVP_DigestInit_ex(mdctx, EVP_md5(), NULL)) {
+			FATAL(ERR_LIBSSL_ERROR);
+		}
+		hash_canonical_query(mdctx, result);
 		pplan = emit_select_statement(&cursor_global, cursor_exe_global, result, NULL);
 		assert(pplan != NULL);
 		cursorId = atol(cursor_exe_global[0].buf_addr);
