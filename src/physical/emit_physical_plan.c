@@ -30,7 +30,7 @@
 
 #include "template_helpers.h"
 
-void generateHash(EVP_MD_CTX *mdctx, const unsigned char *message, size_t message_len, char **digest, unsigned int *digest_len) {
+void generateHash(EVP_MD_CTX *mdctx, const unsigned char *message, size_t messag_len, char **digest, unsigned int *digest_len) {
 	if(1 != EVP_DigestInit_ex(mdctx, EVP_md5(), NULL)) {
 		FATAL(ERR_LIBSSL_ERROR);
 	}

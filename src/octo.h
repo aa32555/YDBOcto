@@ -20,6 +20,8 @@
 
 #include <libyottadb.h>
 
+#include <openssl/evp.h>
+
 #include "errors.h"
 #include "octo_types.h"
 #include "config.h"
@@ -120,6 +122,7 @@ SqlOptionalKeyword *get_keyword(SqlColumn *column, enum OptionalKeyword keyword)
 SqlOptionalKeyword *get_keyword_from_keywords(SqlOptionalKeyword *start_keyword, enum OptionalKeyword keyword);
 int get_key_columns(SqlTable *table, SqlColumn **key_columns);
 int generate_key_name(char *buffer, int buffer_size, int target_key_num, SqlTable *table, SqlColumn **key_columns);
+void hash_canonical_query(EVP_MD_CTX *mdctx, SqlStatement *stmt);
 
 void assign_table_to_columns(SqlStatement *table_statement);
 SqlColumn *column_list_alias_to_columns(SqlTableAlias *table_alias);
