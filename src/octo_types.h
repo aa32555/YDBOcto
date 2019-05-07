@@ -49,6 +49,11 @@ typedef void *yyscan_t;
 
 long long unsigned int typedef uint8;
 
+enum FileType {
+	CrossReference,
+	OutputPlan,
+} typedef FileType;
+
 enum SqlStatementType {
 	table_STATEMENT,
 	select_STATEMENT,

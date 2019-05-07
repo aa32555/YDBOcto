@@ -60,3 +60,4 @@ ADD_UNIT_TEST_WITH_OPTIONS(test_make_parse_complete src/rocto/test_make_parse_co
 ADD_UNIT_TEST_WITH_OPTIONS(test_make_empty_query_response src/rocto/test_make_empty_query_response "")
 ADD_UNIT_TEST_WITH_OPTIONS(test_make_parameter_status src/rocto/test_make_parameter_status "")
 # ADD_UNIT_TEST_WITH_OPTIONS(test_read_ssl_request src/rocto/test_read_ssl_request "")
+ADD_UNIT_TEST_WITH_OPTIONS(test_generate_filename src/test_generate_filename "")
