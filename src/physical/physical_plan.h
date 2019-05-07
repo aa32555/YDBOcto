@@ -25,11 +25,6 @@
 
 #include "logical_plan.h"
 
-enum FileType {
-	CrossReference,
-	OutputPlan,
-} typedef FileType;
-
 enum PPActionType {
 	PP_PROJECT,
 	PP_DELETE,
