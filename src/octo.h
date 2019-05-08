@@ -124,7 +124,7 @@ int get_key_columns(SqlTable *table, SqlColumn **key_columns);
 int generate_key_name(char *buffer, int buffer_size, int target_key_num, SqlTable *table, SqlColumn **key_columns);
 
 /* Hashing support functions */
-char *generate_filename(hash128_state_t *state, FileType file_type);
+int generate_filename(hash128_state_t *state, char *directory_path, char *full_path, FileType file_type);
 void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt);
 void ydb_hash_to_string(ydb_uint16 *hash, char *buffer, const unsigned int buf_len);
 

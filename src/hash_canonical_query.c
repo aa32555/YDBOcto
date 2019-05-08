@@ -29,7 +29,7 @@
 
 void add_sql_type_hash(hash128_state_t *state, int stmt_type) {
 	// Helper function: adds statement type values to hash digest
-	ydb_mmrhash_128_ingest(state, (void*)stmt_type, sizeof(int));
+	ydb_mmrhash_128_ingest(state, (void*)&stmt_type, sizeof(int));
 }
 
 void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt) {

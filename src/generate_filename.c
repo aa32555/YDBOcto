@@ -26,26 +26,33 @@
 
 #include "mmrhash.h"
 
-char *generate_filename(hash128_state_t *state, FileType file_type) {
+int generate_filename(hash128_state_t *state, char *directory_path, char *full_path, FileType file_type) {
 	const unsigned short max_filename_len = 31;
-	char filepath[MAX_STR_CONST];
-	// char filename[max_filename_len + sizeof(char)];
-	char *filename = NULL;
 	char buffer[max_filename_len];
+	char filename[max_filename_len + sizeof(char)];		// count null terminator
 	char *xref_prefix = "_ydboctoX";
 	char *output_plan_prefix = "_ydboctoP";
 	char *c = NULL;
 	unsigned int prefix_len = 0;
 	unsigned int buf_len = 0;
-	ydb_uint16 *hash = NULL;
+	int full_path_len = 0;
+	ydb_uint16 hash;
 
-	filename = (char*)malloc(max_filename_len + sizeof(char));
+	if (state == NULL) {
+		return -1;
+	}
+	if (directory_path == NULL) {
+		return -1;
+	}
+	if (full_path == NULL) {
+		return -1;
+	}
 
 	prefix_len = strlen(xref_prefix);	// All prefixes have the same size
 	buf_len = max_filename_len - prefix_len;
 
-	ydb_mmrhash_128_result(state, 0, hash);
-	ydb_hash_to_string(hash, buffer, buf_len);
+	ydb_mmrhash_128_result(state, 0, &hash);
+	ydb_hash_to_string(&hash, buffer, buf_len);
 
 	switch (file_type) {
 		case CrossReference:
@@ -55,7 +62,7 @@ char *generate_filename(hash128_state_t *state, FileType file_type) {
 			strncpy(filename, output_plan_prefix, prefix_len);
 			break;
 		default:
-			return NULL;
+			return -1;
 	}
 
 	// Copy hash string into filename
@@ -63,10 +70,10 @@ char *generate_filename(hash128_state_t *state, FileType file_type) {
 	c += prefix_len;
 	strncpy(c, buffer, buf_len);
 	c += buf_len;
-	c = '\0';
+	*c = '\0';
 
 	// Prepend directory path and append ".m" file extension
-	snprintf(filepath, MAX_STR_CONST, "%s/%s.m", config->tmp_dir, filename);
+	full_path_len = snprintf(full_path, MAX_STR_CONST, "%s/%s.m", directory_path, filename);
 
-	return filename;
+	return full_path_len;
 }

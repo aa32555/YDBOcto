@@ -111,7 +111,7 @@ int run_query(char *query, void (*callback)(SqlStatement *, PhysicalPlan *, int,
 		if(1 != EVP_DigestInit_ex(mdctx, EVP_md5(), NULL)) {
 			FATAL(ERR_LIBSSL_ERROR);
 		}
-		hash_canonical_query(mdctx, result);
+		// hash_canonical_query(mdctx, result);
 		pplan = emit_select_statement(&cursor_global, cursor_exe_global, result, NULL);
 		assert(pplan != NULL);
 		cursorId = atol(cursor_exe_global[0].buf_addr);
