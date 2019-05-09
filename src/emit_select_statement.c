@@ -24,6 +24,7 @@
 #include "template_strings.h"
 #include "logical_plan.h"
 #include "physical_plan.h"
+#include "helpers.h"
 
 /**
  * Emits M code for retrieving values representing this SELECT statement
@@ -48,6 +49,7 @@ PhysicalPlan *emit_select_statement(ydb_buffer_t *cursor_global,
 	LogicalPlan *plan;
 	PhysicalPlan *pplan;
 	char *temp_table_buffer, *output_buffer;
+	char output_key[MAX_STR_CONST];
 	size_t temp_table_buffer_size = 0, output_buffer_size = 0;
 	char *tmp1, *formatted_start, *start, *end, *curse, *source;
 	char temp_table_name[MAX_STR_CONST], temp_cursor_name[MAX_STR_CONST], buffer[MAX_STR_CONST];
@@ -58,6 +60,7 @@ PhysicalPlan *emit_select_statement(ydb_buffer_t *cursor_global,
 	ydb_buffer_t z_status, z_status_value;
 
 	TRACE(ERR_ENTERING_FUNCTION, "emit_select_statement");
+	memset(output_key, 0, MAX_STR_CONST);
 
 	assert(stmt && stmt->type == select_STATEMENT);
 	UNPACK_SQL_STATEMENT(select, stmt, select);
@@ -79,6 +82,10 @@ PhysicalPlan *emit_select_statement(ydb_buffer_t *cursor_global,
 	}
 	while(pplan->next != NULL)
 		pplan = pplan->next;
+
+	// convert output key to string
+	snprintf(output_key, MAX_STR_CONST, "%d", pplan->outputKey->random_id);
+	set(output_key, config->global_names.octo, 3, "plan_metadata", plan_filename, "output_key");
 
 	// Create a table from the last physical table which reads from the output
 	//  values
