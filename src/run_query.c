@@ -24,8 +24,6 @@
 #include <libyottadb.h>
 #include <gtmxc_types.h>
 
-#include <openssl/evp.h>
-
 #include "mmrhash.h"
 
 #include "octo.h"
@@ -33,11 +31,13 @@
 #include "physical_plan.h"
 #include "parser.h"
 #include "lexer.h"
+#include "helpers.h"
 
 int run_query(char *query, void (*callback)(SqlStatement *, PhysicalPlan *, int, void*), void *parms) {
 	int c, error = 0, i = 0, status;
-	int done;
+	int done, filename_len = 0;
 	char *buffer;
+	char filename[MAX_STR_CONST];
 	size_t buffer_size = 0;
 	FILE *inputFile;
 	FILE *out;
@@ -52,9 +52,11 @@ int run_query(char *query, void (*callback)(SqlStatement *, PhysicalPlan *, int,
 	ydb_buffer_t schema_global, table_name_buffer, table_create_buffer, null_buffer;
 	ydb_buffer_t cursor_global, cursor_exe_global[3];
 	ydb_buffer_t z_status, z_status_value;
+	ydb_buffer_t *filename_lock = NULL;
+	ydb_string_t ci_filename;
 	gtm_char_t      err_msgbuf[MAX_STR_CONST];
 	gtm_long_t cursorId;
-	EVP_MD_CTX *mdctx = NULL;
+	hash128_state_t state;
 
 	memory_chunks = alloc_chunk(MEMORY_CHUNK_SIZE);
 
@@ -105,18 +107,27 @@ int run_query(char *query, void (*callback)(SqlStatement *, PhysicalPlan *, int,
 	}
 	switch(result->type) {
 	case select_STATEMENT:
-		if(mdctx == NULL && ((mdctx = EVP_MD_CTX_new()) == NULL)) {
-			FATAL(ERR_LIBSSL_ERROR);
+		HASH128_STATE_INIT(state, 0);
+		hash_canonical_query(&state, result);
+		filename_len = generate_filename(&state, config->tmp_dir, filename, OutputPlan);
+		if (filename_len < 0) {
+			FATAL(ERR_PLAN_HASH_FAILED);
 		}
-		if(1 != EVP_DigestInit_ex(mdctx, EVP_md5(), NULL)) {
-			FATAL(ERR_LIBSSL_ERROR);
+		if (access(filename, F_OK) == -1) {	// file doesn't exist
+			filename_lock = make_buffers("^%ydboctoocto", 2, "files", filename);
+			ydb_lock_incr_s(5000000000, &filename_lock[0], 2, &filename_lock[1]);
+			if (access(filename, F_OK) == -1) {
+				pplan = emit_select_statement(&cursor_global, cursor_exe_global, result, filename, NULL);
+				assert(pplan != NULL);
+			}
+			ydb_lock_decr_s(&filename_lock[0], 2, &filename_lock[1]);
+			free(filename_lock);
 		}
-		// hash_canonical_query(mdctx, result);
-		pplan = emit_select_statement(&cursor_global, cursor_exe_global, result, NULL);
-		assert(pplan != NULL);
 		cursorId = atol(cursor_exe_global[0].buf_addr);
+		ci_filename.address = filename;
+		ci_filename.length = filename_len;
 		SWITCH_FROM_OCTO_GLOBAL_DIRECTORY();
-		status = ydb_ci("select", cursorId);
+		status = ydb_ci("select", cursorId, &ci_filename);		// TODO: Take plan name
 		YDB_ERROR_CHECK(status, &z_status, &z_status_value);
 		SWITCH_TO_OCTO_GLOBAL_DIRECTORY();
 		(*callback)(result, pplan, cursorId, parms);

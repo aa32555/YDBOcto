@@ -33,7 +33,7 @@
  *  values
  */
 PhysicalPlan *emit_select_statement(ydb_buffer_t *cursor_global,
-                                ydb_buffer_t *cursor_exe_global, SqlStatement *stmt,
+                                ydb_buffer_t *cursor_exe_global, SqlStatement *stmt, char *plan_filename,
                                 SqlTable *destination_table)
 {
 	FILE *output, *temp_table;
@@ -74,7 +74,9 @@ PhysicalPlan *emit_select_statement(ydb_buffer_t *cursor_global,
 		DEBUG(ERR_CURPLAN, buffer);
 	}
 	pplan = generate_physical_plan(plan, NULL);
-	emit_physical_plan(pplan);
+	if (plan_filename) {
+		emit_physical_plan(pplan, plan_filename);
+	}
 	while(pplan->next != NULL)
 		pplan = pplan->next;
 
