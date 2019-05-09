@@ -50,13 +50,14 @@ void generateHash(EVP_MD_CTX *mdctx, const unsigned char *message, size_t messag
 	}
 }
 
-int emit_physical_plan(PhysicalPlan *pplan) {
+int emit_physical_plan(PhysicalPlan *pplan, char *plan_filename) {
 	int plan_id, len, fd;
 	PhysicalPlan *cur_plan = pplan, *first_plan;
 	char *buffer, plan_name_buffer[MAX_STR_CONST];
 	char filename[MAX_STR_CONST], *tableName, *columnName;
 	char *tableNameHash, *columnNameHash;
-	int tableNameHashLen, columnNameHashLen, filename_len;
+	char *tmp_plan_filename = NULL;
+	int tableNameHashLen, columnNameHashLen, filename_len, plan_filename_len;
 	SqlValue *value;
 	SqlKey *key;
 	FILE *output_file;
@@ -131,8 +132,13 @@ int emit_physical_plan(PhysicalPlan *pplan) {
 	// We should probably get a hash of the input SQL statement and use
 	//  that as the plan_id
 	plan_id = 0;
-	snprintf(filename, MAX_STR_CONST, "%s/outputPlan1.m", config->tmp_dir);
-	output_file = fopen(filename, "w");
+	plan_filename_len = strlen(plan_filename);
+	tmp_plan_filename = (char*)malloc(plan_filename_len + sizeof(char));
+	strncpy(tmp_plan_filename, plan_filename, plan_filename_len + sizeof(char));
+	tmp_plan_filename[plan_filename_len-1] = 't';
+	printf("filename: %s\n", plan_filename);
+	printf("tmp filename: %s\n", tmp_plan_filename);
+	output_file = fopen(tmp_plan_filename, "w");
 	if(output_file == NULL) {
 		FATAL(ERR_SYSCALL, "fopen", errno, strerror(errno));
 		return FALSE;
@@ -154,6 +160,7 @@ int emit_physical_plan(PhysicalPlan *pplan) {
 	fd = fileno(output_file);
 	fsync(fd);
 	fclose(output_file);
+	rename(tmp_plan_filename, plan_filename);
 	if(mdctx != NULL) {
 		EVP_MD_CTX_destroy(mdctx);
 	}

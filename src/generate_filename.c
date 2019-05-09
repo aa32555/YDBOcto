@@ -26,7 +26,7 @@
 
 #include "mmrhash.h"
 
-int generate_filename(hash128_state_t *state, char *directory_path, char *full_path, FileType file_type) {
+int generate_filename(hash128_state_t *state, const char *directory_path, char *full_path, FileType file_type) {
 	const unsigned short max_filename_len = 31;
 	char buffer[max_filename_len];
 	char filename[max_filename_len + sizeof(char)];		// count null terminator
