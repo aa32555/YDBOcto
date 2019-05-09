@@ -136,8 +136,6 @@ int emit_physical_plan(PhysicalPlan *pplan, char *plan_filename) {
 	tmp_plan_filename = (char*)malloc(plan_filename_len + sizeof(char));
 	strncpy(tmp_plan_filename, plan_filename, plan_filename_len + sizeof(char));
 	tmp_plan_filename[plan_filename_len-1] = 't';
-	printf("filename: %s\n", plan_filename);
-	printf("tmp filename: %s\n", tmp_plan_filename);
 	output_file = fopen(tmp_plan_filename, "w");
 	if(output_file == NULL) {
 		FATAL(ERR_SYSCALL, "fopen", errno, strerror(errno));
