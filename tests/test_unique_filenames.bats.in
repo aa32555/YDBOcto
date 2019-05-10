@@ -31,30 +31,33 @@ OCTO
 }
 
 @test "generate two files from two unique queries" {
-  skip
   octo <<OCTO &> output.txt
 select * from names;
 select * from names where firstName = "Zero";
 OCTO
-  run ls _ydbocto*.m | wc -w
+  ls _ydbocto*.m &> ls.txt
+  wc -w ls.txt &> wc.txt
+  cut -d " " -f 1 wc.txt &> output.txt
+  run cat output.txt
   [[ $output -eq 2 ]]
 }
 
-@test "generate five unique files from unique queries" {
-  skip
+@test "generate five unique files from five unique queries" {
   octo <<OCTO &> output.txt
 select * from names;
 select * from names where firstName = "Zero";
 select lastName from names;
-select lastName from names where id = 1;
+select lastName where lastName in ("Killer", "Cool");
 select id from names;
 OCTO
-  run ls _ydbocto*.m | wc -w
+  ls _ydbocto*.m &> ls.txt
+  wc -w ls.txt &> wc.txt
+  cut -d " " -f 1 wc.txt &> output.txt
+  run cat output.txt
   [[ $output -eq 5 ]]
 }
 
 @test "generate two unique files several queries" {
-  skip
   octo <<OCTO &> output.txt
 select * from names;
 select lastName from names;
@@ -63,12 +66,14 @@ select lastName from names;
 select * from names;
 select lastName from names;
 OCTO
-  run ls _ydbocto*.m | wc -w
+  ls _ydbocto*.m &> ls.txt
+  wc -w ls.txt &> wc.txt
+  cut -d " " -f 1 wc.txt &> output.txt
+  run cat output.txt
   [[ $output -eq 2 ]]
 }
 
 @test "generate four unique files from five queries" {
-  skip
   octo <<OCTO &> output.txt
 select * from names;
 select * from names where firstName = "Zero";
@@ -76,6 +81,9 @@ select lastName from names;
 select lastName from names where id = 1;
 select lastName from names;
 OCTO
-  run ls _ydbocto*.m | wc -w
+  ls _ydbocto*.m &> ls.txt
+  wc -w ls.txt &> wc.txt
+  cut -d " " -f 1 wc.txt &> output.txt
+  run cat output.txt
   [[ $output -eq 4 ]]
 }

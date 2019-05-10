@@ -30,6 +30,7 @@
 void add_sql_type_hash(hash128_state_t *state, int stmt_type) {
 	// Helper function: adds statement type values to hash digest
 	ydb_mmrhash_128_ingest(state, (void*)&stmt_type, sizeof(int));
+	// printf("%c", '!' + stmt_type);
 }
 
 void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt) {
@@ -211,9 +212,9 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt) {
 			UNPACK_SQL_STATEMENT(column_alias, stmt, column_alias);
 			add_sql_type_hash(state, column_alias_STATEMENT);
 			// SqlColumn or SqlColumnListAlias
-			// hash_canonical_query(state, column_alias->column);
+			hash_canonical_query(state, column_alias->column);
 			// SqlTableAlias
-			hash_canonical_query(state, column_alias->table_alias);
+			// hash_canonical_query(state, column_alias->table_alias);
 			break;
 		case column_list_STATEMENT:
 			UNPACK_SQL_STATEMENT(column_list, stmt, column_list);
@@ -243,6 +244,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt) {
 			break;
 		case table_STATEMENT:
 			UNPACK_SQL_STATEMENT(table, stmt, table);
+			assert(table->tableName->type == value_STATEMENT);
 			add_sql_type_hash(state, table_STATEMENT);
 			hash_canonical_query(state, table->tableName);
 			hash_canonical_query(state, table->source);
@@ -258,7 +260,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt) {
 			// Since unique_id is an int, can use treat it as if it were a type enum
 			add_sql_type_hash(state, table_alias->unique_id);
 			// SqlColumnListAlias
-			// hash_canonical_query(state, table_alias->column_list);
+			hash_canonical_query(state, table_alias->column_list);
 			break;
 		case binary_STATEMENT:
 			UNPACK_SQL_STATEMENT(binary, stmt, binary);
@@ -291,7 +293,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt) {
 		case constraint_STATEMENT:
 			// NOT IMPLEMENTED
 			// UNPACK_SQL_STATEMENT(constraint, stmt, constraint);
-			// add_sql_type_hash(state, constraint_STATEMENT);
+			add_sql_type_hash(state, constraint_STATEMENT);
 			break;
 		case keyword_STATEMENT:
 			UNPACK_SQL_STATEMENT(keyword, stmt, keyword);

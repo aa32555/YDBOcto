@@ -156,7 +156,7 @@ add_executable(octo
 
 add_library(gtmtls SHARED IMPORTED GLOBAL)
 set_target_properties(gtmtls PROPERTIES
-  IMPORTED_LOCATION "/usr/library/V998_R124/dbg/plugin/libgtmtls.so"
+    IMPORTED_LOCATION "/usr/local/lib/yottadb/r125/plugin/libgtmtls.so"
 )
 
 add_library(librocto OBJECT
@@ -209,7 +209,7 @@ add_library(librocto OBJECT
   rocto/read_row_description.c
 )
 
-target_link_libraries(librocto gtmtls)
+# target_link_libraries(librocto gtmtls)
 
 add_executable(rocto
   rocto.c
