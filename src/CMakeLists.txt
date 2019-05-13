@@ -13,7 +13,8 @@ configure_file (
 )
 
 configure_file (
-  "${PROJECT_SOURCE_DIR}/tools/activate.in" "${PROJECT_BINARY_DIR}/activate"
+  "${PROJECT_SOURCE_DIR}/tools/activate.in"
+  "${PROJECT_BINARY_DIR}/activate"
 )
 # Generate the physical-parser
 BISON_TARGET(PhysicalParser ${PROJECT_SOURCE_DIR}/src/physical/physical-parser.y
@@ -24,7 +25,9 @@ FLEX_TARGET(PhysicalLexer ${PROJECT_SOURCE_DIR}/src/physical/physical-lexer.l
 # Combine the parser grammars into a single file
 add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/parser.y
   DEPENDS parser.y
-          parser/select.y parser/insert.y parser/update.y
+          parser/select.y
+          parser/insert.y
+          parser/update.y
           parser/drop.y
           parser/set.y
   COMMAND awk -v path=${PROJECT_SOURCE_DIR}/src/
@@ -35,7 +38,8 @@ add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/parser.y
 
 BISON_TARGET(OctoParser ${PROJECT_BINARY_DIR}/parser.y
   ${PROJECT_BINARY_DIR}/parser.c)
-FLEX_TARGET(OctoLexer lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.c COMPILE_FLAGS --header-file=${PROJECT_BINARY_DIR}/lexer.h)
+FLEX_TARGET(OctoLexer lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.c
+  COMPILE_FLAGS --header-file=${PROJECT_BINARY_DIR}/lexer.h)
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
 include_directories("${PROJECT_SOURCE_DIR}/src/optimization_transforms")
@@ -149,9 +153,6 @@ add_executable(octo
   $<TARGET_OBJECTS:libocto>
   $<TARGET_OBJECTS:libhelpers>
 )
-
-# include_directories("/usr/library/R124/pro/plugin")
-# link_directories("/usr/library/R124/pro/plugin")
 
 add_library(gtmtls SHARED IMPORTED GLOBAL)
 set_target_properties(gtmtls PROPERTIES

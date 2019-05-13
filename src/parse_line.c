@@ -48,6 +48,7 @@ SqlStatement *parse_line(const char *line) {
 	if (yylex_init(&scanner))
 		FATAL(ERR_INIT_SCANNER);
 
+	config->plan_id = 0;
 	if(yyparse(scanner, &result, &config->plan_id))
 	{
 		ERROR(ERR_PARSING_COMMAND, input_buffer_combined);
