@@ -22,7 +22,7 @@
 #include "lexer.h"
 
 /**
- * Parses line, which should end with a semicolon, and returns the resolt
+ * Parses line, which should end with a semicolon, and returns the result
  *
  * NOTE: caller is responsible for freeing the return value
  *

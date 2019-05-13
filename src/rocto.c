@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
 
 		// Pretend to require md5 authentication
 		md5auth = make_authentication_md5_password();
-		result = send_message(&session, (BaseMessage*)(&md5auth->type));
+		result = send_message(&rocto_session, (BaseMessage*)(&md5auth->type));
 		if(result) {
 			WARNING(ERR_ROCTO_SEND_FAILED, "failed to send MD5 authentication required");
 			error_message = format_error_string(&err_buff, ERR_ROCTO_SEND_FAILED,
@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
 						   PSQL_Code_Protocol_Violation,
 						   error_message,
 						   0);
-			send_message(&session, (BaseMessage*)(&err->type));
+			send_message(&rocto_session, (BaseMessage*)(&err->type));
 			free(err);
 			free(md5auth);
 			break;
@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
 		free(md5auth);
 
 		// This next message is the user sending the password; ignore it
-		base_message = read_message(&session, buffer, MAX_STR_CONST);
+		base_message = read_message(&rocto_session, buffer, MAX_STR_CONST);
 		if(base_message == NULL) {
 			if (ECONNRESET == errno) {
 				INFO(ERR_SYSCALL, "read_message", errno, strerror(errno));
@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
 							   PSQL_Code_Protocol_Violation,
 							   error_message,
 							   0);
-				send_message(&session, (BaseMessage*)(&err->type));
+				send_message(&rocto_session, (BaseMessage*)(&err->type));
 				free(err);
 			}
 			break;

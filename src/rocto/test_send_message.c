@@ -26,8 +26,6 @@
 // Used to convert between network and host endian
 #include <arpa/inet.h>
 
-#include <openssl/ssl.h>
-
 #include "rocto.h"
 #include "message_formats.h"
 

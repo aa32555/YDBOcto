@@ -19,9 +19,6 @@
 #include <errno.h>
 #include <assert.h>
 
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-
 // Used to convert between network and host endian
 #include <arpa/inet.h>
 

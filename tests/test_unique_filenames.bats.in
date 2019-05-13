@@ -73,13 +73,44 @@ OCTO
   [[ $output -eq 2 ]]
 }
 
+@test "generate three unique files from five queries" {
+  octo <<OCTO &> output.txt
+select * from names;
+select firstName from names;
+select firstName from names;
+select lastName from names;
+select lastName from names;
+OCTO
+  ls _ydbocto*.m &> ls.txt
+  wc -w ls.txt &> wc.txt
+  cut -d " " -f 1 wc.txt &> output.txt
+  run cat output.txt
+  [[ $output -eq 3 ]]
+}
+
 @test "generate four unique files from five queries" {
   octo <<OCTO &> output.txt
 select * from names;
 select * from names where firstName = "Zero";
 select lastName from names;
-select lastName from names where id = 1;
 select lastName from names;
+select lastName from names where id = 1;
+OCTO
+  ls _ydbocto*.m &> ls.txt
+  wc -w ls.txt &> wc.txt
+  cut -d " " -f 1 wc.txt &> output.txt
+  run cat output.txt
+  [[ $output -eq 4 ]]
+}
+
+@test "generate four unique files from six queries" {
+  octo <<OCTO &> output.txt
+select * from names;
+select * from names where firstName = "Zero";
+select lastName from names;
+select lastName from names;
+select lastName from names;
+select lastName from names where id = 1;
 OCTO
   ls _ydbocto*.m &> ls.txt
   wc -w ls.txt &> wc.txt

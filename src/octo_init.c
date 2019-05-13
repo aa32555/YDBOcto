@@ -301,7 +301,7 @@ int octo_init(int argc, char **argv, int scan_tables) {
 
 	config->page_size = sysconf(_SC_PAGESIZE);
 	populate_global_names();
-	init_crypto();
+	// init_crypto();
 
 	definedTables = NULL;
 	cur_input_max = MAX_STR_CONST;
