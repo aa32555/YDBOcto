@@ -39,14 +39,19 @@ enum PSQL_MessageTypes {
 	PSQL_EmptyQueryResponse = 'I',
 	PSQL_ErrorResponse = 'E',
 	PSQL_Execute = 'E',
+	PSQL_Flush = 'H',
 	PSQL_NoData = 'n',
-	PSQL_Query = 'Q',
-	PSQL_ReadyForQuery = 'Z',
-	PSQL_RowDescription = 'T',
+	PSQL_NoticeResponse = 'N',
 	PSQL_ParameterStatus = 'S',
 	PSQL_Parse = 'P',
 	PSQL_ParseComplete = '1',
+	PSQL_PasswordMessage = 'p',
+	PSQL_Query = 'Q',
+	PSQL_ReadyForQuery = 'Z',
+	PSQL_RowDescription = 'T',
+	PSQL_PortalSuspended = 's',
 	PSQL_Sync = 'S',
+	PSQL_Terminate = 'X'
 };
 
 typedef struct __attribute__((packed)) {
@@ -171,6 +176,12 @@ typedef struct __attribute__((packed)) {
 	char name[];
 } Describe;
 
+// B
+typedef struct __attribute__((packed)) {
+	char type;
+	unsigned int length;
+} EmptyQueryResponse;
+
 typedef struct {
 	char type;
 	char *value;
@@ -195,11 +206,11 @@ typedef struct __attribute__((packed)) {
 	char data[];
 } Execute;
 
-// B
+// F
 typedef struct __attribute__((packed)) {
 	char type;
 	unsigned int length;
-} EmptyQueryResponse;
+} Flush;
 
 // B
 typedef struct __attribute__((packed)) {
@@ -232,6 +243,12 @@ typedef struct __attribute__((packed)) {
 	unsigned int length;
 } ParseComplete;
 
+// B
+typedef struct __attribute__((packed)) {
+	char type;
+	unsigned int length;
+} PortalSuspended;
+
 // F
 typedef struct __attribute__((packed)) {
 	char *query;
@@ -239,6 +256,14 @@ typedef struct __attribute__((packed)) {
 	unsigned int length;
 	char data[];
 } Query;
+
+// F
+typedef struct __attribute__((packed)) {
+	char *password;
+	char type;
+	unsigned int length;
+	char data[];
+} PasswordMessage;
 
 // B
 typedef struct __attribute__((packed)) {
@@ -292,6 +317,12 @@ typedef struct __attribute__((packed)) {
 	char type;
 	unsigned int length;
 } Sync;
+
+// F
+typedef struct __attribute__((packed)) {
+	char type;
+	unsigned int length;
+} Terminate;
 
 typedef enum {
 	PSQL_Error_SEVERITY = 'S',

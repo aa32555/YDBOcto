@@ -18,12 +18,16 @@
 
 #include <libyottadb.h>
 
+#define FEATURE_ROCTO
+
+#include "errors.h"
 #include "physical_plan.h"
 #include "message_formats.h"
 #include "../gtmcrypt/gtm_tls_interface.h"
 
 typedef struct {
 	int connection_fd;
+	int sending_message;
 	ydb_buffer_t *session_id;
 	int ssl_active;
 	gtm_tls_socket_t *tls_socket;
@@ -59,16 +63,20 @@ AuthenticationMD5Password *make_authentication_md5_password();
 AuthenticationOk *make_authentication_ok();
 ParseComplete *make_parse_complete();
 ParameterStatus *make_parameter_status(StartupMessageParm *parm);
+PortalSuspended *make_portal_suspended();
 NoData *make_no_data();
 
 // read_* messages parse the message and return a pointer to the filled out message type
 // If the message was invalid, the return is NULL and *err is populated with an error message
 Bind *read_bind(BaseMessage *message, ErrorResponse **err);
 Close *read_close(BaseMessage *message, ErrorResponse **err);
+Flush *read_flush(BaseMessage *message, ErrorResponse **err);
 Query *read_query(BaseMessage *message, ErrorResponse **err);
 Parse *read_parse(BaseMessage *message, ErrorResponse **err);
+PasswordMessage *read_password_message(BaseMessage *message, ErrorResponse **err);
 Execute *read_execute(BaseMessage *message, ErrorResponse **err);
 Sync *read_sync(BaseMessage *message, ErrorResponse **err);
+Terminate *read_terminate(BaseMessage *message, ErrorResponse **err);
 Describe *read_describe(BaseMessage *message, ErrorResponse **err);
 
 // This is a special case because it must read more from the buffer
@@ -106,7 +114,10 @@ EmptyQueryResponse *read_empty_query_response(BaseMessage *message, ErrorRespons
 ErrorResponse *read_error_response(BaseMessage *message, ErrorResponse **err);
 ParameterStatus *read_parameter_status(BaseMessage *message, ErrorResponse **err);
 ParseComplete *read_parse_complete(BaseMessage *message, ErrorResponse **err);
+PortalSuspended *read_portal_suspended(BaseMessage *message, ErrorResponse **err);
 ReadyForQuery *read_ready_for_query(BaseMessage *message, ErrorResponse **err);
 RowDescription *read_row_description(BaseMessage *message, ErrorResponse **err);
+
+RoctoSession rocto_session;
 
 #endif

@@ -51,7 +51,6 @@ int main(int argc, char **argv) {
 	int cur_parm, i;
 	pid_t child_id;
 	char buffer[MAX_STR_CONST];
-	RoctoSession session;
 	StartupMessageParm message_parm;
 	err_buff.offset = 0;
 
@@ -61,6 +60,9 @@ int main(int argc, char **argv) {
 
 	octo_init(argc, argv, TRUE);
 	INFO(CUSTOM_ERROR, "rocto started");
+
+	// Disable sending log messages until all startup messages have been sent
+	rocto_session.sending_message = TRUE;
 
 	// Setup the address first so we know which protocol to use
 	memset(&addressv6, 0, sizeof(struct sockaddr_in6));
@@ -102,15 +104,15 @@ int main(int argc, char **argv) {
 		INFO(ERR_CLIENT_CONNECTED);
 		// First we read the startup message, which has a special format
 		// 2x32-bit ints
-		session.connection_fd = cfd;
-		session.ssl_active = FALSE;
+		rocto_session.connection_fd = cfd;
+		rocto_session.ssl_active = FALSE;
 		// Establish the connection first
-		session.session_id = NULL;
-		read_bytes(&session, buffer, MAX_STR_CONST, sizeof(int) * 2);
+		rocto_session.session_id = NULL;
+		read_bytes(&rocto_session, buffer, MAX_STR_CONST, sizeof(int) * 2);
 		// Attempt SSL connection, if configured
-		ssl_request = read_ssl_request(&session, buffer, sizeof(int) * 2, &err);
+		ssl_request = read_ssl_request(&rocto_session, buffer, sizeof(int) * 2, &err);
 		if (NULL != ssl_request && TRUE == config->rocto_config.ssl_on) {
-			result = send_bytes(&session, "S", sizeof(char));
+			result = send_bytes(&rocto_session, "S", sizeof(char));
 			if (0 != result) {
 				WARNING(ERR_ROCTO_SEND_FAILED, "failed to send SSL confirmation byte");
 				gtm_tls_socket_close(tls_socket);
@@ -164,18 +166,18 @@ int main(int argc, char **argv) {
 				}
 				break;
 			}
-			session.tls_socket = tls_socket;
-			session.ssl_active = TRUE;
-			read_bytes(&session, buffer, MAX_STR_CONST, sizeof(int) * 2);
+			rocto_session.tls_socket = tls_socket;
+			rocto_session.ssl_active = TRUE;
+			read_bytes(&rocto_session, buffer, MAX_STR_CONST, sizeof(int) * 2);
 		} else if (NULL != ssl_request && FALSE == config->rocto_config.ssl_on) {
-			result = send_bytes(&session, "N", sizeof(char));
-			read_bytes(&session, buffer, MAX_STR_CONST, sizeof(int) * 2);
+			result = send_bytes(&rocto_session, "N", sizeof(char));
+			read_bytes(&rocto_session, buffer, MAX_STR_CONST, sizeof(int) * 2);
 		}
 
 		// Attempt unencrypted connection if SSL not requested
-		startup_message = read_startup_message(&session, buffer, sizeof(int) * 2, &err);
+		startup_message = read_startup_message(&rocto_session, buffer, sizeof(int) * 2, &err);
 		if(startup_message == NULL) {
-			send_message(&session, (BaseMessage*)(&err->type));
+			send_message(&rocto_session, (BaseMessage*)(&err->type));
 			free(err);
 			break;
 		}
@@ -219,8 +221,10 @@ int main(int argc, char **argv) {
 
 		// Ok
 		authok = make_authentication_ok();
-		send_message(&session, (BaseMessage*)(&authok->type));
+		send_message(&rocto_session, (BaseMessage*)(&authok->type));
 		free(authok);
+
+		rocto_session.sending_message = FALSE;
 
 		// Enter the main loop
 		global_buffer = &(ydb_buffers[0]);
@@ -231,13 +235,13 @@ int main(int argc, char **argv) {
 		INIT_YDB_BUFFER(session_id_buffer, MAX_STR_CONST);
 		status = ydb_incr_s(global_buffer, 0, NULL, NULL, session_id_buffer);
 		YDB_ERROR_CHECK(status, &z_status, &z_status_value);
-		session.session_id = session_id_buffer;
+		rocto_session.session_id = session_id_buffer;
 
 		// Populate default parameters
 		var_defaults = make_buffers(config->global_names.octo, 2, "variables", "");
 		INIT_YDB_BUFFER(&var_defaults[2], MAX_STR_CONST);
 		INIT_YDB_BUFFER(&var_value, MAX_STR_CONST);
-		var_sets = make_buffers(config->global_names.session, 3, session.session_id->buf_addr,
+		var_sets = make_buffers(config->global_names.session, 3, rocto_session.session_id->buf_addr,
 				"variables", "");
 		var_sets[3] = var_defaults[2];
 		do {
@@ -254,7 +258,7 @@ int main(int argc, char **argv) {
 		// Set parameters
 		for(cur_parm = 0; i < startup_message->num_parameters; i++) {
 			set(startup_message->parameters[i].value, config->global_names.session, 3,
-					session.session_id->buf_addr, "variables",
+					rocto_session.session_id->buf_addr, "variables",
 					startup_message->parameters[i].name);
 		}
 
@@ -271,7 +275,7 @@ int main(int argc, char **argv) {
 			message_parm.name = var_sets[3].buf_addr;
 			message_parm.value = var_value.buf_addr;
 			parameter_status = make_parameter_status(&message_parm);
-			result = send_message(&session, (BaseMessage*)(&parameter_status->type));
+			result = send_message(&rocto_session, (BaseMessage*)(&parameter_status->type));
 			free(parameter_status);
 			if(result) {
 				return 0;
@@ -283,7 +287,7 @@ int main(int argc, char **argv) {
 		free(var_value.buf_addr);
 		free(var_defaults);
 		free(var_sets);
-		rocto_main_loop(&session);
+		rocto_main_loop(&rocto_session);
 		break;
 	}
 

@@ -1,13 +1,12 @@
 macro(ADD_UNIT_TEST_WITH_OPTIONS TEST_NAME TEST_FILE WRAP_FUNCTION)
   set(test_link_flags "")
   foreach(func ${WRAP_FUNCTION})
-    message(WARNING "Wrapping ${func}")
     if ("${test_link_flags}" STREQUAL "")
       set(test_link_flags "-Wl")
     endif()
     set(test_link_flags "${test_link_flags},--wrap=${func}")
   endforeach(func)
-  add_executable(${TEST_NAME} ${PROJECT_SOURCE_DIR}/${TEST_FILE}.c
+  add_executable(${TEST_NAME} ${PROJECT_SOURCE_DIR}/${TEST_FILE}.c rocto_errors.c
     $<TARGET_OBJECTS:librocto> $<TARGET_OBJECTS:libocto> $<TARGET_OBJECTS:libhelpers>)
 
   set_property(TARGET ${TEST_NAME} PROPERTY C_STANDARD 11)
@@ -63,3 +62,7 @@ ADD_UNIT_TEST_WITH_OPTIONS(test_read_close src/rocto/test_read_close "")
 ADD_UNIT_TEST_WITH_OPTIONS(test_make_close_complete src/rocto/test_make_close_complete "")
 ADD_UNIT_TEST_WITH_OPTIONS(test_read_ssl_request src/rocto/test_read_ssl_request "")
 ADD_UNIT_TEST_WITH_OPTIONS(test_generate_filename src/test_generate_filename "")
+ADD_UNIT_TEST_WITH_OPTIONS(test_read_password_message src/rocto/test_read_password_message "")
+ADD_UNIT_TEST_WITH_OPTIONS(test_make_portal_suspended src/rocto/test_make_portal_suspended "")
+ADD_UNIT_TEST_WITH_OPTIONS(test_read_terminate src/rocto/test_read_terminate "")
+ADD_UNIT_TEST_WITH_OPTIONS(test_read_flush src/rocto/test_read_flush "")

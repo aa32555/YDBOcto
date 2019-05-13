@@ -73,7 +73,6 @@ add_library(libocto OBJECT
   ydb_hash_to_string.c
   yyerror.c
   yywrap.c
-  errors.c
   format_error_string.c
   parse_line.c
   emit_create_table.c
@@ -150,6 +149,7 @@ add_library(libocto OBJECT
 
 add_executable(octo
   octo.c
+  errors.c
   $<TARGET_OBJECTS:libocto>
   $<TARGET_OBJECTS:libhelpers>
 )
@@ -167,7 +167,9 @@ add_library(librocto OBJECT
   rocto/read_query.c
   rocto/read_parse.c
   rocto/read_execute.c
+  rocto/read_flush.c
   rocto/read_sync.c
+  rocto/read_terminate.c
   rocto/read_describe.c
   rocto/handle_bind.c
   rocto/handle_query.c
@@ -186,6 +188,7 @@ add_library(librocto OBJECT
   rocto/make_authentication_ok.c
   rocto/make_parse_complete.c
   rocto/make_parameter_status.c
+  rocto/make_portal_suspended.c
   rocto/make_no_data.c
   rocto/send_message.c
   rocto/read_message.c
@@ -208,6 +211,8 @@ add_library(librocto OBJECT
   rocto/read_error_response.c
   rocto/read_parameter_status.c
   rocto/read_parse_complete.c
+  rocto/read_password_message.c
+  rocto/read_portal_suspended.c
   rocto/read_ready_for_query.c
   rocto/read_row_description.c
 )
@@ -216,6 +221,7 @@ target_link_libraries(librocto gtmtls)
 
 add_executable(rocto
   rocto.c
+  rocto_errors.c
   $<TARGET_OBJECTS:librocto>
   $<TARGET_OBJECTS:libocto>
   $<TARGET_OBJECTS:libhelpers>

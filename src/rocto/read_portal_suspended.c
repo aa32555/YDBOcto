@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 YottaDB, LLC
+/* Copyright (C) 2018-2019 YottaDB, LLC
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -18,21 +18,21 @@
 #include <assert.h>
 #include <string.h>
 
-#include "octo.h"
-#include "octo_types.h"
+// Used to convert between network and host endian
+#include <arpa/inet.h>
 
-int qualify_join_conditions(SqlJoin *join, SqlJoin *tables) {
-	SqlJoin *cur_join, *start_join;
-	SqlValueType type;
-	int ret = 0;
+#include "rocto.h"
+#include "message_formats.h"
 
-	cur_join = start_join = join;
-	do {
-		if(cur_join->condition) {
-			ret |= qualify_statement(cur_join->condition, tables);
-			ret |= populate_data_type(cur_join->condition, &type);
-		}
-		cur_join = cur_join->next;
-	} while(cur_join != start_join);
+PortalSuspended *read_portal_suspended(BaseMessage *message, ErrorResponse **err) {
+	PortalSuspended *ret;
+	unsigned int remaining_length = 0;
+
+	remaining_length = ntohl(message->length);
+	ret = (PortalSuspended*)malloc(sizeof(PortalSuspended));
+
+	ret->type = message->type;
+	ret->length = remaining_length;
+
 	return ret;
 }
