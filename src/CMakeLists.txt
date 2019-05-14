@@ -217,8 +217,6 @@ add_library(librocto OBJECT
   rocto/read_row_description.c
 )
 
-target_link_libraries(librocto gtmtls)
-
 add_executable(rocto
   rocto.c
   rocto_errors.c
