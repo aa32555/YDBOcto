@@ -17,4 +17,12 @@ $ydb_dist/mupip set -n=true -reg '*'
 ./octo -f ../../tests/fixtures/names.sql
 $ydb_dist/mupip load ../../tests/fixtures/names.zwr
 popd
-make test
+make test 2> make_warnings.txt
+
+if cmp -s make_warnings.txt expected_warnings.txt
+then
+   return 0
+else
+  echo "CI: make: unexpected warning(s)"
+  return 1
+fi
