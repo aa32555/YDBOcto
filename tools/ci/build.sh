@@ -19,10 +19,12 @@ $ydb_dist/mupip load ../../tests/fixtures/names.zwr
 popd
 make test 2> make_warnings.txt
 
-if cmp -s make_warnings.txt expected_warnings.txt
+echo "Make warnings:"
+cat make_warnings.txt
+if cmp -s make_warnings.txt ../tools/ci/expected_warnings.txt
 then
-   return 0
+   exit 0
 else
   echo "CI: make: unexpected warning(s)"
-  return 1
+  exit 1
 fi
