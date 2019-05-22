@@ -10,7 +10,7 @@ cd bats-core
 cd ..
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
 make 2> make_warnings.txt
-./sort_warnings.sh
+../tools/ci/sort_warnings.sh
 if cmp -s sorted_warnings.txt ../tools/ci/expected_warnings.txt
 then
    exit 0
