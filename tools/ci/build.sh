@@ -11,10 +11,8 @@ cd ..
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
 make 2> make_warnings.txt
 ../tools/ci/sort_warnings.sh
-if cmp -s sorted_warnings.txt ../tools/ci/expected_warnings.txt
+if cmp sorted_warnings.txt ../tools/ci/expected_warnings.txt
 then
-   exit 0
-else
   echo "CI: make: unexpected warning(s)"
   exit 1
 fi
