@@ -12,5 +12,5 @@ echo "OK."
 
 # Concatenate filenames with warning messages and sort
 echo -n "Combining and sorting filenames with messages... "
-paste -d ": " filenames.txt warnings.txt > clean_warnings.txt | sort clean_warnings.txt > sorted_warnings.txt
+paste -d ": " filenames.txt warnings.txt | sort > sorted_warnings.txt
 echo "OK."
