@@ -35,6 +35,13 @@ OCTO
   [[ "$(grep -c -E "Zero.\+|Cool" output.txt)" == "2" ]]
 }
 
+@test "select lastName only (empty row+column check)" {
+  run_psql <<OCTO &> output.txt
+SELECT lastName FROM names;
+OCTO
+  verify_output T0010 output.txt
+}
+
 @test "invalid syntax should get an error message" {
   run_psql <<OCTO &> output.txt
 SELECT * AFRO names;
