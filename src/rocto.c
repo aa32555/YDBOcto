@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
 			if (ECONNRESET == errno) {
 				INFO(ERR_SYSCALL, "read_message", errno, strerror(errno));
 				errno = 0;
-			} else {
+			} else if (0 != errno) {
 				WARNING(ERR_ROCTO_READ_FAILED, "failed to read MD5 password");
 				error_message = format_error_string(&err_buff, ERR_ROCTO_READ_FAILED, "failed to read MD5 password");
 				err = make_error_response(PSQL_Error_ERROR,
