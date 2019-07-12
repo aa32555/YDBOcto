@@ -20,6 +20,8 @@ setup() {
   fi
   load_fixture names.sql
   load_fixture names.zwr
+  load_fixture pastas.sql
+  load_fixture pastas.zwr
   load_fixture default_user.zwr
   start_rocto
 }
@@ -40,6 +42,13 @@ OCTO
 SELECT lastName FROM names;
 OCTO
   verify_output T0010 output.txt
+}
+
+@test "select two empty columns only (empty row+column check)" {
+  run_psql <<OCTO &> output.txt
+SELECT lastName, favoritePasta FROM names4;
+OCTO
+  verify_output T0011 output.txt
 }
 
 @test "invalid syntax should get an error message" {
