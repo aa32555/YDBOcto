@@ -43,7 +43,6 @@ int readline_get_more() {
 	if(config->is_tty) {
 		line = readline("OCTO> ");
 		if(line == NULL) {
-			eof_hit = 1;
 			return 0;
 		}
 		line_length = strlen(line);
@@ -64,12 +63,11 @@ int readline_get_more() {
 		free(line);
 		return line_length;
 	} else {
-		if(feof(inputFile)) {
-			eof_hit = TRUE;
-			return 0;
-		}
 		cur_input_index = 0;
 		data_read = read(fileno(inputFile), input_buffer_combined, cur_input_max);
+		if (data_read == 0){
+			eof_hit = TRUE;
+		}
 		if(data_read == -1) {
 			FATAL(ERR_SYSCALL, "read", errno, strerror(errno));
 		}

@@ -242,4 +242,4 @@ CREATE TABLE users (
   rolconnlimit INTEGER,
   rolpassword VARCHAR,
   rolvaliduntil VARCHAR
-)
+);

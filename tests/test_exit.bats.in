@@ -62,6 +62,12 @@ OCTO
   verify_output TE005 output.txt
 }
 
+@test "close octo with '^d'" {
+  octo >& output.txt <<OCTO
+OCTO
+  verify_output TE006 output.txt
+}
+
 @test "attempt quit command using octo -f" {
   echo "select * from names;" > quit.sql
   echo "quit" >> quit.sql
@@ -76,4 +82,11 @@ OCTO
   octo -f quit.sql >& output.txt
   # The output should be the same as the previous test
   verify_output TE007 output.txt
+}
+
+@test "attempt to terminate a query with '^d'" {
+  octo >& output.txt <<OCTO
+select * from names
+OCTO
+  verify_output TE008 output.txt
 }
