@@ -12,7 +12,8 @@
 
 FROM yottadb/yottadb-base:latest-master
 
-RUN apt-get update -qq && \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update -qq && \
     apt-get install -y -qq \
         build-essential \
         cmake \
@@ -25,6 +26,7 @@ RUN apt-get update -qq && \
         libconfig-dev \
         libssl-dev \
         postgresql-client \
+        postgresql \
         xxd \
         wget
 RUN pip install \
@@ -33,6 +35,7 @@ RUN pip install \
         sphinx_rtd_theme
 ENV PATH=/usr/local/go/bin:$PATH
 ENV GOLANG_VERSION=1.11.2
+ENV USER=root
 RUN wget -O go.tgz -q https://golang.org/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz
 RUN tar -C /usr/local -xzf go.tgz
 RUN rm go.tgz
