@@ -1,5 +1,0 @@
-octoPlan0(cursorId)
-    DO octoPlan1(cursorId)
-    QUIT
-octoPlan1(cursorId)
-    QUIT
