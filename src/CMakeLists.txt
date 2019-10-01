@@ -176,11 +176,11 @@ add_library(libocto OBJECT
   optimization_transforms/logical_plan.c
   physical/generate_physical_plan.c
   physical/emit_physical_plan.c
+  physical/is_prev_plan_in_same_dnf.c
   m_templates/print_dots.c
   m_templates/resize_tmpl_buffer.c
   m_escape_string2.c
   replace_table_references.c
-  update_table_references.c
   copy_sql_statement.c
   cleanup_tables.c
   parser/query_specification.c
@@ -199,7 +199,7 @@ add_executable(octo
   $<TARGET_OBJECTS:libhelpers>
   ${POST_CONFIGURE_FILE}
 )
-add_dependencies(octo check_git_repository)
+add_dependencies(octo check_git_repository _ydbocto)
 
 if(${YDB_TLS_AVAILABLE})
   add_library(ydbtls SHARED IMPORTED GLOBAL)
@@ -336,16 +336,17 @@ endforeach()
 
 # Create a shared library of M routines
 set(aux_files
-  aux/_ydboctoselect.m
   aux/_ydboctoAdmin.m
-  aux/_ydboctoNullSubsCheck.m
   aux/_ydboctoCleanup.m
+  aux/_ydboctoNullSubsCheck.m
   aux/_ydboctocurrentSchema.m
-  aux/_ydboctoreplace.m
   aux/_ydboctopgCurrentSchemas.m
+  aux/_ydboctopgGetExpr.m
   aux/_ydboctopgObjDescription.m
   aux/_ydboctopgRowNumber.m
-  aux/_ydboctopgGetExpr.m
+  aux/_ydboctoplanhelpers.m
+  aux/_ydboctoreplace.m
+  aux/_ydboctoselect.m
   aux/_ydboctoversion.m
 )
 add_library(_ydbocto SHARED ${aux_files})
