@@ -1,7 +1,7 @@
 {}%
 /****************************************************************
  *								*
- * Copyright (c) 2019 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2020 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -17,24 +17,25 @@
 TEMPLATE(tmpl_populate_output_key, PhysicalPlan *plan, int dot_count) {
 	TEMPLATE_INIT();
 
+	boolean_t	stash_columns_in_keys;
+
 	assert(NULL != plan->outputKey);
 	assert(!plan->outputKey->is_cross_reference_key);	/* caller should have ensured this */
 	// Populate records in the output key (i.e. SELECT column list)
 	%{}`n{{ PLAN_LINE_START }}{}%
 	dot_count++;
 	TMPL(tmpl_print_dots, dot_count);
-	if (!plan->stash_columns_in_keys) {
+	/* If the plan has an ORDER BY, then we need to fill in the ORDER_BY_SUBSCRIPT node even if the plan is part of
+	 * a sub-query (i.e. plan->stash_columns_in_keys is TRUE) hence the || below. In this case, the actual stashing
+	 * of the columns in keys will happen as part of the final ORDER BY processing in "tmpl_physical_plan".
+	 */
+	stash_columns_in_keys = (plan->stash_columns_in_keys && (NULL == plan->order_by));
+	if (!stash_columns_in_keys) {
 		%{}SET:1{}%
 		%{}&$INCREMENT({}%
 		TMPL(tmpl_key, plan->outputKey);
 		%{}){}%
 	} else {
-		if (plan->distinct_values) {
-			%{}IF $INCREMENT({}%
-			TMPL(tmpl_key, plan->outputKey);
-			%{})`n{{ PLAN_LINE_START }}{}%
-			TMPL(tmpl_print_dots, dot_count);
-		}
 		%{}IF $INCREMENT({}%
 		TMPL(tmpl_key, plan->outputKey);
 		(*buffer_index)--;
@@ -57,7 +58,7 @@ TEMPLATE(tmpl_populate_output_key, PhysicalPlan *plan, int dot_count) {
 			%{}&$INCREMENT(%%ydboctozlimit){}%
 		}
 	}
-	if (!plan->stash_columns_in_keys) {
+	if (!stash_columns_in_keys) {
 		int	start_output_key, end_output_key;
 
 		%{} %%ydboctoz=42`n{{ PLAN_LINE_START }}{}%
@@ -107,11 +108,7 @@ TEMPLATE(tmpl_populate_output_key, PhysicalPlan *plan, int dot_count) {
 
 		%{} {{ config->global_names.cursor }}(cursorId,{{ DISTINCT_SUBSCRIPT }},{}%
 		TMPL(tmpl_column_list_combine, plan->projection, plan, ",", 0, 0, 0);
-		%{},{}%
-		TMPL(tmpl_key, plan->outputKey);
-		%{})="",tmpVar=$INCREMENT({{ config->global_names.cursor }}(cursorId,{{ DISTINCT_SUBSCRIPT }},{}%
-		TMPL(tmpl_column_list_combine, plan->projection, plan, ",", 0, 0, 0);
-		%{})){}%
+		%{})=""{}%
 	}
 	TEMPLATE_END();
 }
