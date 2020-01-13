@@ -1,15 +1,25 @@
-OCTO> select * from names where id like 4::integer;
-4|Joey|
-OCTO> select * from names where id not like 4::integer;
-0|Zero|Cool
-1|Acid|Burn
-2|Cereal|Killer
-3|Lord|Nikon
-5|Zero|Cool
-OCTO> 
+
+-- TCT012 : OCTO300 : Octo uses right most type in calculated columns rather than highest precision type
+
+select 1.5::integer+2.5::numeric+"1abcd"::numeric from names;
+select 1.5::integer+2.5::numeric+"1abcd"::integer from names;
+
+4.5
+4.5
+4.5
+4.5
+4.5
+4.5
+4.5
+4.5
+4.5
+4.5
+4.5
+4.5
+
 ;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
 ;; ---------------------------------------------------------
-;  select * from names where id like 4::integer;
+;  select 1.5::integer+2.5::numeric+"1abcd"::numeric from names;
 ;; ---------------------------------------------------------
 
 octoPlan0(cursorId)
@@ -21,14 +31,13 @@ octoPlan1(cursorId)
     SET %ydboctocursor(cursorId,"keys",1,"NAMES","ID")=""
     FOR  SET %ydboctocursor(cursorId,"keys",1,"NAMES","ID")=$ORDER(^names(%ydboctocursor(cursorId,"keys",1,"NAMES","ID"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"NAMES","ID")="")  DO
     . NEW %ydboctobool SET %ydboctobool=1
-    . SET %ydboctobool=$$regmatch^%ydbposix(%ydboctocursor(cursorId,"keys",1,"NAMES","ID"),(($GET(%ydboctocursor(cursorId,"parameters",1)))\1))
     . IF %ydboctobool DO
     . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
-    . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctocursor(cursorId,"keys",1,"NAMES","ID")_"|"_$PIECE($GET(^names(%ydboctocursor(cursorId,"keys",1,"NAMES","ID"))),"|",2)_"|"_$PIECE($GET(^names(%ydboctocursor(cursorId,"keys",1,"NAMES","ID"))),"|",3)
+    . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=(((($GET(%ydboctocursor(cursorId,"parameters",1)))\1)+($GET(%ydboctocursor(cursorId,"parameters",2))))+($GET(%ydboctocursor(cursorId,"parameters",3))))
     QUIT
 ;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
 ;; ---------------------------------------------------------
-;  select * from names where id not like 4::integer;
+;  select 1.5::integer+2.5::numeric+"1abcd"::integer from names;
 ;; ---------------------------------------------------------
 
 octoPlan0(cursorId)
@@ -40,8 +49,7 @@ octoPlan1(cursorId)
     SET %ydboctocursor(cursorId,"keys",1,"NAMES","ID")=""
     FOR  SET %ydboctocursor(cursorId,"keys",1,"NAMES","ID")=$ORDER(^names(%ydboctocursor(cursorId,"keys",1,"NAMES","ID"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"NAMES","ID")="")  DO
     . NEW %ydboctobool SET %ydboctobool=1
-    . SET %ydboctobool='$$regmatch^%ydbposix(%ydboctocursor(cursorId,"keys",1,"NAMES","ID"),(($GET(%ydboctocursor(cursorId,"parameters",1)))\1))
     . IF %ydboctobool DO
     . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
-    . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctocursor(cursorId,"keys",1,"NAMES","ID")_"|"_$PIECE($GET(^names(%ydboctocursor(cursorId,"keys",1,"NAMES","ID"))),"|",2)_"|"_$PIECE($GET(^names(%ydboctocursor(cursorId,"keys",1,"NAMES","ID"))),"|",3)
+    . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=(((($GET(%ydboctocursor(cursorId,"parameters",1)))\1)+($GET(%ydboctocursor(cursorId,"parameters",2))))+(($GET(%ydboctocursor(cursorId,"parameters",3)))\1))
     QUIT
