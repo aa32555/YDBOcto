@@ -1,6 +1,6 @@
 #################################################################
 #								#
-# Copyright (c) 2019 YottaDB LLC and/or its subsidiaries.	#
+# Copyright (c) 2019-2020 YottaDB LLC and/or its subsidiaries.	#
 # All rights reserved.						#
 #								#
 #	This source code contains the intellectual property	#
@@ -10,13 +10,13 @@
 #								#
 #################################################################
 
-CREATE TABLE names (id INTEGER PRIMARY KEY, firstName VARCHAR(30), lastName VARCHAR(30)) GLOBAL "^names(keys(""id""))";
+CREATE TABLE names (id INTEGER PRIMARY KEY, firstName VARCHAR(30), lastName TEXT(30)) GLOBAL "^names(keys(""id""))";
 
 CREATE TABLE namesWithAges (
  id INTEGER PRIMARY KEY,
  firstName VARCHAR(30),
  lastName VARCHAR(30),
  age INTEGER,
- time VARCHAR(11) EXTRACT "$ZDATE($HOROLOG,""YEAR-MM-DD 24:60:SS"")"	-- this is a computed column
+ datetime TIME(10) EXTRACT "$ZDATE($HOROLOG,""YEAR-MM-DD 24:60:SS"")"	-- this is a computed column
 )
  GLOBAL "^names(keys(""id""))";

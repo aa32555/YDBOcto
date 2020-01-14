@@ -78,6 +78,7 @@ extern void yyerror(YYLTYPE *llocp, yyscan_t scan, SqlStatement **out, int *plan
 %token CREATE
 %token CROSS
 %token CURSOR
+%token DATE
 %token DEC
 %token DECIMAL
 %token DEFAULT
@@ -138,6 +139,7 @@ extern void yyerror(YYLTYPE *llocp, yyscan_t scan, SqlStatement **out, int *plan
 %token SUM
 %token TABLE
 %token THEN
+%token TIME
 %token TO
 %token UNION
 %token UNIQUE
@@ -812,33 +814,20 @@ numeric_primary
   : value_expression_primary optional_subscript optional_cast_specification {
 	$$ = $value_expression_primary;
 	if (NULL != $optional_cast_specification) {
-		// For now, we support a subset of types. More shall be added as needed
 		SqlValue	*value;
 		SqlValueType	type;
 
-		UNPACK_SQL_STATEMENT(value, $optional_cast_specification, value);
-		char *c = value->v.string_literal;
-		while(*c != '\0') {
-			*c = toupper(*c);
-			c++;
-		}
-		c = value->v.string_literal;
-		if (0 == strcmp(c, "TEXT")) {
-			type = STRING_LITERAL;
-		} else if (0 == strcmp(c, "NUMERIC")) {
-			type = NUMERIC_LITERAL;
-		} else if (0 == strcmp(c, "INTEGER")) {
-			type = INTEGER_LITERAL;
+		type = (SqlValueType)$optional_cast_specification;
+		if (INVALID_SqlValueType == type) {
+			YYERROR;
 		} else {
-			ERROR(ERR_INVALID_TYPE, c);
-			YYABORT;
+			SQL_STATEMENT($$, value_STATEMENT);
+			MALLOC_STATEMENT($$, value, SqlValue);
+			UNPACK_SQL_STATEMENT(value, $$, value);
+			value->type = COERCE_TYPE;
+			value->coerced_type = type;
+			value->v.coerce_target = $value_expression_primary;
 		}
-		SQL_STATEMENT($$, value_STATEMENT);
-		MALLOC_STATEMENT($$, value, SqlValue);
-		UNPACK_SQL_STATEMENT(value, $$, value);
-		value->type = COERCE_TYPE;
-		value->coerced_type = type;
-		value->v.coerce_target = $value_expression_primary;
 	}
     }
 //  | numeric_value_function
@@ -860,30 +849,28 @@ value_expression_primary
 
 optional_cast_specification
   : /* Empty */ { $$ = NULL; }
-  | COLON COLON identifier {
-      $$ = $identifier;
+  // For now, we support a subset of types. More shall be added as needed
+  | COLON COLON VARCHAR {
+	$$ = (SqlStatement *)STRING_LITERAL;
     }
   | COLON COLON NUMERIC {
-	SqlValue *value;
-	size_t str_len;
-	SQL_STATEMENT($$, value_STATEMENT);
-	MALLOC_STATEMENT($$, value, SqlValue);
-	UNPACK_SQL_STATEMENT(value, $$, value);
-	value->type = STRING_LITERAL;
-	str_len = LIT_LEN("NUMERIC") + 1;       // null terminator
-	value->v.string_literal = octo_cmalloc(memory_chunks, str_len);
-	strncpy(value->v.string_literal, "NUMERIC", str_len);
+	$$ = (SqlStatement *)NUMERIC_LITERAL;
     }
   | COLON COLON INTEGER {
-	SqlValue *value;
-	size_t str_len;
-	SQL_STATEMENT($$, value_STATEMENT);
-	MALLOC_STATEMENT($$, value, SqlValue);
-	UNPACK_SQL_STATEMENT(value, $$, value);
-	value->type = STRING_LITERAL;
-	str_len = LIT_LEN("INTEGER") + 1;       // null terminator
-	value->v.string_literal = octo_cmalloc(memory_chunks, str_len);
-	strncpy(value->v.string_literal, "INTEGER", str_len);
+	$$ = (SqlStatement *)INTEGER_LITERAL;
+    }
+  | COLON COLON DATE {
+	$$ = (SqlStatement *)STRING_LITERAL;
+    }
+  | COLON COLON TIME {
+	$$ = (SqlStatement *)STRING_LITERAL;
+    }
+  | COLON COLON identifier {
+	SqlValue	*value;
+
+	UNPACK_SQL_STATEMENT(value, $identifier, value);
+	ERROR(ERR_INVALID_TYPE, value->v.string_literal);
+	$$ = (SqlStatement *)INVALID_SqlValueType;
     }
   ;
 
@@ -1523,7 +1510,11 @@ data_type
       SQL_STATEMENT($$, data_type_STATEMENT);
       ($$)->v.data_type = INTEGER_TYPE;
     }
-//  | datetime_type
+  | datetime_type {
+	/* For now treat DATE or TIME types as equivalent to the STRING/VARCHAR type */
+	SQL_STATEMENT($$, data_type_STATEMENT);
+	($$)->v.data_type = CHARACTER_STRING_TYPE;
+    }
 //  | interval_type
   ;
 
@@ -1554,13 +1545,24 @@ exact_numeric_type
   : NUMERIC exact_numeric_type_tail { $$ = $exact_numeric_type_tail; }
   | DECIMAL exact_numeric_type_tail { $$ = $exact_numeric_type_tail; }
   | DEC exact_numeric_type_tail { $$ = $exact_numeric_type_tail; }
-
-integer_type
-  : INTEGER { $$ = NULL; }
-  | INT { $$ = NULL; }
-  | SMALLINT { $$ = NULL; }
   ;
 
+integer_type
+  : INTEGER integer_type_tail { $$ = NULL; }
+  | INT integer_type_tail { $$ = NULL; }
+  | SMALLINT integer_type_tail { $$ = NULL; }
+  ;
+
+datetime_type
+  : DATE { $$ = NULL; }
+  | TIME time_type_tail { $$ = $time_type_tail; }
+  ;
+
+time_type_tail
+  : /* Empty */ { $$ = NULL; }
+  | LEFT_PAREN precision RIGHT_PAREN {
+      $$ = $precision;
+    }
 
 /// TODO: we should have a triple for this type of numeric which includes scale
 exact_numeric_type_tail
@@ -1575,6 +1577,12 @@ exact_numeric_type_tail_tail
   | COMMA scale { $$ = $scale; }
   ;
 
+integer_type_tail
+  : /* Empty */ { $$ = NULL; }
+  | LEFT_PAREN precision RIGHT_PAREN {
+      $$ = $precision;
+    }
+
 precision
   : literal_value { $$ = $literal_value; }
   ;
@@ -1585,15 +1593,15 @@ scale
 
 literal_value
   : LITERAL {
-      $$ = $LITERAL; ($$)->loc = yyloc;
-      assert(NULL != cursorId);
-      if ((value_STATEMENT == ($$)->type) &&
-          ((NUMERIC_LITERAL == ($$)->v.value->type) ||
-          (STRING_LITERAL == ($$)->v.value->type) ||
-          (INTEGER_LITERAL == ($$)->v.value->type))) {
-              INVOKE_PARSE_LITERAL_TO_PARAMETER(cursorId, ($$)->v.value, FALSE);
-          }
-      }
+	$$ = $LITERAL; ($$)->loc = yyloc;
+	assert(NULL != cursorId);
+	if ((value_STATEMENT == ($$)->type)
+			&& ((NUMERIC_LITERAL == ($$)->v.value->type)
+				|| (STRING_LITERAL == ($$)->v.value->type)
+				|| (INTEGER_LITERAL == ($$)->v.value->type))) {
+		INVOKE_PARSE_LITERAL_TO_PARAMETER(cursorId, ($$)->v.value, FALSE);
+	}
+    }
 
 partition_by_clause
   : LEFT_PAREN PARTITION BY column_reference optional_order_by RIGHT_PAREN {
