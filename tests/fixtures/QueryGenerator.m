@@ -18,7 +18,7 @@
 
 	; #FUTURE_TODO: Implement subqueries into other places (Group By, Having, etc.). Example below
 	;               SELECT n1.id from names n1 where n1.id * (select n2.id from names n2 where n2.id = n1.id % 3) = n1.id * 2;
-	; #FUTURE_TODO: Make it so subqueries from the select list can be used in other places (I'm pretty sure that they can)
+	; #FUTURE_TODO: Make it so subqueries from the select list can be used in other places (Assuming that they can)
 	;               EX: Select (subquery) AS alias FROM table WHERE alias = 1;
 	; #FUTURE_TODO: Add aliases into FROM clause like example query below.
 	;               SELECT n1.id FROM names n1;
@@ -40,8 +40,6 @@
 	; #FUTURE_TODO: Test to see if CASEs comparisons can be made against other CASEs, if so
 	;               implement this into WHERE and HAVING clauses
 
-	; #FUTURE_TODO: Move a majority of these "initializing" functions to
-	;               a separate function, and then just call that function
 	set initDone("setQuantifier")=0
 	set initDone("chooseTable")=0
 	set initDone("chooseColumn")=0
@@ -65,8 +63,10 @@
 	if (sqlFile="") set sqlFile="customers.sql"
 	set zwrFile=$piece(arguments," ",2)
 	if (zwrFile="") set zwrFile="customers.zwr"
+	; The runCount variable determines the amount of .sql files to be generated when this file is ran.
 	set runCount=$piece(arguments," ",3)
 	if (runCount="") set runCount=1
+	; The prefix variable defines the prefix for the .sql files in the form of "prefix###.sql"
 	set prefix=$piece(arguments," ",4)
 	if (prefix="") set prefix="query"
 
@@ -75,6 +75,7 @@
 
 	do checkForEmptyTables()
 
+	;Main Loop
 	new i
 	for i=1:1:runCount do
 	. set aliasNum=0
@@ -104,6 +105,7 @@
 	. ; The following LVNs exist for each individual query,
 	. ; thus they need to be KILLED after each query is created
 	. kill tableColumn,selectListLVN,subQuerySelectedTables,tableColumnCopy,innerQuerySLLVN,dontJoin
+	. ; The following variables need to be reset to their default values for each, seperate query.
 	. set orderByExists="FALSE"  set limitExists="FALSE"  set outerJoinExists="FALSE" set outerJoinsAllowed="FALSE"
 	. set existsInHavingExists="FALSE"  set caseFunctionExists="FALSE"
 	. set currentAlias=0
@@ -114,11 +116,15 @@
 ;               as it might help to improve the readability of the semi-messy parsers
 ;Parsers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; This function searches for, and returns, the relative path of the fixture .sql and .zwr files inside of the Octo folder structure.
+; It takes in the filename of the desired .sql/.zwr file as a parameter.
 findFile(file)
 	if ($zsearch(file)="") do
 	. set file="../../tests/fixtures/"_file
 	quit file
 
+; This function takes in a .sql file, and stores table names, row names, and the variable typing of the rows.
+; It takes in a file, or file path, to the .sql file as a parameter.
 readSQL(file)
 	new line,nlines,count,tableNameStart,tableNameEnd,tableName,columnNameAndTypeStart,columnNameAndTypeEnd,columnName
 	new columnType,columnNameAndTypeStart,finalColumnAndTypeEnd,finalColumnName,finalColumnType,columnNameAndType,i,nlines,i2
@@ -169,6 +175,8 @@ readSQL(file)
 	. set tableNameEnd=0
 	quit
 
+; This function takes in the a .zwr file, and stores the data contained within the tables/rows relative to their table name and row name.
+; It takes in a file, or file path, to the .zwr file as a parameter.
 readZWR(file)
 	new line,nlines,holder,firstData,table,i,i2,previous
 	open file:(readonly)
@@ -202,9 +210,9 @@ readZWR(file)
 	. . . set primaryKeys($extract(table,0,$find(table,"(")-2),pKey)=""
 	quit
 
-; If a table "exists" but has no data (such as namesWithAges in names db),
-; then this function will remove it
 checkForEmptyTables()
+	; If a table "exists" but has no data (such as namesWithAges in names db),
+	; then this function will remove it
 	new holder,one,two
 
 	set holder=" "
@@ -231,6 +239,7 @@ checkForEmptyTables()
 ;Grammar Rules
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; https://ronsavage.github.io/SQL/sql-92.bnf.html#set%20quantifier
+; This function returns a randomly selected quantifer for either the parent query, or any subsequent subquery.
 setQuantifier(curDepth)
 	if (initDone("setQuantifier")=0) do
 	. set initDone("setQuantifier")=1
@@ -257,6 +266,9 @@ setQuantifier(curDepth)
 	quit actualQuantifier
 
 ; https://ronsavage.github.io/SQL/sql-92.bnf.html#select%20list
+; This function returns a select list only for the parent query. Currently it can only contain table.column, subquery, and case functions.
+; It takes in a curDepth value, since it is recursive. This value is continously lowered until it reaches 0, thus ending the recursive loop.
+; It stores every value added into the SELECT LIST into a LVN called selectListLVN.
 selectList(curDepth)
 	new randInt,result,toBeAdded
 	;This function serves the same purpose as select sublist in the grammar rules for SQL.
@@ -328,6 +340,7 @@ selectList(curDepth)
 	quit result
 
 ; https://ronsavage.github.io/SQL/sql-92.bnf.html#table%20expression
+; This function controls whether or not to add various other portions of a query into the parent query. This includes WHERE, GROUP BY, HAVING, ORDER BY, and LIMIT.
 tableExpression()
 	new result
 	; From Clause should go here, but it needs to be decided on early as to
@@ -364,9 +377,9 @@ tableExpression()
 
 ; https://ronsavage.github.io/SQL/sql-92.bnf.html#from%20clause
 ; #FUTURE_TODO: Implement subqueries into FROM clause
+; This function returns the fromClause for the parent query. Currently it only supports a single table to be pulled from, but contains code that should enable multiple tables to be pulled from at a time.
 fromClause()
 	new result,randInt,i,x,chosenTable
-	;Constructs a FROM clause from a random number of table references.
 
 	set result="FROM "
 
@@ -410,6 +423,7 @@ fromClause()
 	quit result_chosenTable ;_"f"_fromNum ;chosenTable OR fromTableList
 
 ; https://ronsavage.github.io/SQL/sql-92.bnf.html#where%20clause
+; This function returns the WHERE clause, which contains the WHERE statement as well as a randomly selected condition type.
 whereClause()
 	new result,randInt,i,x
 	set result=" WHERE "
@@ -696,6 +710,7 @@ whereClause()
 	quit result
 
 ; https://ronsavage.github.io/SQL/sql-92.bnf.html#group%20by%20clause
+; This function returns the GROUP BY clause. It pulls the necessary values from the selectListLVN.
 groupbyClause()
 	new result,randInt,i,holder
 	set result=" GROUP BY "
@@ -714,6 +729,7 @@ groupbyClause()
 
 ; https://ronsavage.github.io/SQL/sql-92.bnf.html#having%20clause
 ; #FUTURE_TODO: integrate aggregate functions into all of the below if blocks
+; This function returns a HAVING clause for either a subquery or the parent query based on which clauseType is provided.
 ; "query" and "subquery" are valid clauseTypes
 ; If the HAVING Clause is to appear in the greater query (most external level) run with "query"
 ; If the HAVING Clause is to appear within a subquery run with "subquery"
@@ -991,6 +1007,11 @@ havingClause(clauseType)
 	quit result
 
 ; https://ronsavage.github.io/SQL/sql-92.bnf.html#order%20by%20clause
+; This function returns an ORDER BY clause for either a subquery or the parent query.
+; It takes in an alias number (aNum) as a paremeter.
+; It also takes in a location value as a parameter.
+; If the ORDER BY Clause is to appear in the parent query run with "QUERY"
+; If the ORDER BY Clause is to appear within a subquery run with "SUBQUERY"
 orderbyClause(aNum,location)
 	new result,holder
 	set result=" ORDER BY "
@@ -1023,6 +1044,7 @@ orderbyClause(aNum,location)
 	quit result
 
 ; Cannot find the link for this
+; This function returns a LIMIT Clause, with a number between 1 and the amount of elements in the table.
 limitClause()
 	new result,holder,max,a
 	set result=" LIMIT "
@@ -1032,6 +1054,8 @@ limitClause()
 	quit result
 
 ; Cannot find a single link that defines all of the Join clause, just the smaller portions of it
+; This function returns the JOIN clause. It only works for the parent query.
+; This function conatians the logic for the selecting of a JOIN type, what is actually being joined, and the ON clause.
 joinClause()
 	new result,chosenTable1,chosenColumn1,chosenColumn2,chosenTable2,type1,joinType,operator,fullString,loopCount
 	set result=""
@@ -1224,6 +1248,7 @@ joinClause()
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Supporting Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; This function will randomly select a table from an LVN of all possible tables.
 chooseTable()
 	if (initDone("chooseTable")=0) do
 	. set initDone("chooseTable")=1
@@ -1237,6 +1262,7 @@ chooseTable()
 	. for  set x=$order(sqlInfo(x))  quit:x=""  set tables($increment(count))=x
 	quit tables($random(tables))
 
+; This function will randomly select a column from an LVN of all possible columns, based off of the provided table parameter.
 chooseColumn(table)
 	if (initDone("chooseColumn")=0) do
 	. new a,currentTable,column,columnCount,x,count
@@ -1264,6 +1290,7 @@ chooseColumn(table)
 	set tableColumn(table,selectedColumn)=""
 	quit selectedColumn
 
+; This function is designed for the HAVING clause. It will randomly select a table from the selectListLVN, which is required for the HAVING clause.
 havingChooseColumn(count)
 	new holder,randValue
 	set randValue=$random(count)+1
@@ -1273,6 +1300,7 @@ havingChooseColumn(count)
 
 	quit $piece(holder,".",2)
 
+; This function returns the number of columns in the provided table. It is mainly used in other supporting functions.
 columnCounter(currentTable)
 	set column=""
 	set columnCount=1
@@ -1280,11 +1308,14 @@ columnCounter(currentTable)
 	for  set x=$order(sqlInfo(currentTable,x))  quit:x=""  if $increment(columnCount)
 	quit columnCount
 
+; This function is very similar in function to chooseColumn, but its logic is setup for use in a specific spot (JOIN clause).
 chooseColumnBasedOffTable(table)
 	set CC=$SELECT($data(tableColumnCounts(table))=0:$$columnCounter(table),1:tableColumnCounts(table))
 	set selectedColumn=$order(columns(table,$random(CC-1)+1,$random(CC-1)+1))
 	quit selectedColumn
 
+; This function returns a randomly selected entry from a table and column pair, which both need to be passed in as parameters.
+; This function is one of the most common spots for infinite loops, as it assumes that it is being handed a valid set of tableName and columnName.
 chooseEntry(tableName,columnName)
 	new index,formatted,CC,type,entry,i,randInt,count,maxIndex,randFromMaxIndex
 
@@ -1321,16 +1352,21 @@ chooseEntry(tableName,columnName)
 
 	quit entry
 
+; This function returns the positional number/index of a column in the columns LVN. It is mainly used for other supporting functions.
 returnColumnIndex(tableName,columnName)
 	; Returns index of column
 	set index=0
 	for  quit:($order(columns(tableName,index,""))=columnName)  if $increment(index)
 	quit index
 
+; This function returns the stored type of whatever tableName and columnName that is provided to it.
+; This function also is a common cause of infinite loops as it assumes that it is being given a valid set of tableName and columnName.
 returnColumnType(tableName,columnName)
 	set index=$$returnColumnIndex(tableName,columnName)
 	quit $order(sqlInfo(tableName,index,columnName,""))
 
+; This function returns the maximum value of items in the data LVN for a given table.
+; Essentially this function returns the max possible integer value for items in a given tableName.
 maxIndex(tableName)
 	new holder,maxIndex,a,thing
 
@@ -1570,6 +1606,7 @@ returnCaseFunction(location,conditionType,resultType,subqueryBoolean,toCompare)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Queries
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; This function is responsible for the actual generation of the parent query, and such contains most of the logic to do so.
 generateQuery()
 	new fc,i
 	set selectListDepth=$random(GLOBALtotalTables)+1
@@ -1594,6 +1631,7 @@ generateQuery()
 	set query=query_$$tableExpression
 	quit query_";"
 
+; This function generates all of the subqueries for the various other functions throughout this program.
 ; Valid parameters are "full" and "limited"
 ; Passing "full" returns a very general query with minimal restrictions
 ; Passing "limited" returns a query that contains clauses that limit the
@@ -1633,6 +1671,7 @@ generateSubQuery(subQueryType)
 ;Inner Specific Versions of Other Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; https://ronsavage.github.io/SQL/sql-92.bnf.html#select%20list
+; This function returns an select list that matches requirements and utilizes the variables of subqueries.
 innerSelectList(subQueryType,curDepth,alias)
 	new randInt,result,toBeAdded
 	;This function serves the same purpose as select sublist in the grammar rules for SQL.
@@ -1693,6 +1732,8 @@ innerSelectList(subQueryType,curDepth,alias)
 	quit result
 
 ; https://ronsavage.github.io/SQL/sql-92.bnf.html#table%20expression
+; This function returns the table expressions that matches requirements and utilizes the variables of subqueries.
+; It only contains code to return a subquery specific WHERE CLAUSE, and regular/general GROUP BY, HAVING, LIMIT, and ORDER BY clauses.
 innerTableExpression(subQueryType)
 	new innerResult
 	; From Clause should go here, but it needs to be decided on early as to
@@ -1708,6 +1749,7 @@ innerTableExpression(subQueryType)
 	quit innerResult
 
 ; https://ronsavage.github.io/SQL/sql-92.bnf.html#where%20clause
+; This function returns a WHERE CLAUSE specific to subqueries. This is due to the fact that the WHERE clause in a subquery needed a lot more logic to properly run, and select/use proper elements within.
 innerWhereClause()
 	new result,randInt,i,x
 	set result=" WHERE "
