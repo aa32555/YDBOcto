@@ -309,7 +309,6 @@ add_library(librocto OBJECT
   rocto/read_portal_suspended.c
   rocto/read_ready_for_query.c
   rocto/read_row_description.c
-  rocto_helper_waitpid.c
   ${POST_CONFIGURE_FILE}
 )
 add_dependencies(librocto check_git_repository)
