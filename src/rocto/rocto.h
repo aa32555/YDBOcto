@@ -57,8 +57,6 @@ typedef struct {
 	char *command_type;
 } QueryResponseParms;
 
-void *rocto_helper_waitpid(void *args);
-
 typedef enum UserColumns {
 	UserColumn_OID,
 	UserColumn_ROLNAME,

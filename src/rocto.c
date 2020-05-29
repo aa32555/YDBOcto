@@ -76,6 +76,7 @@ int main(int argc, char **argv) {
 #	if YDB_TLS_AVAILABLE
 	gtm_tls_ctx_t 			*tls_context;
 #	endif
+	boolean_t			is_parent;
 
 	// Initialize connection details in case errors prior to connections - needed before octo_init for Rocto error reporting
 	rocto_session.ip = "IP_UNSET";
@@ -173,12 +174,6 @@ int main(int argc, char **argv) {
 		FATAL(ERR_SYSCALL, "bind", errno, strerror(errno));
 	}
 
-	// Spin off another thread to keep an eye on dead processes
-	pthread_t thread_id;
-	status = pthread_create(&thread_id, NULL, rocto_helper_waitpid, (void*)(&rocto_session));
-	if (0 != status)
-		FATAL(ERR_SYSCALL, "pthread_create", status, strerror(status));
-
 	if (listen(sfd, 3) < 0) {
 		FATAL(ERR_SYSCALL, "listen", errno, strerror(errno));
 	}
@@ -186,6 +181,7 @@ int main(int argc, char **argv) {
 	tls_context = INVALID_TLS_CONTEXT;
 #	endif
 	ssl_request = NULL;
+	is_parent = TRUE;
 	while (!rocto_session.session_ending) {
 		if ((cfd = accept(sfd, (struct sockaddr *)&address, &addrlen)) < 0) {
 			if (rocto_session.session_ending) {
@@ -239,8 +235,8 @@ int main(int argc, char **argv) {
 			continue;
 		}
 
-		// Reset thread id to identify it as child process
-		thread_id = 0;
+		// Note that we are a child process
+		is_parent = FALSE;
 
 		// First we read the startup message, which has a special format
 		// 2x32-bit ints
@@ -524,9 +520,9 @@ int main(int argc, char **argv) {
 		YDB_FREE_BUFFER(session_id_buffer);
 		break;
 	}
-	if (0 != thread_id) {
+	if (is_parent) {
 		// We only want to close the sfd if we are the parent process which actually listens to
-		// the socket; thread_id will be 0 if we are a child process
+		// the socket
 		close(sfd);
 	}
 	// Since each iteration of the loop spawns a child process, each of which calls `gtm_tls_init`,
