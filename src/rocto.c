@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
 	char				buffer[MAX_STR_CONST];
 	char				host_buf[NI_MAXHOST], serv_buf[NI_MAXSERV];
 	int				cur_parm = 0;
-	int				sfd, cfd, opt, result, status = 0;
+	int				sfd, cfd, opt, status = 0;
 	int64_t				mem_usage;
 	pid_t				child_id = 0;
 	struct sigaction		ctrlc_action;
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
 	if (0 != status)
 		return status;
 
-	sfd = cfd = opt = addrlen = result = status = 0;
+	sfd = cfd = opt = addrlen = 0;
 
 	// Create buffers for managing secret keys for CancelRequests
 	ydb_buffer_t secret_key_list_buffer, secret_key_buffer;
@@ -116,14 +116,18 @@ int main(int argc, char **argv) {
 	// Initialize SIGUSR1 handler in YDB
 	status = ydb_init();		// YDB init needed for signal handler setup and gtm_tls_init call below */
 	YDB_ERROR_CHECK(status);
-	if (YDB_OK != status)
-		return 1;
+	if (YDB_OK != status) {
+		CLEANUP_CONFIG(config->config_file);
+		return status;
+	}
 	YDB_LITERAL_TO_BUFFER("$ZINTERRUPT", &z_interrupt);
 	YDB_LITERAL_TO_BUFFER("ZGOTO 1:run^%ydboctoCleanup", &z_interrupt_handler);
 	status = ydb_set_s(&z_interrupt, 0, NULL, &z_interrupt_handler);
 	YDB_ERROR_CHECK(status);
-	if (YDB_OK != status)
-		return 1;
+	if (YDB_OK != status) {
+		CLEANUP_CONFIG(config->config_file);
+		return status;
+	}
 
 	rocto_session.session_ending = FALSE;
 
@@ -247,15 +251,15 @@ int main(int argc, char **argv) {
 		rocto_session.connection_fd = cfd;
 		rocto_session.ssl_active = FALSE;
 		if (config->rocto_config.use_dns) {
-			result = getnameinfo((const struct sockaddr *)&address, addrlen,
+			status = getnameinfo((const struct sockaddr *)&address, addrlen,
 					host_buf, NI_MAXHOST, serv_buf, NI_MAXSERV, 0);
 		} else {
-			result = getnameinfo((const struct sockaddr *)&address, addrlen,
+			status = getnameinfo((const struct sockaddr *)&address, addrlen,
 					host_buf, NI_MAXHOST, serv_buf, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV );
 		}
-		if (0 != result) {
+		if (0 != status) {
 			ERROR(ERR_SYSCALL, "getnameinfo", errno, strerror(errno));
-			return 1;
+			break;
 		}
 		rocto_session.ip = host_buf;
 		rocto_session.port = serv_buf;
@@ -264,7 +268,7 @@ int main(int argc, char **argv) {
 		status = ydb_init();		// YDB init needed by gtm_tls_init call below */
 		YDB_ERROR_CHECK(status);
 		if (YDB_OK != status) {
-			return 1;
+			break;
 		}
 		// Establish the connection first
 		rocto_session.session_id = NULL;
@@ -277,8 +281,8 @@ int main(int argc, char **argv) {
 			int	tls_errno;
 
 			// gtm_tls_conn_info tls_connection;
-			result = send_bytes(&rocto_session, "S", sizeof(char));
-			if (0 != result) {
+			status = send_bytes(&rocto_session, "S", sizeof(char));
+			if (0 != status) {
 				ERROR(ERR_ROCTO_SEND_FAILED, "failed to send SSL confirmation byte");
 				break;
 			}
@@ -307,9 +311,9 @@ int main(int argc, char **argv) {
 			}
 			// Accept incoming TLS connections
 			do {
-				result = gtm_tls_accept(tls_socket);
-				if (0 != result) {
-					if (-1 == result) {
+				status = gtm_tls_accept(tls_socket);
+				if (0 != status) {
+					if (-1 == status) {
 						tls_errno = gtm_tls_errno();
 						if (-1 == tls_errno) {
 							ERROR(ERR_ROCTO_TLS_ACCEPT, gtm_tls_get_error());
@@ -317,23 +321,23 @@ int main(int argc, char **argv) {
 							ERROR(CUSTOM_ERROR, "unknown", tls_errno, strerror(tls_errno));
 						}
 						break;
-					} else if (GTMTLS_WANT_READ == result) {
+					} else if (GTMTLS_WANT_READ == status) {
 						ERROR(ERR_ROCTO_TLS_WANT_READ, NULL);
-					} else if (GTMTLS_WANT_WRITE == result) {
+					} else if (GTMTLS_WANT_WRITE == status) {
 						ERROR(ERR_ROCTO_TLS_WANT_WRITE, NULL);
 					} else {
 						ERROR(ERR_ROCTO_TLS_UNKNOWN, "failed to accept incoming connection(s)");
 						break;
 					}
 				}
-			} while ((GTMTLS_WANT_READ == result) || (GTMTLS_WANT_WRITE == result));
+			} while ((GTMTLS_WANT_READ == status) || (GTMTLS_WANT_WRITE == status));
 			rocto_session.tls_socket = tls_socket;
 			rocto_session.ssl_active = TRUE;
 			read_bytes(&rocto_session, buffer, MAX_STR_CONST, sizeof(int) * 2);
 #			endif
 		// Attempt unencrypted connection if SSL is disabled
 		} else if ((NULL != ssl_request) && !config->rocto_config.ssl_on) {
-			result = send_bytes(&rocto_session, "N", sizeof(char));
+			status = send_bytes(&rocto_session, "N", sizeof(char));
 			read_bytes(&rocto_session, buffer, MAX_STR_CONST, sizeof(int) * 2);
 		} else if ((NULL == ssl_request) && config->rocto_config.ssl_required) {
 			// Do not continue if TLS/SSL is required, but not requested by the client
@@ -370,8 +374,8 @@ int main(int argc, char **argv) {
 		// Require md5 authentication
 		char salt[4];
 		md5auth = make_authentication_md5_password(&rocto_session, salt);
-		result = send_message(&rocto_session, (BaseMessage*)(&md5auth->type));
-		if (result) {
+		status = send_message(&rocto_session, (BaseMessage*)(&md5auth->type));
+		if (status) {
 			ERROR(ERR_ROCTO_SEND_FAILED, "failed to send MD5 authentication required");
 			free(md5auth);
 			free(startup_message->parameters);
@@ -401,9 +405,9 @@ int main(int argc, char **argv) {
 		rocto_session.sending_message = FALSE;
 
 		// Validate user credentials
-		result = handle_password_message(password_message, startup_message, salt);
+		status = handle_password_message(password_message, startup_message, salt);
 		free(password_message);
-		if (0 != result) {
+		if (0 != status) {
 			free(startup_message->parameters);
 			free(startup_message);
 			break;
@@ -422,7 +426,7 @@ int main(int argc, char **argv) {
 		YDB_ERROR_CHECK(status);
 		if (YDB_OK != status) {
 			YDB_FREE_BUFFER(session_id_buffer);
-			return 1;
+			break;
 		}
 		rocto_session.session_id = session_id_buffer;
 		rocto_session.session_id->buf_addr[rocto_session.session_id->len_used] = '\0';
@@ -440,22 +444,19 @@ int main(int argc, char **argv) {
 				status = YDB_OK;
 				break;
 			}
-			YDB_ERROR_CHECK(status);
 			if (0 != status)
 				break;
 			status = ydb_get_s(&var_defaults[0], 2, &var_defaults[1], &var_value);
-			YDB_ERROR_CHECK(status);
 			if (0 != status)
 				break;
 			var_sets[3] = var_defaults[2];
 			status = ydb_set_s(&var_sets[0], 3, &var_sets[1], &var_value);
-			YDB_ERROR_CHECK(status);
 			if (0 != status)
 				break;
 		} while (TRUE);
+		YDB_ERROR_CHECK(status);
 		if (YDB_OK != status) {
-			// No cleanup necessary, as process will exit
-			return 1;
+			break;
 		}
 		// Set parameters
 		for (cur_parm = 0; cur_parm < startup_message->num_parameters; cur_parm++) {
@@ -491,28 +492,29 @@ int main(int argc, char **argv) {
 			message_parm.name = var_sets[3].buf_addr;
 			message_parm.value = var_value.buf_addr;
 			parameter_status = make_parameter_status(&message_parm);
-			result = send_message(&rocto_session, (BaseMessage*)(&parameter_status->type));
+			status = send_message(&rocto_session, (BaseMessage*)(&parameter_status->type));
 			LOG_LOCAL_ONLY(INFO, INFO_ROCTO_PARAMETER_STATUS_SENT, message_parm.name, message_parm.value);
 			free(parameter_status);
-			if (result) {
-				return 0;
+			if (status) {
+				break;
 			}
 		} while (TRUE);
 		// Clean up after any errors from the above loop
+		assert(0 == YDB_OK); // or else if `status` evaluated to true in the above loop, we would try to send another message on error
 		if (YDB_OK != status) {
 			YDB_FREE_BUFFER(session_id_buffer);
 			YDB_FREE_BUFFER(&var_defaults[2]);
 			YDB_FREE_BUFFER(&var_value);
-			return 1;
+			break;
 		}
 
 
 		// Send secret key info to client
 		backend_key_data = make_backend_key_data(secret_key, child_id);
-		result = send_message(&rocto_session, (BaseMessage*)(&backend_key_data->type));
+		status = send_message(&rocto_session, (BaseMessage*)(&backend_key_data->type));
 		free(backend_key_data);
-		if (result) {
-			return 0;
+		if (status) {
+			break;
 		}
 
 		// Free temporary buffers
@@ -555,7 +557,6 @@ int main(int argc, char **argv) {
 		YDB_ERROR_CHECK(status);
 	}
 
-	config_destroy(config->config_file);
-	free(config->config_file);
-	return 0;
+	CLEANUP_CONFIG(config->config_file);
+	return status;
 }
