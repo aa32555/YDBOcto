@@ -19,9 +19,6 @@
 #include "octo_types.h"
 #include "logical_plan.h"
 
-/* Note: "num_outer_joins" is used by this function (and the function it calls) only if "right_table_alias" is NULL.
- * So it is okay if "num_outer_joins" is set to an arbitrary value in case "right_table_alias" is non-NULL.
- */
 void lp_optimize_where_multi_equals_ands(LogicalPlan *plan, LogicalPlan *where, SqlTableAlias *right_table_alias,
 					 boolean_t num_outer_joins) {
 	int *	     key_unique_id_array; // keys_unique_id_ordering[unique_id] = index in the ordered list
@@ -263,6 +260,11 @@ LogicalPlan *lp_optimize_where_multi_equals_ands_helper(LogicalPlan *plan, Logic
 
 		column_alias = left->v.lp_column_alias.column_alias;
 		UNPACK_SQL_STATEMENT(column_table_alias, column_alias->table_alias_stmt, table_alias);
+		/* For most of the optimizations, we are fixing to a specific value:
+		 * We know a column must be some value and so we can only look at columns with that value.
+		 * However, for IS NOT NULL we are fixing to the _absence_ of a value.
+		 * So even if the primary key is on the RIGHT side it may not be present.
+		 */
 		if (column_table_alias != right_table_alias) {
 			/* The column reference being fixed does not belong to the RIGHT side table of OUTER JOIN.
 			 * Cannot fix this. Return unfixed plan as is.
@@ -272,9 +274,10 @@ LogicalPlan *lp_optimize_where_multi_equals_ands_helper(LogicalPlan *plan, Logic
 	}
 	key = lp_get_key(plan, left);
 	if (LP_BOOLEAN_IS_NOT_NULL == type) {
-		if (NULL != key) {
+		// Recall that right_table_alias is NULL if this is a WHERE and non-null if this is an ON join
+		if (NULL != key && NULL == right_table_alias && 0 == num_outer_joins) {
 			// This is of the form `WHERE primary_key IS NOT NULL`.
-			// Therefore it is always true, so no need to do a full table scan.
+			// Therefore it is always true, so no need to check it for each row.
 			if (LP_WHERE == where->type) {
 				where->v.lp_default.operand[0] = NULL;
 			}
