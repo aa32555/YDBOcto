@@ -103,6 +103,9 @@ typedef enum SqlStatementType {
 	value_STATEMENT,
 	function_call_STATEMENT,
 	coalesce_STATEMENT,
+	greatest_STATEMENT,
+	least_STATEMENT,
+	null_if_STATEMENT,
 	aggregate_function_STATEMENT,
 	binary_STATEMENT,
 	unary_STATEMENT,
@@ -323,33 +326,6 @@ typedef struct {
 	char		 routine[MAX_ROUTINE_LEN];
 } ParseContext;
 
-struct SqlColumn;
-struct SqlColumnAlias;
-// struct SqlConstraint;
-struct SqlSelectStatement;
-struct SqlInsertStatement;
-struct SqlDropTableStatement;
-struct SqlUnaryOperation;
-struct SqlBinaryOperation;
-struct SqlFunctionCall;
-struct SqlValue;
-struct SqlColumnList;
-struct SqlTable;
-struct SqlFunction;
-struct SqlDropFunctionStatement;
-struct SqlTableAlias;
-struct SqlJoin;
-struct SqlColumnListAlias;
-struct SqlStatement;
-struct SqlSetOperation;
-struct SqlBeginStatement;
-struct SqlCommitStatement;
-struct SqlCaseStatement;
-struct SqlCaseBranchStatement;
-struct SqlSetStatement;
-struct SqlShowStatement;
-struct SqlNoDataStatement;
-
 /**
  * Represents a SQL column; doubly linked list
  *
@@ -527,6 +503,20 @@ typedef struct SqlCoalesceCall {
 	struct SqlStatement *arguments;
 } SqlCoalesceCall;
 
+typedef struct SqlGreatest {
+	// SqlColumnList
+	struct SqlStatement *arguments;
+} SqlGreatest;
+
+typedef struct SqlLeast {
+	// SqlColumnList
+	struct SqlStatement *arguments;
+} SqlLeast;
+
+typedef struct SqlNullIf {
+	struct SqlStatement *left, *right;
+} SqlNullIf;
+
 /**
  * Represents a SQL function
  */
@@ -683,6 +673,9 @@ typedef struct SqlStatement {
 		struct SqlValue *		  value;
 		struct SqlFunctionCall *	  function_call;
 		struct SqlCoalesceCall *	  coalesce;
+		struct SqlGreatest *		  greatest;
+		struct SqlLeast *		  least;
+		struct SqlNullIf *		  null_if;
 		struct SqlAggregateFunction *	  aggregate_function;
 		struct SqlBinaryOperation *	  binary;
 		struct SqlUnaryOperation *	  unary;
