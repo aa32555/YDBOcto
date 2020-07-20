@@ -107,11 +107,11 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *plan, LogicalPlan *tablejoin, unsigned in
 		 * And do not include cross-reference keys. Only primary-keys. This is because we want
 		 * to include ALL rows from the right table for the RIGHT JOIN.
 		 */
-		if ((NULL != key->fixed_to_value) && !right_join_second_half) {
+		if ((LP_KEY_FIX == key->type) && !right_join_second_half) {
 			LogicalPlan	*fixed_to_value;
 
 			fixed_to_value = key->fixed_to_value;
-			if ((LP_VALUE != fixed_to_value->type) || (NUL_VALUE != fixed_to_value->v.lp_value.value->type)) {
+			if ((NULL != fixed_to_value) && ((LP_VALUE != fixed_to_value->type) || (NUL_VALUE != fixed_to_value->v.lp_value.value->type))) {
 				int	in_value_list_id;
 
 				/* Key is fixed to a value (= operator) or list of values (IN operator) */
