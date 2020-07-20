@@ -123,8 +123,8 @@ int lp_verify_structure_helper(LogicalPlan *plan, PhysicalPlanOptions *options, 
 		break;
 	case LP_KEY_FIX:
 		ret = !((NULL == plan->v.lp_default.operand[0]) || (NULL != plan->v.lp_default.operand[1])
-			|| (NULL == plan->v.lp_default.operand[0]->v.lp_key.key)
-			|| (NULL == plan->v.lp_default.operand[0]->v.lp_key.key->fixed_to_value));
+			|| (NULL == plan->v.lp_default.operand[0]->v.lp_key.key));
+		// fixed_to_value could be NULL if this is a `IS NULL` query
 		break;
 	case LP_KEY_ADVANCE:
 		ret = !((NULL == plan->v.lp_default.operand[0]) || (NULL != plan->v.lp_default.operand[1])

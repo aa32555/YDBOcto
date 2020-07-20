@@ -108,8 +108,11 @@ LogicalPlan *lp_optimize_where_multi_equals_ands_helper(LogicalPlan *plan, Logic
 		return where;
 		break;
 	case LP_BOOLEAN_EQUALS:
+		right_type = right->type;
 		break;
 	case LP_BOOLEAN_IS_NOT_NULL:
+	case LP_BOOLEAN_IS_NULL:
+		right_type = LP_VALUE;
 		break;
 	case LP_BOOLEAN_IN:
 		/* Check if left side of IN is a LP_COLUMN_ALIAS. If not, we cannot do key fixing. */
@@ -161,7 +164,6 @@ LogicalPlan *lp_optimize_where_multi_equals_ands_helper(LogicalPlan *plan, Logic
 		break;
 	}
 
-	right_type = (LP_BOOLEAN_IS_NOT_NULL == type ? LP_VALUE : right->type);
 	switch (right_type) {
 	case LP_VALUE:
 		right_id = 0;
