@@ -111,12 +111,14 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *plan, LogicalPlan *tablejoin, unsigned in
 			LogicalPlan	*fixed_to_value;
 
 			fixed_to_value = key->fixed_to_value;
-			if ((NULL != fixed_to_value) && ((LP_VALUE != fixed_to_value->type) || (NUL_VALUE != fixed_to_value->v.lp_value.value->type))) {
+			if ((NULL == fixed_to_value) || (LP_VALUE != fixed_to_value->type) || (NUL_VALUE != fixed_to_value->v.lp_value.value->type)) {
 				int	in_value_list_id;
 
 				/* Key is fixed to a value (= operator) or list of values (IN operator) */
-				assert((LP_COLUMN_LIST != fixed_to_value->type) || (0 < key->in_value_list_id));
-				assert((LP_COLUMN_LIST == fixed_to_value->type) || (0 == key->in_value_list_id));
+				if (NULL != fixed_to_value) {
+					assert((LP_COLUMN_LIST != fixed_to_value->type) || (0 < key->in_value_list_id));
+					assert((LP_COLUMN_LIST == fixed_to_value->type) || (0 == key->in_value_list_id));
+				}
 				in_value_list_id = key->in_value_list_id;
 				assert(0 <= in_value_list_id);
 				if (0 < in_value_list_id) {
@@ -135,7 +137,11 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *plan, LogicalPlan *tablejoin, unsigned in
 				TMPL(tmpl_key, key);
 				%{}={}%
 				if (0 == in_value_list_id) {
-					TMPL(tmpl_print_expression, fixed_to_value, plan, 0, 0);
+					if (NULL != fixed_to_value) {
+						TMPL(tmpl_print_expression, fixed_to_value, plan, 0, 0);
+					} else {
+						%{}$ZYSQLNULL{}%
+					}
 				} else {
 					%{}%%ydboctoin{{ in_value_list_id|%d }}{}%
 				}

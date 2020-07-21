@@ -28,7 +28,7 @@ TEMPLATE(tmpl_key_source, PhysicalPlan *pplan, SqlKey *key) {
 	int			keys_to_match = 0;
 	char			*columnName = "";
 
-	assert(NULL != key->fixed_to_value);
+	assert(LP_KEY_FIX == key->type);
 	table = key->table;
 	UNPACK_SQL_STATEMENT(value, table->tableName, value);
 	tableName = value->v.reference;
