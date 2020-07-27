@@ -37,6 +37,10 @@ TEMPLATE(tmpl_key_source, PhysicalPlan *pplan, SqlKey *key) {
 	if (key->is_cross_reference_key) {
 		UNPACK_SQL_STATEMENT(value, key->column->columnName, value);
 		columnName = value->v.reference;
+		if (NULL == key->fixed_to_value) {
+			%{}^{{ config->global_names.raw_xref }}("{{ tableName }}","","{{ columnName }}"){}%
+			TEMPLATE_END();
+		}
 		%{}^{{ config->global_names.raw_xref }}("{{ tableName }}","{{ columnName }}"{}%
 		// Output the column this cross reference is sourced from
 		iter_key_index = 0;

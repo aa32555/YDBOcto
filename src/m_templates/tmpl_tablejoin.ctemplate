@@ -149,9 +149,9 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *plan, LogicalPlan *tablejoin, unsigned in
 				 * is `$ZYSQLNULL`, we have to skip doing the gvn reference with `$ZYSQLNULL` as a subscript
 				 * (as it causes a ZYSQLNULLNOTVALID error currently). Hence the need for a `$ZYISSQLNULL` check.
 				 */
-				%{} IF '$ZYISSQLNULL({}%
-				TMPL(tmpl_key, key);
-				%{}) IF $DATA({}%
+				// IF '$ZYISSQLNULL(
+				//TMPL(tmpl_key, key);
+				%{} IF $DATA({}%
 				TMPL(tmpl_key_source, plan, key);
 				%{}){}%
 				if (NULL != limit_keyword) {
