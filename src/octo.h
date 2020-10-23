@@ -148,6 +148,7 @@
 #define OCTOLIT_TIMESTAMP	     "timestamp"
 #define OCTOLIT_TYPE_MODIFIER	     "type_modifier"
 #define OCTOLIT_USERS		     "users"
+#define OCTOLIT_VIEWS		     "views"
 #define OCTOLIT_YDBOCTOCANCEL	     "%ydboctoCancel"
 #define OCTOLIT_YDBOCTOSECRETKEYLIST "%ydboctoSecretKeyList"
 

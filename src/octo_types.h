@@ -331,6 +331,7 @@ typedef enum {
 typedef enum {
 	TableSchema,
 	FunctionSchema,
+	ViewSchema,
 } SqlSchemaType;
 
 #define YYLTYPE yyltype

@@ -664,6 +664,149 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 		}
 		release_query_lock = FALSE; /* Set variable to FALSE so we do not try releasing same lock later */
 		break;
+	case insert_STATEMENT:
+		WARNING(ERR_FEATURE_NOT_IMPLEMENTED, "table inserts");
+		cursor_used = FALSE; /* Remove this line once this feature gets implemented */
+		break;
+	case drop_view_STATEMENT:	    /* DROP VIEW */
+	case create_view_STATEMENT:	    /* CREATE VIEW */
+		/* Note that CREATE/DROP VIEW is very similar to CREATE/DROP TABLE, and changes to either may need to be
+		 * reflected in the other.
+		 *
+		 * A CREATE VIEW should do a DROP VIEW followed by a CREATE VIEW hence merging the two cases
+		 * above
+		 */
+		view_name_buffer = &view_name_buffers[1];
+		/* Initialize a few variables to NULL at the start. They are really used much later but any calls to
+		 * CLEANUP_AND_RETURN and CLEANUP_AND_RETURN_IF_NOT_YDB_OK before then need this so they skip freeing this.
+		 */
+		buffer = NULL;
+		spcfc_buffer = NULL;
+		null_query_lock = NULL;
+		// Now release the shared query lock and get an exclusive query lock to do DDL changes
+		status = ydb_lock_decr_s(&query_lock[0], 2, &query_lock[1]);
+		CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, null_query_lock);
+		// Wait 10 seconds for the exclusive DDL change lock
+		status = ydb_lock_incr_s(TIMEOUT_DDL_EXCLUSIVELOCK, &query_lock[0], 1, &query_lock[1]);
+		CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, null_query_lock);
+		/* Note: Last parameter is NULL above as we do not have any query lock to release
+		 * at this point since query lock grab failed.
+		 */
+
+		// First, get a ydb_buffer_t of the view name into "view_name_buffer"
+		if (create_view_STATEMENT == result->type) {
+			UNPACK_SQL_STATEMENT(view, result, create_view);
+			UNPACK_SQL_STATEMENT(value, view->view_name, value);
+			view_name = value->v.reference;
+		} else {
+			view = NULL;
+			view_name = result->v.drop_view->view_name->v.value->v.reference;
+		}
+		YDB_STRING_TO_BUFFER(view_name, view_name_buffer);
+
+		// Initialize buffers for accessing relevant view GVNs
+		YDB_STRING_TO_BUFFER(config->global_names.octo, &octo_global);
+		YDB_STRING_TO_BUFFER(OCTOLIT_VIEWS, &view_name_buffers[0]);
+
+		if (drop_view_STATEMENT == result->type) {
+			status = ydb_data_s(&octo_global, 2, &view_name_buffers[0], &ret_value);
+			CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, query_lock);
+			if (0 == ret_value) {
+				ERROR(ERR_CANNOT_DROP_VIEW, view_name);
+				CLEANUP_AND_RETURN(memory_chunks, buffer, spcfc_buffer, query_lock);
+			}
+		}
+		/* Always drop the view in question, if it exists, either because explicitly requested via DROP or implicitly
+		 * when CREATEing or redefining a view.
+		 */
+		status = delete_view_from_pg_views(view_name_buffer);
+		if (0 != status) {
+			CLEANUP_AND_RETURN(memory_chunks, buffer, spcfc_buffer, query_lock);
+		}
+		/* Call an M routine to discard all plans associated with the view being created/dropped */
+		ci_param1.address = view_name_buffer->buf_addr;
+		ci_param1.length = view_name_buffer->len_used;
+		ci_param2.address = view_hash_buffer->buf_addr;
+		ci_param2.length = view_hash_buffer->len_used;
+		status = ydb_ci("_ydboctoDiscardView", &ci_param1);
+		CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, query_lock);
+
+		// Drop the view from the local cache
+		status = drop_schema_from_local_cache(view_name_buffer, ViewSchema, NULL);
+		if (YDB_OK != status) {
+			// YDB_ERROR_CHECK would already have been done inside "drop_schema_from_local_cache()"
+			CLEANUP_AND_RETURN(memory_chunks, buffer, spcfc_buffer, query_lock);
+		}
+
+		if ((NULL != function) && (create_function_STATEMENT == result->type)) {
+			// CREATE FUNCTION case. More processing needed.
+			out = open_memstream(&buffer, &buffer_size);
+			assert(out);
+			status = emit_create_function(out, result);
+			fclose(out); // at this point "buffer" and "buffer_size" are usable
+			if (0 != status) {
+				/* Error messages for the non-zero status would already have been issued in
+				 * "emit_create_function"
+				 */
+				CLEANUP_AND_RETURN(memory_chunks, buffer, spcfc_buffer, query_lock);
+			}
+			INFO(INFO_TEXT_REPRESENTATION,
+			     buffer); /* print the converted text representation of the CREATE TABLE command */
+
+			/* First store function name in catalog. As we need that OID to store in the binary table
+			 * definition. The below call also sets table->oid which is needed before the call to
+			 * "compress_statement" as that way the oid also gets stored in the binary table definition.
+			 * It also checks if there are too many parameters and if so issues an error. Therefore it is best
+			 * that we do this step first.
+			 */
+			status = store_function_in_pg_proc(function, function_hash);
+			/* Cannot use CLEANUP_AND_RETURN_IF_NOT_YDB_OK macro here because the above function could set
+			 * status to 1 to indicate an error (not necessarily a valid YDB_ERR_* code). In case it is a
+			 * YDB error code, the YDB_ERROR_CHECK call would have already been done inside "store_function_in_pg_proc"
+			 * so all we need to do here is check if status is not 0 (aka YDB_OK) and if so invoke CLEANUP_AND_RETURN.
+			 */
+			if (YDB_OK != status) {
+				CLEANUP_AND_RETURN(memory_chunks, buffer, spcfc_buffer, query_lock);
+			}
+
+			/* Now that we know there are no too-many-parameter errors in ths function, we can safely go ahead
+			 * with setting the function related gvn in the database.
+			 */
+			YDB_STRING_TO_BUFFER(buffer, &function_create_buffer);
+			/* Store the text representation of the CREATE FUNCTION statement:
+			 *	^%ydboctoocto(OCTOLIT_FUNCTIONS,function_name,function_hash,OCTOLIT_TEXT)
+			 */
+			YDB_STRING_TO_BUFFER(OCTOLIT_TEXT, &function_name_buffers[3]);
+			status = ydb_set_s(&octo_global, 4, function_name_buffers, &function_create_buffer);
+			CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, query_lock);
+			free(buffer);
+			/* Note: "function_create_buffer" (whose "buf_addr" points to "buffer") is also no longer unusable */
+			buffer = NULL; // So CLEANUP_AND_RETURN* macro calls below do not try "free(buffer)"
+
+			compress_statement(result, &spcfc_buffer, &length); /* Sets "spcfc_buffer" to "malloc"ed storage */
+			assert(NULL != spcfc_buffer);
+			status = store_binary_function_definition(function_name_buffers, spcfc_buffer, length);
+			free(spcfc_buffer);  /* free buffer that was "malloc"ed in "compress_statement" */
+			spcfc_buffer = NULL; /* Now that we did a "free", reset it to NULL */
+			CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, query_lock);
+		}
+		status = ydb_lock_decr_s(&query_lock[0], 1, &query_lock[1]); /* Release exclusive query lock */
+		if (YDB_OK != status) {
+			/* Signal an error using the standard macro but reset few variables to NULL as those parts of the
+			 * cleanup should not be done in this part of the code.
+			 */
+			assert(NULL == buffer);
+			spcfc_buffer = NULL;
+			assert(NULL == null_query_lock);
+			CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, null_query_lock);
+		}
+		release_query_lock = FALSE; /* Set variable to FALSE so we do not try releasing same lock later */
+		break;
+
+	case insert_STATEMENT:
+		WARNING(ERR_FEATURE_NOT_IMPLEMENTED, "table inserts");
+		cursor_used = FALSE; /* Remove this line once this feature gets implemented */
+		break;
 	case begin_STATEMENT:
 	case commit_STATEMENT:
 		ERROR(ERR_FEATURE_NOT_IMPLEMENTED, "transactions");

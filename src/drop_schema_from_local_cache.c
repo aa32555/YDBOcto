@@ -27,8 +27,11 @@ int drop_schema_from_local_cache(ydb_buffer_t *name_buffer, SqlSchemaType schema
 	 *	%ydboctoloadedschemas(OCTOLIT_FUNCTIONS,FUNCTIONNAME,FUNCTIONHASH)
 	 *	%ydboctoloadedschemas(OCTOLIT_FUNCTIONS,FUNCTIONNAME,FUNCTIONHASH,OCTOLIT_CHUNK)
 	 * OR
-	 *	%ydboctoloadedschemas(TABLENAME)
-	 *	%ydboctoloadedschemas(TABLENAME,OCTOLIT_CHUNK)
+	 *	%ydboctoloadedschemas(OCTOLIT_TABLES,TABLENAME)
+	 *	%ydboctoloadedschemas(OCTOLIT_TABLES,TABLENAME,OCTOLIT_CHUNK)
+	 * OR
+	 *	%ydboctoloadedschemas(OCTOLIT_VIEWS,VIEWNAME)
+	 *	%ydboctoloadedschemas(OCTOLIT_VIEWS,VIEWNAME,OCTOLIT_CHUNK)
 	 */
 	if (TableSchema == schema_type) {
 		assert(NULL == function_hash_buffer);
@@ -39,6 +42,10 @@ int drop_schema_from_local_cache(ydb_buffer_t *name_buffer, SqlSchemaType schema
 		YDB_STRING_TO_BUFFER(OCTOLIT_FUNCTIONS, &subs_array[0]);
 		extra_sub = 1;
 		subs_array[2] = *function_hash_buffer;
+	} else if (ViewSchema == schema_type) {
+		assert(NULL == function_hash_buffer);
+		YDB_STRING_TO_BUFFER(OCTOLIT_VIEWS, &subs_array[0]);
+		extra_sub = 0;
 	} else {
 		assert(FALSE);
 	}

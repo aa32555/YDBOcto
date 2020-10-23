@@ -85,6 +85,16 @@ discardFunction(functionName,functionHash)	;
 	KILL ^%ydboctoocto("functions",functionName,functionHash);
 	QUIT
 
+discardView(viewName)	;
+	; --------------------------------------------------------------------------------------------------
+	; Discards all generated plans associated with a view whose name is provided as input.
+	; --------------------------------------------------------------------------------------------------
+	NEW planName
+	SET planName="" FOR  DO  QUIT:""=planName  DO discardPlan(planName)
+	.  SET planName=$ORDER(^%ydboctoocto("views",viewName,"plan_metadata",planName))
+	KILL ^%ydboctoocto("views",viewName);
+	QUIT
+
 discardPlan(srcPlan)
 	; ---------------------------------------------------------------------------------------------------------------
 	; Internal helper function used by $$discardTable() and $$discardFunction()
