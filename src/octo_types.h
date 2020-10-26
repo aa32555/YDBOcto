@@ -443,6 +443,14 @@ typedef struct SqlTable {
 	uint64_t	     oid; /* TABLEOID; compared against ^%ydboctoschema(TABLENAME,OCTOLIT_PG_CLASS) */
 } SqlTable;
 
+/**
+ * Represents a SQL view
+ */
+typedef struct SqlView {
+	struct SqlStatement *view_name;
+	struct SqlStatement *table;
+} SqlView;
+
 /* Below is the table constructed by the VALUES (...) syntax */
 typedef struct SqlTableValue {
 	struct SqlStatement *row_value_stmt; // SqlRowValue
@@ -800,6 +808,7 @@ typedef struct SqlStatement {
 		struct SqlDelimiterCharacterList *delim_char_list;
 		struct SqlIndex *		  index;
 		struct SqlDataTypeStruct	  data_type_struct;
+		struct SqlView *		  create_view;
 		enum SqlJoinType		  join_type;
 		/* Below SqlStatementType types do not have any parameters so they do not have corresponding members here.
 		 *	discard_all_STATEMENT

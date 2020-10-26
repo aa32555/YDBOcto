@@ -212,6 +212,7 @@ int copied_so_far;
 (?i:VALUES) { return VALUES; }
 (?i:VARCHAR) { return VARCHAR; }
 (?i:VARYING) { return VARYING; }
+(?i:VIEW) { return VIEW; }
 (?i:WHEN) { return WHEN; }
 (?i:WHERE) { return WHERE; }
 (?i:EXIT) { return EXIT; }

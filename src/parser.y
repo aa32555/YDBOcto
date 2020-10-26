@@ -184,6 +184,7 @@ extern void yyerror(YYLTYPE *llocp, yyscan_t scan, SqlStatement **out, int *plan
 %token VALUES
 %token VARCHAR
 %token VARYING
+%token VIEW
 %token WHEN
 %token WHERE
 
@@ -1182,6 +1183,7 @@ sql_schema_definition_statement
   : table_definition { $$ = $table_definition; parse_context->command_tag = create_table_STATEMENT; }
   | index_definition { $$ = $index_definition; }
   | function_definition { $$ = $function_definition; }
+  | view_definition { $$ = $view_definition; }
   ;
 
 /// TODO: not complete
@@ -2019,6 +2021,17 @@ m_function
 		$$ = $INTRINSIC_FUNCTION;
 		($$)->loc = yyloc;
     }
+  ;
+
+view_definition
+  : CREATE VIEW column_name AS simple_table {
+        SQL_STATEMENT($$, create_view_STATEMENT);
+        MALLOC_STATEMENT($$, create_view, SqlView);
+        assert($column_name->type == value_STATEMENT
+          && $column_name->v.value->type == COLUMN_REFERENCE);
+        ($$)->v.create_view->view_name = $column_name;
+        ($$)->v.create_view->table = $subquery;
+      }
   ;
 
 %%

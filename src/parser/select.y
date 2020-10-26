@@ -318,7 +318,16 @@ table_reference_list
 // Just consider these a list of values for all intents and purposes
 table_reference
   : column_name {
-	$$ = table_reference($column_name, NULL, plan_id);
+	SqlStatement *view;
+
+        assert($column_name->type == value_STATEMENT
+          && $column_name->v.value->type == COLUMN_REFERENCE);
+	view = find_view($column_name->v.value->v.string_literal);
+	if (NULL != view) {
+		$$ = view;
+	} else {
+		$$ = table_reference($column_name, NULL, plan_id);
+	}
 	if (NULL == $$) {
 		YYERROR;
 	}
