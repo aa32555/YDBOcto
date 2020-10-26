@@ -127,10 +127,12 @@ typedef enum FileType {
 typedef enum SqlStatementType {
 	create_table_STATEMENT,
 	create_function_STATEMENT,
+	create_view_STATEMENT,
 	select_STATEMENT,
 	insert_STATEMENT,
 	drop_table_STATEMENT,
 	drop_function_STATEMENT,
+	drop_view_STATEMENT,
 	value_STATEMENT,
 	function_call_STATEMENT,
 	coalesce_STATEMENT,

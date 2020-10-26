@@ -143,6 +143,12 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 	char *		function_name;
 	ydb_buffer_t	function_name_buffers[5];
 	ydb_buffer_t *	function_name_buffer, *function_hash_buffer;
+	ydb_buffer_t	function_create_buffer;
+	SqlView *	function;
+	char *		view_name;
+	ydb_buffer_t	view_name_buffers[4];
+	ydb_buffer_t *	view_name_buffer;
+	ydb_buffer_t	view_create_buffer;
 	char		cursor_buffer[INT64_TO_STRING_MAX];
 	char		pid_buffer[INT64_TO_STRING_MAX]; /* assume max pid is 64 bits even though it is a 4-byte quantity */
 	boolean_t	release_query_lock;
@@ -738,11 +744,11 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 			CLEANUP_AND_RETURN(memory_chunks, buffer, spcfc_buffer, query_lock);
 		}
 
-		if ((NULL != function) && (create_function_STATEMENT == result->type)) {
+		if ((NULL != view) && (create_view_STATEMENT == result->type)) {
 			// CREATE FUNCTION case. More processing needed.
 			out = open_memstream(&buffer, &buffer_size);
 			assert(out);
-			status = emit_create_function(out, result);
+			status = emit_create_view(out, result);
 			fclose(out); // at this point "buffer" and "buffer_size" are usable
 			if (0 != status) {
 				/* Error messages for the non-zero status would already have been issued in
@@ -759,7 +765,7 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 			 * It also checks if there are too many parameters and if so issues an error. Therefore it is best
 			 * that we do this step first.
 			 */
-			status = store_function_in_pg_proc(function, function_hash);
+			status = store_view_in_pg_views(view);
 			/* Cannot use CLEANUP_AND_RETURN_IF_NOT_YDB_OK macro here because the above function could set
 			 * status to 1 to indicate an error (not necessarily a valid YDB_ERR_* code). In case it is a
 			 * YDB error code, the YDB_ERROR_CHECK call would have already been done inside "store_function_in_pg_proc"
@@ -769,23 +775,21 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 				CLEANUP_AND_RETURN(memory_chunks, buffer, spcfc_buffer, query_lock);
 			}
 
-			/* Now that we know there are no too-many-parameter errors in ths function, we can safely go ahead
-			 * with setting the function related gvn in the database.
-			 */
-			YDB_STRING_TO_BUFFER(buffer, &function_create_buffer);
-			/* Store the text representation of the CREATE FUNCTION statement:
-			 *	^%ydboctoocto(OCTOLIT_FUNCTIONS,function_name,function_hash,OCTOLIT_TEXT)
+			 // Set the view-related gvn in the database.
+			YDB_STRING_TO_BUFFER(buffer, &view_create_buffer);
+			/* Store the text representation of the CREATE VIEW statement:
+			 *	^%ydboctoocto(OCTOLIT_VIEWS,view_name,OCTOLIT_TEXT)
 			 */
 			YDB_STRING_TO_BUFFER(OCTOLIT_TEXT, &function_name_buffers[3]);
-			status = ydb_set_s(&octo_global, 4, function_name_buffers, &function_create_buffer);
+			status = ydb_set_s(&octo_global, 3, function_name_buffers, &view_create_buffer);
 			CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, query_lock);
 			free(buffer);
-			/* Note: "function_create_buffer" (whose "buf_addr" points to "buffer") is also no longer unusable */
+			/* Note: "view_create_buffer" (whose "buf_addr" points to "buffer") is also no longer unusable */
 			buffer = NULL; // So CLEANUP_AND_RETURN* macro calls below do not try "free(buffer)"
 
 			compress_statement(result, &spcfc_buffer, &length); /* Sets "spcfc_buffer" to "malloc"ed storage */
 			assert(NULL != spcfc_buffer);
-			status = store_binary_function_definition(function_name_buffers, spcfc_buffer, length);
+			status = store_binary_view_definition(view_name_buffers, spcfc_buffer, length);
 			free(spcfc_buffer);  /* free buffer that was "malloc"ed in "compress_statement" */
 			spcfc_buffer = NULL; /* Now that we did a "free", reset it to NULL */
 			CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, query_lock);
