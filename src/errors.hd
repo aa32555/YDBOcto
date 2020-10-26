@@ -62,6 +62,7 @@ ERROR_DEF(ERR_UNKNOWN_COLUMN_NAME, "Unknown column: %s", PSQL_Code_Undefined_Col
 ERROR_DEF(ERR_TABLE_UNKNOWN_COLUMN_NAME, "Column '%s' of table '%s' does not exist", PSQL_Code_Undefined_Column)
 ERROR_DEF(ERR_UNKNOWN_FUNCTION, "No function '%s' defined with given parameter types (%s)", PSQL_Code_Undefined_Function)
 ERROR_DEF(ERR_CANNOT_DROP_FUNCTION, "Cannot DROP function '%s': no function defined with given name and parameter types", PSQL_Code_Undefined_Function)
+ERROR_DEF(ERR_CANNOT_DROP_VIEW, "Cannot DROP view '%s': no view defined with the given name", PSQL_Code_Undefined_Object)
 ERROR_DEF(ERR_TYPE_NOT_COMPATIBLE, "Type %s not compatible for %s", PSQL_Code_Undefined_Function)
 ERROR_DEF(ERR_INVALID_KEYWORD_CHAR, "Integer value %ld given for %s character is not a valid ASCII (0-127) character", PSQL_Code_Syntax_Error)
 ERROR_DEF(ERR_GROUP_BY_ONLY_COLUMN_NAME, "Only column names are valid in GROUP BY (not expressions or constants)", PSQL_Code_Grouping_Error)

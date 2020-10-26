@@ -144,7 +144,7 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 	ydb_buffer_t	function_name_buffers[5];
 	ydb_buffer_t *	function_name_buffer, *function_hash_buffer;
 	ydb_buffer_t	function_create_buffer;
-	SqlView *	function;
+	SqlView *	view;
 	char *		view_name;
 	ydb_buffer_t	view_name_buffers[4];
 	ydb_buffer_t *	view_name_buffer;
@@ -732,8 +732,6 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 		/* Call an M routine to discard all plans associated with the view being created/dropped */
 		ci_param1.address = view_name_buffer->buf_addr;
 		ci_param1.length = view_name_buffer->len_used;
-		ci_param2.address = view_hash_buffer->buf_addr;
-		ci_param2.length = view_hash_buffer->len_used;
 		status = ydb_ci("_ydboctoDiscardView", &ci_param1);
 		CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, query_lock);
 

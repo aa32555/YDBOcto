@@ -2030,7 +2030,7 @@ view_definition
         assert($column_name->type == value_STATEMENT
           && $column_name->v.value->type == COLUMN_REFERENCE);
         ($$)->v.create_view->view_name = $column_name;
-        ($$)->v.create_view->table = $subquery;
+        ($$)->v.create_view->table = $simple_table;
       }
   ;
 

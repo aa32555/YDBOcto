@@ -639,6 +639,10 @@ typedef struct SqlDropFunctionStatement {
 	struct SqlStatement *parameter_type_list; // SqlParameterTypeList
 } SqlDropFunctionStatement;
 
+typedef struct SqlDropViewStatement {
+	struct SqlStatement *view_name;	  // SqlValue
+} SqlDropViewStatement;
+
 typedef struct SqlParameterTypeList {
 	struct SqlStatement *data_type_struct; // SqlDataTypeStruct
 	dqcreate(SqlParameterTypeList);
@@ -775,10 +779,12 @@ typedef struct SqlStatement {
 		 */
 		struct SqlTable *		  create_table;
 		struct SqlFunction *		  create_function;
+		struct SqlView *		  create_view;
 		struct SqlSelectStatement *	  select;
 		struct SqlInsertStatement *	  insert;
 		struct SqlDropTableStatement *	  drop_table;
 		struct SqlDropFunctionStatement * drop_function;
+		struct SqlDropViewStatement *	  drop_view;
 		struct SqlValue *		  value;
 		struct SqlFunctionCall *	  function_call;
 		struct SqlCoalesceCall *	  coalesce;
@@ -808,7 +814,6 @@ typedef struct SqlStatement {
 		struct SqlDelimiterCharacterList *delim_char_list;
 		struct SqlIndex *		  index;
 		struct SqlDataTypeStruct	  data_type_struct;
-		struct SqlView *		  create_view;
 		enum SqlJoinType		  join_type;
 		/* Below SqlStatementType types do not have any parameters so they do not have corresponding members here.
 		 *	discard_all_STATEMENT
