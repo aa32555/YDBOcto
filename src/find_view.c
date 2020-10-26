@@ -34,9 +34,8 @@ SqlStatement *find_view(const char *view_name) {
 	MemoryChunk * old_chunk;
 	ydb_buffer_t  loaded_schemas, octo_global, view_subs[4], ret;
 	char	      retbuff[sizeof(void *)];
-	char	      oid_buff[INT32_TO_STRING_MAX], len_str[INT32_TO_STRING_MAX];
+	char	      len_str[INT32_TO_STRING_MAX];
 	boolean_t     drop_cache;
-	uint64_t      db_oid;
 
 	YDB_STRING_TO_BUFFER(config->global_names.octo, &octo_global);
 
@@ -50,10 +49,11 @@ SqlStatement *find_view(const char *view_name) {
 	 */
 	YDB_STRING_TO_BUFFER(config->global_names.loadedschemas, &loaded_schemas);
 	YDB_STRING_TO_BUFFER(OCTOLIT_VIEWS, &view_subs[0]);
-	YDB_STRING_TO_BUFFER((char *)view_name, &view_subs[1]);
+	YDB_STRING_TO_BUFFER("octo", &view_subs[1]);
+	YDB_STRING_TO_BUFFER((char *)view_name, &view_subs[2]);
 	ret.buf_addr = &retbuff[0];
 	ret.len_alloc = sizeof(retbuff);
-	status = ydb_get_s(&loaded_schemas, 2, &view_subs[0], &ret);
+	status = ydb_get_s(&loaded_schemas, 3, &view_subs[0], &ret);
 	switch (status) {
 	case YDB_OK:
 		/* We have the view definition already stored in process local memory. Use that as long as the
@@ -62,11 +62,8 @@ SqlStatement *find_view(const char *view_name) {
 		stmt = *((SqlStatement **)ret.buf_addr);
 		UNPACK_SQL_STATEMENT(view, stmt, create_view);
 		/* Check if view has not changed in the database since we cached it
-		 *	^%ydboctoocto(OCTOLIT_VIEWS,VIEWNAME)
+		 *	^%ydboctoocto(OCTOLIT_VIEWS,SCHEMANAME,VIEWNAME)
 		 */
-		YDB_STRING_TO_BUFFER(OCTOLIT_OID, &view_subs[2]);
-		ret.buf_addr = &oid_buff[0];
-		ret.len_alloc = sizeof(oid_buff);
 		status = ydb_get_s(&octo_global, 3, &view_subs[0], &ret);
 		switch (status) {
 		case YDB_OK:

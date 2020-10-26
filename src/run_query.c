@@ -146,7 +146,7 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 	ydb_buffer_t	function_create_buffer;
 	SqlView *	view;
 	char *		view_name;
-	ydb_buffer_t	view_name_buffers[4];
+	ydb_buffer_t	view_name_buffers[5];
 	ydb_buffer_t *	view_name_buffer;
 	ydb_buffer_t	view_create_buffer;
 	char		cursor_buffer[INT64_TO_STRING_MAX];
@@ -682,7 +682,11 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 		 * A CREATE VIEW should do a DROP VIEW followed by a CREATE VIEW hence merging the two cases
 		 * above
 		 */
-		view_name_buffer = &view_name_buffers[1];
+		/* Set the name of the schema in which the view is to be created. Use "octo" as a default until schemas
+		 * are implemented.
+		 */
+		YDB_STRING_TO_BUFFER("octo", &view_name_buffers[1]);
+		view_name_buffer = &view_name_buffers[2];
 		/* Initialize a few variables to NULL at the start. They are really used much later but any calls to
 		 * CLEANUP_AND_RETURN and CLEANUP_AND_RETURN_IF_NOT_YDB_OK before then need this so they skip freeing this.
 		 */
@@ -715,7 +719,7 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 		YDB_STRING_TO_BUFFER(OCTOLIT_VIEWS, &view_name_buffers[0]);
 
 		if (drop_view_STATEMENT == result->type) {
-			status = ydb_data_s(&octo_global, 2, &view_name_buffers[0], &ret_value);
+			status = ydb_data_s(&octo_global, 3, &view_name_buffers[0], &ret_value);
 			CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, query_lock);
 			if (0 == ret_value) {
 				ERROR(ERR_CANNOT_DROP_VIEW, view_name);
@@ -776,10 +780,10 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 			 // Set the view-related gvn in the database.
 			YDB_STRING_TO_BUFFER(buffer, &view_create_buffer);
 			/* Store the text representation of the CREATE VIEW statement:
-			 *	^%ydboctoocto(OCTOLIT_VIEWS,view_name,OCTOLIT_TEXT)
+			 *	^%ydboctoocto(OCTOLIT_VIEWS,schema_name,view_name,OCTOLIT_TEXT)
 			 */
-			YDB_STRING_TO_BUFFER(OCTOLIT_TEXT, &function_name_buffers[3]);
-			status = ydb_set_s(&octo_global, 3, function_name_buffers, &view_create_buffer);
+			YDB_STRING_TO_BUFFER(OCTOLIT_TEXT, &view_name_buffers[4]);
+			status = ydb_set_s(&octo_global, 4, view_name_buffers, &view_create_buffer);
 			CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, query_lock);
 			free(buffer);
 			/* Note: "view_create_buffer" (whose "buf_addr" points to "buffer") is also no longer unusable */
@@ -804,7 +808,6 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 		}
 		release_query_lock = FALSE; /* Set variable to FALSE so we do not try releasing same lock later */
 		break;
-
 	case insert_STATEMENT:
 		WARNING(ERR_FEATURE_NOT_IMPLEMENTED, "table inserts");
 		cursor_used = FALSE; /* Remove this line once this feature gets implemented */

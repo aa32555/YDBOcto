@@ -151,6 +151,7 @@ add_library(libocto OBJECT
   ${PROJECT_BINARY_DIR}/default_octo_conf.h
   delete_table_from_pg_class.c
   delete_function_from_pg_proc.c
+  delete_view_from_pg_views.c
   drill_to_table_alias.c
   drop_schema_from_local_cache.c
   emit_column_specification.c
@@ -161,6 +162,7 @@ add_library(libocto OBJECT
   find_column_alias_name.c
   find_table.c
   find_function.c
+  find_view.c
   generate_key_name.c
   generate_routine_name.c
   get_aggregate_func_name.c
@@ -267,8 +269,10 @@ add_library(libocto OBJECT
   run_query.c
   store_function_definition.c
   store_table_definition.c
+  store_binary_view_definition.c
   store_table_in_pg_class.c
   store_function_in_pg_proc.c
+  store_view_in_pg_views.c
   tables_equal.c
   traverse_where_clause.c
   values_equal.c
