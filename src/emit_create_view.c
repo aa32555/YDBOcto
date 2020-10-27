@@ -34,8 +34,7 @@ int emit_create_view(FILE *output, struct SqlStatement *stmt) {
 	// assert(view->parameter_type_list);
 	UNPACK_SQL_STATEMENT(view_name, view->view_name, value);
 	fprintf(output, "CREATE VIEW `%s` AS ", view_name->v.string_literal);
-	fprintf(output, "%s", view->);
-
+	fprintf(output, "%s", view->query);
 	fprintf(output, ";");
 	return 0;
 }

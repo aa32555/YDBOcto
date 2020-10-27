@@ -13,6 +13,7 @@
 sql_select_statement
   : query_specification optional_query_words {
       $$ = $query_specification;
+      ($$)->loc = yyloc;
       SqlTableAlias *table_alias;
       SqlSelectStatement *select;
       SqlOptionalKeyword *select_words, *new_words;

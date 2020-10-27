@@ -157,6 +157,7 @@ add_library(libocto OBJECT
   emit_column_specification.c
   emit_create_table.c
   emit_create_function.c
+  emit_create_view.c
   emit_select_statement.c
   find_column.c
   find_column_alias_name.c

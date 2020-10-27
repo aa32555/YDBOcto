@@ -449,6 +449,7 @@ typedef struct SqlTable {
 typedef struct SqlView {
 	struct SqlStatement *view_name;
 	struct SqlStatement *table;
+	char *		     query; /* The query string to be executed when this view is referenced in a query */
 	uint64_t	     oid; /* VIEWOID; compared against ^%ydboctoocto(OCTOLIT_VIEWS,schema_name,view_name,OCTOLIT_OID) */
 } SqlView;
 

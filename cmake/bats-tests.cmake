@@ -116,6 +116,7 @@ if("${FULL_TEST_SUITE}" MATCHES "ON")
 	ADD_BATS_TEST(test_not_operator)
 	ADD_BATS_TEST(test_values_clause)
 	ADD_BATS_TEST(test_buffer_resize)
+	ADD_BATS_TEST(test_create_view)
 
 	if(psql)
 		ADD_BATS_TEST(test_psql_connection)

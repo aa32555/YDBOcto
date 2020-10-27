@@ -2024,13 +2024,30 @@ m_function
   ;
 
 view_definition
-  : CREATE VIEW column_name AS simple_table {
+  : CREATE VIEW column_name AS sql_select_statement {
+	int start_char;
+	char *c;
+	char temp[YDB_MAX_STR];
+	SqlStatement *ret;
+
         SQL_STATEMENT($$, create_view_STATEMENT);
         MALLOC_STATEMENT($$, create_view, SqlView);
         assert($column_name->type == value_STATEMENT
           && $column_name->v.value->type == COLUMN_REFERENCE);
         ($$)->v.create_view->view_name = $column_name;
-        ($$)->v.create_view->table = $simple_table;
+        ($$)->v.create_view->table = $sql_select_statement;
+
+	ret = ($$)->v.create_view->table;
+	start_char = ret->loc.first_column + old_input_index;
+	c = &input_buffer_combined[start_char];
+	while ((' ' == *c) || ('\n' == *c) || ('\t' == *c)) {
+		c++;
+		start_char++;
+	}
+	($$)->v.create_view->query = octo_cmalloc(memory_chunks,
+		ret->loc.last_column - ret->loc.first_column + 1); // Null terminator
+	// snprintf(temp, ret->loc.last_column - ret->loc.first_column, "%s\n", &input_buffer_combined[ret->loc.first_column]);
+	snprintf(($$)->v.create_view->query, YDB_MAX_STR, "%s", &input_buffer_combined[start_char]);
       }
   ;
 
