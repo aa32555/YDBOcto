@@ -32,10 +32,12 @@ SqlStatement *find_view(const char *view_name) {
 	int32_t	      length;
 	long	      length_long;
 	MemoryChunk * old_chunk;
-	ydb_buffer_t  loaded_schemas, octo_global, view_subs[4], ret;
+	ydb_buffer_t  loaded_schemas, octo_global, view_subs[5], ret;
 	char	      retbuff[sizeof(void *)];
+	char	      oid_buff[INT32_TO_STRING_MAX + 1]; /* + 1 for null terminator */
 	char	      len_str[INT32_TO_STRING_MAX];
 	boolean_t     drop_cache;
+	uint64_t      view_oid;
 
 	YDB_STRING_TO_BUFFER(config->global_names.octo, &octo_global);
 
@@ -62,19 +64,22 @@ SqlStatement *find_view(const char *view_name) {
 		stmt = *((SqlStatement **)ret.buf_addr);
 		UNPACK_SQL_STATEMENT(view, stmt, create_view);
 		/* Check if view has not changed in the database since we cached it
-		 *	^%ydboctoocto(OCTOLIT_VIEWS,SCHEMANAME,VIEWNAME)
+		 *	^%ydboctoocto(OCTOLIT_VIEWS,SCHEMANAME,VIEWNAME,OCTOLIT_OID)
 		 */
-		status = ydb_get_s(&octo_global, 3, &view_subs[0], &ret);
+		YDB_STRING_TO_BUFFER(OCTOLIT_OID, &view_subs[3]);
+		ret.buf_addr = &oid_buff[0];
+		ret.len_alloc = sizeof(oid_buff);
+		status = ydb_get_s(&octo_global, 4, &view_subs[0], &ret);
 		switch (status) {
 		case YDB_OK:
 			assert(ret.len_alloc > ret.len_used); // ensure space for null terminator
 			ret.buf_addr[ret.len_used] = '\0';
-			db_oid = (uint64_t)strtoll(ret.buf_addr, NULL, 10);
-			if ((LLONG_MIN == (long long)db_oid) || (LLONG_MAX == (long long)db_oid)) {
+			view_oid = (uint64_t)strtoll(ret.buf_addr, NULL, 10);
+			if ((LLONG_MIN == (long long)view_oid) || (LLONG_MAX == (long long)view_oid)) {
 				ERROR(ERR_SYSCALL_WITH_ARG, "strtoll()", errno, strerror(errno), ret.buf_addr);
 				return NULL;
 			}
-			drop_cache = (db_oid != view->oid);
+			drop_cache = (view_oid != view->oid);
 			break;
 		case YDB_ERR_GVUNDEF:
 			// A DROP VIEW ran concurrently since we cached it. Reload cache from database.
@@ -86,7 +91,7 @@ SqlStatement *find_view(const char *view_name) {
 			break;
 		}
 		if (!drop_cache) {
-			return view;
+			return stmt;
 		} else {
 			/* We do not expect the loaded view cache to be dropped in the normal case.
 			 * This includes most of the bats tests in the YDBOcto repo. Therefore, we assert that this
@@ -207,5 +212,5 @@ SqlStatement *find_view(const char *view_name) {
 	// Restore memory chunks
 	memory_chunks = old_chunk;
 
-	return view;
+	return stmt;
 }

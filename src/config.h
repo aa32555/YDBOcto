@@ -30,6 +30,7 @@ typedef struct RoctoConfig {
 	const char *address;
 	const char *ssl_cert_file;
 	const char *ssl_key_file;
+	const char *username;
 	int	    use_dns;
 	boolean_t   tcp_delay;
 } RoctoConfig;

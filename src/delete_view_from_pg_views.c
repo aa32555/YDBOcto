@@ -23,9 +23,8 @@
  */
 int delete_view_from_pg_views(ydb_buffer_t *view_name_buffer) {
 	int	     status;
-	ydb_buffer_t pg_views[5];
+	ydb_buffer_t pg_views[6];
 	ydb_buffer_t octo_views[4];
-	char	     oid_str[INT64_TO_STRING_MAX];
 	char *	     schema_name;
 
 	schema_name = "octo"; // Use "octo" as a default schema name until schemas are implemented
@@ -38,7 +37,7 @@ int delete_view_from_pg_views(ydb_buffer_t *view_name_buffer) {
 	YDB_STRING_TO_BUFFER(view_name_buffer->buf_addr, &pg_views[5]);
 
 	// Check keys for VIEWNAME (usually stored as
-	// ^%ydboctoocto(OCTOLIT_VIEWS,VIEWNAME,VIEWSCHEMA,VIEWNAME)=VIEWOID)
+	// ^%ydboctoocto(OCTOLIT_VIEWS,VIEWSCHEMA,VIEWNAME)
 	YDB_STRING_TO_BUFFER(config->global_names.octo, &octo_views[0]);
 	YDB_STRING_TO_BUFFER(OCTOLIT_VIEWS, &octo_views[1]);
 	octo_views[2] = *view_name_buffer;
@@ -49,8 +48,11 @@ int delete_view_from_pg_views(ydb_buffer_t *view_name_buffer) {
 		if (YDB_OK != status) {
 			return 1;
 		}
-		// Delete view OID node : i.e. KILL ^%ydboctoocto(OCTOLIT_TABLES,OCTOLIT_PG_CATALOG,"pg_views",VIEWSCHEMA,VIEWNAME)
-		status = ydb_delete_s(&pg_views[0], 3, &pg_views[1], YDB_DEL_NODE);
+		/* Delete view OID node : i.e. KILL ^%ydboctoocto(OCTOLIT_TABLES,OCTOLIT_PG_CATALOG,"pg_views",VIEWSCHEMA,VIEWNAME)
+		 * Since other views may exist for the given schema_name, don't delete that, but only the given view_name for that
+		 * schema.
+		 */
+		status = ydb_delete_s(&pg_views[0], 5, &pg_views[1], YDB_DEL_NODE);
 		YDB_ERROR_CHECK(status);
 		if (YDB_OK != status) {
 			return 1;
