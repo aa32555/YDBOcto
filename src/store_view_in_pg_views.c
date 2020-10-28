@@ -98,7 +98,7 @@ int store_view_in_pg_views(SqlView *view) {
 	if (YDB_OK != status) {
 		return 1;
 	}
-	pg_views[4].buf_addr[pg_views[4].len_used] = '\0';
+	oid_buffer.buf_addr[oid_buffer.len_used] = '\0';
 
 	status = ydb_set_s(&octo_views[0], 4, &octo_views[1], &oid_buffer);
 	YDB_ERROR_CHECK(status);

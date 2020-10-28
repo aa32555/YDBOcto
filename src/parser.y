@@ -2027,7 +2027,6 @@ view_definition
   : CREATE VIEW column_name AS sql_select_statement {
 	int start_char;
 	char *c;
-	char temp[YDB_MAX_STR];
 	SqlStatement *ret;
 
         SQL_STATEMENT($$, create_view_STATEMENT);
@@ -2046,7 +2045,6 @@ view_definition
 	}
 	($$)->v.create_view->query = octo_cmalloc(memory_chunks,
 		ret->loc.last_column - ret->loc.first_column + 1); // Null terminator
-	// snprintf(temp, ret->loc.last_column - ret->loc.first_column, "%s\n", &input_buffer_combined[ret->loc.first_column]);
 	snprintf(($$)->v.create_view->query, YDB_MAX_STR, "%s", &input_buffer_combined[start_char]);
       }
   ;
