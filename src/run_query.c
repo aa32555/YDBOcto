@@ -670,10 +670,6 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 		}
 		release_query_lock = FALSE; /* Set variable to FALSE so we do not try releasing same lock later */
 		break;
-	case insert_STATEMENT:
-		WARNING(ERR_FEATURE_NOT_IMPLEMENTED, "table inserts");
-		cursor_used = FALSE; /* Remove this line once this feature gets implemented */
-		break;
 	case drop_view_STATEMENT:	    /* DROP VIEW */
 	case create_view_STATEMENT:	    /* CREATE VIEW */
 		/* Note that CREATE/DROP VIEW is very similar to CREATE/DROP TABLE, and changes to either may need to be
@@ -807,10 +803,6 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 			CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, null_query_lock);
 		}
 		release_query_lock = FALSE; /* Set variable to FALSE so we do not try releasing same lock later */
-		break;
-	case insert_STATEMENT:
-		WARNING(ERR_FEATURE_NOT_IMPLEMENTED, "table inserts");
-		cursor_used = FALSE; /* Remove this line once this feature gets implemented */
 		break;
 	case begin_STATEMENT:
 	case commit_STATEMENT:

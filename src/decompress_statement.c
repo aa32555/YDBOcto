@@ -36,10 +36,12 @@ SqlStatement *decompress_statement(char *buffer, int out_length) {
  */
 void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length) {
 	SqlTable *	      table;
+	SqlTableAlias *	      table_alias;
 	SqlColumn *	      cur_column, *start_column;
 	SqlValue *	      value;
 	SqlOptionalKeyword *  start_keyword, *cur_keyword;
 	SqlFunction *	      function;
+	SqlView *	      view;
 	SqlParameterTypeList *cur_parameter_type_list, *start_parameter_type_list;
 
 	assert(((char *)stmt) < out + out_length);
@@ -79,6 +81,12 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		CALL_DECOMPRESS_HELPER(function->return_type, out, out_length);
 		CALL_DECOMPRESS_HELPER(function->extrinsic_function, out, out_length);
 		CALL_DECOMPRESS_HELPER(function->function_hash, out, out_length);
+		break;
+	case create_view_STATEMENT:
+		UNPACK_SQL_STATEMENT(view, stmt, create_view);
+		CALL_DECOMPRESS_HELPER(view->view_name, out, out_length);
+		CALL_DECOMPRESS_HELPER(view->table, out, out_length);
+		/* view->query and view->oid are not pointer values so no need to call CALL_DECOMPRESS_HELPER on these members */
 		break;
 	case parameter_type_list_STATEMENT:
 		UNPACK_SQL_STATEMENT(cur_parameter_type_list, stmt, parameter_type_list);
@@ -133,6 +141,19 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 			cur_keyword->next->prev = cur_keyword;
 			cur_keyword = cur_keyword->next;
 		} while (cur_keyword != start_keyword);
+		break;
+	case table_alias_STATEMENT:
+		UNPACK_SQL_STATEMENT(table_alias, stmt, table_alias);
+		CALL_DECOMPRESS_HELPER(table_alias->table, out, out_length);
+		CALL_DECOMPRESS_HELPER(table_alias->alias, out, out_length);
+		CALL_DECOMPRESS_HELPER(table_alias->parent_table_alias, out, out_length);
+		CALL_DECOMPRESS_HELPER(table_alias->column_list, out, out_length);
+		/* The following fields of a SqlTableAlias are not pointer values and so need no CALL_DECOMPRESS_HELPER call:
+		 *	unique_id
+		 *	aggregate_depth
+		 *	aggregate_function_or_group_by_specified
+		 *	do_group_by_checks
+		 */
 		break;
 	default:
 		assert(FALSE);

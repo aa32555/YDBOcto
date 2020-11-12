@@ -46,7 +46,9 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 	SqlOptionalKeyword *  start_keyword, *cur_keyword, *new_keyword;
 	SqlStatement *	      new_stmt;
 	SqlTable *	      table, *new_table;
+	SqlTableAlias *	      table_alias, *new_table_alias;
 	SqlFunction *	      function, *new_function;
+	SqlView *	      view, *new_view;
 	SqlParameterTypeList *new_parameter_type_list, *cur_parameter_type_list, *start_parameter_type_list;
 	SqlValue *	      value, *new_value;
 	int		      len;
@@ -102,6 +104,17 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		CALL_COMPRESS_HELPER(r, function->return_type, new_function->return_type, out, out_length);
 		CALL_COMPRESS_HELPER(r, function->extrinsic_function, new_function->extrinsic_function, out, out_length);
 		CALL_COMPRESS_HELPER(r, function->function_hash, new_function->function_hash, out, out_length);
+		break;
+	case create_view_STATEMENT:
+		UNPACK_SQL_STATEMENT(view, stmt, create_view);
+		if (NULL != out) {
+			new_view = ((void *)&out[*out_length]);
+			memcpy(new_view, view, sizeof(SqlView));
+		}
+		*out_length += sizeof(SqlView);
+		CALL_COMPRESS_HELPER(r, view->view_name, new_view->view_name, out, out_length);
+		CALL_COMPRESS_HELPER(r, view->table, new_view->table, out, out_length);
+		/* view->query and view->oid are not pointer values so no need to call CALL_COMPRESS_HELPER on these members */
 		break;
 	case parameter_type_list_STATEMENT:
 		UNPACK_SQL_STATEMENT(cur_parameter_type_list, stmt, parameter_type_list);
@@ -193,7 +206,26 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 			}
 		} while (cur_keyword != start_keyword);
 		break;
+	case table_alias_STATEMENT:
+		UNPACK_SQL_STATEMENT(table_alias, stmt, table_alias);
+		if (NULL != out) {
+			new_table_alias = ((void *)&out[*out_length]);
+			memcpy(new_table_alias, table_alias, sizeof(SqlTableAlias));
+		}
+		*out_length += sizeof(SqlTableAlias);
+		CALL_COMPRESS_HELPER(r, table_alias->table, new_table_alias->table, out, out_length);
+		CALL_COMPRESS_HELPER(r, table_alias->alias, new_table_alias->alias, out, out_length);
+		CALL_COMPRESS_HELPER(r, table_alias->parent_table_alias, new_table_alias->parent_table_alias, out, out_length);
+		CALL_COMPRESS_HELPER(r, table_alias->column_list, new_table_alias->column_list, out, out_length);
+		/* The following fields of a SqlTableAlias are not pointer values and so need no CALL_COMPRESS_HELPER call:
+		 *	unique_id
+		 *	aggregate_depth
+		 *	aggregate_function_or_group_by_specified
+		 *	do_group_by_checks
+		 */
+		break;
 	default:
+		printf("type: %d\n", stmt->type);
 		assert(FALSE);
 		FATAL(ERR_UNKNOWN_KEYWORD_STATE, "");
 		return NULL;
