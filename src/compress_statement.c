@@ -45,6 +45,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 	SqlColumn *	      cur_column, *start_column, *new_column;
 	SqlOptionalKeyword *  start_keyword, *cur_keyword, *new_keyword;
 	SqlStatement *	      new_stmt;
+	SqlSelectStatement *  select, *new_select;
 	SqlTable *	      table, *new_table;
 	SqlTableAlias *	      table_alias, *new_table_alias;
 	SqlFunction *	      function, *new_function;
@@ -215,7 +216,11 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		*out_length += sizeof(SqlTableAlias);
 		CALL_COMPRESS_HELPER(r, table_alias->table, new_table_alias->table, out, out_length);
 		CALL_COMPRESS_HELPER(r, table_alias->alias, new_table_alias->alias, out, out_length);
-		CALL_COMPRESS_HELPER(r, table_alias->parent_table_alias, new_table_alias->parent_table_alias, out, out_length);
+		// CALL_COMPRESS_HELPER(r, table_alias->parent_table_alias, new_table_alias->parent_table_alias, out, out_length);
+
+		printf("PRE\n");
+		CALL_COMPRESS_HELPER(r, (SqlStatement *)((char *)table_alias->parent_table_alias - sizeof(SqlStatement)),
+				new_table_alias->parent_table_alias, out, out_length);
 		CALL_COMPRESS_HELPER(r, table_alias->column_list, new_table_alias->column_list, out, out_length);
 		/* The following fields of a SqlTableAlias are not pointer values and so need no CALL_COMPRESS_HELPER call:
 		 *	unique_id
@@ -223,6 +228,34 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		 *	aggregate_function_or_group_by_specified
 		 *	do_group_by_checks
 		 */
+		break;
+	case select_STATEMENT:
+		UNPACK_SQL_STATEMENT(select, stmt, select);
+		if (NULL != out) {
+			new_select = ((void *)&out[*out_length]);
+			memcpy(new_select, select, sizeof(SqlSelectStatement));
+		}
+		*out_length += sizeof(SqlSelectStatement);
+		CALL_COMPRESS_HELPER(r, select->select_list, new_select->select_list, out, out_length);
+		CALL_COMPRESS_HELPER(r, select->table_list, new_select->table_list, out, out_length);
+		CALL_COMPRESS_HELPER(r, select->where_expression, new_select->where_expression, out, out_length);
+		CALL_COMPRESS_HELPER(r, select->group_by_expression, new_select->group_by_expression, out, out_length);
+		CALL_COMPRESS_HELPER(r, select->having_expression, new_select->having_expression, out, out_length);
+		CALL_COMPRESS_HELPER(r, select->order_by_expression, new_select->order_by_expression, out, out_length);
+		CALL_COMPRESS_HELPER(r, select->optional_words, new_select->optional_words, out, out_length);
+		break;
+	case column_list_alias_STATEMENT:
+		UNPACK_SQL_STATEMENT(column_list_alias, stmt, column_list_alias);
+		if (NULL != out) {
+			new_column_list_alias = ((void *)&out[*out_length]);
+			memcpy(new_column_list_alias, column_list_alias, sizeof(SqlColumnListAlias));
+		}
+		*out_length += sizeof(SqlColumnListAlias);
+		CALL_COMPRESS_HELPER(r, column_list_alias->column_list, new_column_list_alias->column_list, out, out_length);
+		CALL_COMPRESS_HELPER(r, column_list_alias->alias, new_column_list_alias->alias, out, out_length);
+		CALL_COMPRESS_HELPER(r, column_list_alias->keywords, new_column_list_alias->keywords, out, out_length);
+
+		// more
 		break;
 	default:
 		printf("type: %d\n", stmt->type);
