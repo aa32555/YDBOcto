@@ -43,6 +43,9 @@ void compress_statement(SqlStatement *stmt, char **out, int *out_length) {
  */
 void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) {
 	SqlColumn *	      cur_column, *start_column, *new_column;
+	SqlColumnAlias       *column_alias, *new_column_alias;
+	SqlColumnListAlias   *column_list_alias, *new_column_list_alias;
+	SqlColumnList	     *column_list, *new_column_list;
 	SqlOptionalKeyword *  start_keyword, *cur_keyword, *new_keyword;
 	SqlStatement *	      new_stmt;
 	SqlSelectStatement *  select, *new_select;
@@ -218,9 +221,10 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		CALL_COMPRESS_HELPER(r, table_alias->alias, new_table_alias->alias, out, out_length);
 		// CALL_COMPRESS_HELPER(r, table_alias->parent_table_alias, new_table_alias->parent_table_alias, out, out_length);
 
-		printf("PRE\n");
 		CALL_COMPRESS_HELPER(r, (SqlStatement *)((char *)table_alias->parent_table_alias - sizeof(SqlStatement)),
-				new_table_alias->parent_table_alias, out, out_length);
+				(SqlStatement *)((char *)new_table_alias->parent_table_alias - sizeof(SqlStatement)),
+				// new_table_alias->parent_table_alias, out, out_length);
+				out, out_length);
 		CALL_COMPRESS_HELPER(r, table_alias->column_list, new_table_alias->column_list, out, out_length);
 		/* The following fields of a SqlTableAlias are not pointer values and so need no CALL_COMPRESS_HELPER call:
 		 *	unique_id
@@ -256,6 +260,25 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		CALL_COMPRESS_HELPER(r, column_list_alias->keywords, new_column_list_alias->keywords, out, out_length);
 
 		// more
+		break;
+	case column_list_STATEMENT:
+		UNPACK_SQL_STATEMENT(column_list, stmt, column_list);
+		if (NULL != out) {
+			new_column_list = ((void *)&out[*out_length]);
+			memcpy(new_column_list, column_list, sizeof(SqlColumnList));
+		}
+		CALL_COMPRESS_HELPER(r, column_list->value, new_column_list->value, out, out_length);
+
+		// more
+		break;
+	case column_alias_STATEMENT:
+		UNPACK_SQL_STATEMENT(column_alias, stmt, column_alias);
+		if (NULL != out) {
+			new_column_alias = ((void *)&out[*out_length]);
+			memcpy(new_column_alias, column_alias, sizeof(SqlColumnAlias));
+		}
+		CALL_COMPRESS_HELPER(r, column_alias->column, new_column_alias->column, out, out_length);
+		CALL_COMPRESS_HELPER(r, column_alias->table_alias_stmt, new_column_alias->table_alias_stmt, out, out_length);
 		break;
 	default:
 		printf("type: %d\n", stmt->type);
