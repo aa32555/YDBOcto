@@ -36,6 +36,7 @@ SqlStatement *find_view(const char *view_name) {
 	char	      retbuff[sizeof(void *)];
 	char	      oid_buff[INT32_TO_STRING_MAX + 1]; /* + 1 for null terminator */
 	char	      len_str[INT32_TO_STRING_MAX];
+	char	      frag_str[INT64_TO_STRING_MAX];
 	boolean_t     drop_cache;
 	uint64_t      view_oid;
 
@@ -117,10 +118,10 @@ SqlStatement *find_view(const char *view_name) {
 	}
 
 	// Get the length in bytes of the binary view definition
-	YDB_STRING_TO_BUFFER(OCTOLIT_LENGTH, &view_subs[2]);
-	view_subs[3].buf_addr = len_str;
-	view_subs[3].len_alloc = sizeof(len_str);
-	status = ydb_get_s(&octo_global, 3, &view_subs[0], &view_subs[3]);
+	YDB_STRING_TO_BUFFER(OCTOLIT_LENGTH, &view_subs[3]);
+	view_subs[4].buf_addr = len_str;
+	view_subs[4].len_alloc = sizeof(len_str);
+	status = ydb_get_s(&octo_global, 4, &view_subs[0], &view_subs[4]);
 	if (YDB_ERR_GVUNDEF == status) {
 		// Definition for view (previous CREATE VIEW statement) doesn't exist
 		return NULL;
@@ -129,8 +130,8 @@ SqlStatement *find_view(const char *view_name) {
 	if (YDB_OK != status) {
 		return NULL;
 	}
-	view_subs[3].buf_addr[view_subs[3].len_used] = '\0';
-	length_long = strtol(view_subs[3].buf_addr, NULL, 10);
+	view_subs[4].buf_addr[view_subs[4].len_used] = '\0';
+	length_long = strtol(view_subs[4].buf_addr, NULL, 10);
 	if ((ERANGE != errno) && (0 <= length_long) && (INT32_MAX >= length_long)) {
 		length = (int32_t)length_long;
 	} else {
@@ -138,7 +139,7 @@ SqlStatement *find_view(const char *view_name) {
 		return NULL;
 	}
 	// Switch subscript from OCTOLIT_LENGTH back to OCTOLIT_BINARY to get the binary view definition
-	YDB_STRING_TO_BUFFER(OCTOLIT_BINARY, &view_subs[2]);
+	YDB_STRING_TO_BUFFER(OCTOLIT_BINARY, &view_subs[3]);
 
 	/* Allocate a buffer to hold the full view.
 	 * Note that we create a new memory chunk here (different from the memory chunk used to store octo structures
@@ -150,11 +151,13 @@ SqlStatement *find_view(const char *view_name) {
 
 	value_buffer.buf_addr = value_str;
 	value_buffer.len_alloc = sizeof(value_str);
-	view_subs[3].len_used = 0;
+	view_subs[4].buf_addr = frag_str;
+	view_subs[4].len_alloc = sizeof(frag_str);
+	view_subs[4].len_used = 0;
 	cur_buff = buff;
 	while (TRUE) {
 		/* See "src/run_query.c" under "case create_view_STATEMENT:" for how these global variable nodes are created */
-		status = ydb_subscript_next_s(&octo_global, 4, &view_subs[0], &view_subs[3]);
+		status = ydb_subscript_next_s(&octo_global, 5, &view_subs[0], &view_subs[4]);
 		if (YDB_ERR_NODEEND == status) {
 			status = YDB_OK;
 			break;
@@ -163,7 +166,7 @@ SqlStatement *find_view(const char *view_name) {
 		YDB_ERROR_CHECK(status);
 		if (YDB_OK != status)
 			break;
-		status = ydb_get_s(&octo_global, 4, &view_subs[0], &value_buffer);
+		status = ydb_get_s(&octo_global, 5, &view_subs[0], &value_buffer);
 		YDB_ERROR_CHECK(status);
 		if (YDB_OK != status)
 			break;
