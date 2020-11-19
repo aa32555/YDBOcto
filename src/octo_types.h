@@ -484,7 +484,7 @@ typedef struct SqlTableAlias {
 				       * least once) and also to avoid issuing duplicate errors related
 				       * to Unknown column name etc.
 				       */
-	struct SqlTableAlias *parent_table_alias;
+	struct SqlStatement *parent_table_alias;
 	// SqlColumnListAlias list of available columns
 	struct SqlStatement *column_list;
 } SqlTableAlias;
@@ -834,6 +834,10 @@ typedef struct SqlStatement {
 	 * this field will represent the "unique_id" corresponding to the table_alias for "n1". This is used to compare
 	 * against "SqlJoin.max_unique_id" field to see if a subtree of the WHERE clause can be moved over to the
 	 * ON clause of the JOIN.
+	 *
+	 * This field is also used in "compress_statement" to avoid multiple traversals of the same node,
+	 * particularly in the case of SqlTableAlias statements. Since "compress_statement" is called before
+	 * "hash_canonical_query" it is safe to reuse this field there.
 	 */
 	uint64_t hash_canonical_query_cycle;
 } SqlStatement;

@@ -19,7 +19,7 @@ setup() {
 	load_fixture names.zwr
 }
 
-@test "TCV000 : OCTO211 : Basic view creation" {
+@test "TCV000 : OCTO211 : Basic view creation and usage" {
 	load_fixture TCV000.sql subtest novv
 	verify_output TCV000 output.txt noinfo nodebug
 }

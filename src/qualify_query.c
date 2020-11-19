@@ -22,7 +22,7 @@
  *	0 if query is successfully qualified.
  *	1 if query had errors during qualification.
  */
-int qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlTableAlias *parent_table_alias,
+int qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlStatement *parent_table_alias,
 		  QualifyStatementParms *ret) {
 	SqlColumnListAlias *ret_cla;
 	SqlJoin *	    join;
@@ -102,7 +102,7 @@ int qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlTable
 		/* Qualify sub-queries involved in the join. Note that it is possible a `table` is involved in the join instead
 		 * of a `sub-query` in which case the below `qualify_query` call will return right away.
 		 */
-		result |= qualify_query(cur_join->value, parent_join, table_alias, ret);
+		result |= qualify_query(cur_join->value, parent_join, table_alias_stmt, ret);
 		cur_join = cur_join->next;
 	} while (cur_join != start_join);
 	/* Now that FROM clause has been qualified, qualify the JOIN conditions etc. in the FROM clause.
@@ -179,7 +179,7 @@ int qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlTable
 
 				UNPACK_SQL_STATEMENT(column_alias, col_list->value, column_alias);
 				UNPACK_SQL_STATEMENT(group_by_table_alias, column_alias->table_alias_stmt, table_alias);
-				if (group_by_table_alias->parent_table_alias != table_alias) {
+				if (group_by_table_alias->parent_table_alias->v.table_alias != table_alias) {
 					/* Column belongs to an outer query. Discard it from the GROUP BY list. */
 					SqlColumnListAlias *prev, *next;
 

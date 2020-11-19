@@ -10,7 +10,8 @@
 #								#
 #################################################################
 
--- TCV000 : OCTO211 : Basic view creation
+-- TCV000 : OCTO211 : Basic view creation and usage
 
 CREATE VIEW select_names AS SELECT * FROM names;
+SELECT * from select_names;
 

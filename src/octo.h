@@ -484,7 +484,7 @@ SqlStatement *find_column_alias_name(SqlStatement *stmt);
 void	      parse_tree_optimize(SqlSelectStatement *select);
 void	      move_where_clause_to_on_clause(SqlStatement **stmt_ptr, SqlJoin *start_join);
 SqlStatement *traverse_where_clause(SqlStatement *binary_stmt, SqlJoin *start_join);
-int	      qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlTableAlias *parent_table_alias,
+int	      qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlStatement *parent_table_alias,
 			    QualifyStatementParms *ret);
 int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_alias_stmt, int depth, QualifyStatementParms *ret);
 SqlColumnAlias *    qualify_column_name(SqlValue *column_value, SqlJoin *tables, SqlStatement *table_alias_stmt, int depth,

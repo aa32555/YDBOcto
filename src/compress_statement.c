@@ -53,6 +53,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 	SqlTableAlias *	      table_alias, *new_table_alias;
 	SqlFunction *	      function, *new_function;
 	SqlView *	      view, *new_view;
+	SqlJoin *	      join, *new_join;
 	SqlParameterTypeList *new_parameter_type_list, *cur_parameter_type_list, *start_parameter_type_list;
 	SqlValue *	      value, *new_value;
 	int		      len;
@@ -60,7 +61,6 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 
 	if ((NULL == stmt) || (NULL == stmt->v.value))
 		return NULL;
-
 	if (NULL != out) {
 		new_stmt = ((void *)&out[*out_length]);
 		memcpy(new_stmt, stmt, sizeof(SqlStatement));
@@ -219,13 +219,14 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		*out_length += sizeof(SqlTableAlias);
 		CALL_COMPRESS_HELPER(r, table_alias->table, new_table_alias->table, out, out_length);
 		CALL_COMPRESS_HELPER(r, table_alias->alias, new_table_alias->alias, out, out_length);
-		// CALL_COMPRESS_HELPER(r, table_alias->parent_table_alias, new_table_alias->parent_table_alias, out, out_length);
-
-		CALL_COMPRESS_HELPER(r, (SqlStatement *)((char *)table_alias->parent_table_alias - sizeof(SqlStatement)),
-				(SqlStatement *)((char *)new_table_alias->parent_table_alias - sizeof(SqlStatement)),
-				// new_table_alias->parent_table_alias, out, out_length);
-				out, out_length);
-		CALL_COMPRESS_HELPER(r, table_alias->column_list, new_table_alias->column_list, out, out_length);
+		CALL_COMPRESS_HELPER(r, table_alias->parent_table_alias, new_table_alias->parent_table_alias, out, out_length);
+		if (stmt->hash_canonical_query_cycle != hash_canonical_query_cycle) {
+			CALL_COMPRESS_HELPER(r, table_alias->column_list, new_table_alias->column_list, out, out_length);
+		}
+		stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
+										* multiple visits down this same node in the same
+										* outermost call of "compress_statement_helper".
+										*/
 		/* The following fields of a SqlTableAlias are not pointer values and so need no CALL_COMPRESS_HELPER call:
 		 *	unique_id
 		 *	aggregate_depth
@@ -280,6 +281,17 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		CALL_COMPRESS_HELPER(r, column_alias->column, new_column_alias->column, out, out_length);
 		CALL_COMPRESS_HELPER(r, column_alias->table_alias_stmt, new_column_alias->table_alias_stmt, out, out_length);
 		break;
+	case join_STATEMENT:
+		UNPACK_SQL_STATEMENT(join, stmt, join);
+		if (NULL != out) {
+			new_join = ((void *)&out[*out_length]);
+			memcpy(new_join, join, sizeof(SqlJoin));
+		}
+		*out_length += sizeof(SqlJoin);
+		CALL_COMPRESS_HELPER(r, join->value, new_join->value, out, out_length);
+		CALL_COMPRESS_HELPER(r, join->condition, new_join->condition, out, out_length);
+		// Add doubly-linked list?
+		break;
 	default:
 		printf("type: %d\n", stmt->type);
 		assert(FALSE);
@@ -287,5 +299,6 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		return NULL;
 		break;
 	}
+
 	return ret;
 }
