@@ -37,8 +37,13 @@ SqlStatement *decompress_statement(char *buffer, int out_length) {
 void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length) {
 	SqlTable *	      table;
 	SqlTableAlias *	      table_alias;
+	SqlSelectStatement *  select;
 	SqlColumn *	      cur_column, *start_column;
+	SqlColumnListAlias *  column_list_alias;
+	SqlColumnList *	      column_list;
+	SqlColumnAlias *      column_alias;
 	SqlValue *	      value;
+	SqlJoin *	      join;
 	SqlOptionalKeyword *  start_keyword, *cur_keyword;
 	SqlFunction *	      function;
 	SqlView *	      view;
@@ -147,7 +152,13 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		CALL_DECOMPRESS_HELPER(table_alias->table, out, out_length);
 		CALL_DECOMPRESS_HELPER(table_alias->alias, out, out_length);
 		CALL_DECOMPRESS_HELPER(table_alias->parent_table_alias, out, out_length);
-		CALL_DECOMPRESS_HELPER(table_alias->column_list, out, out_length);
+		if (stmt->hash_canonical_query_cycle != hash_canonical_query_cycle) {
+			CALL_DECOMPRESS_HELPER(table_alias->column_list, out, out_length);
+		}
+		stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
+										* multiple visits down this same node in the same
+										* outermost call of "compress_statement_helper".
+										*/
 		/* The following fields of a SqlTableAlias are not pointer values and so need no CALL_DECOMPRESS_HELPER call:
 		 *	unique_id
 		 *	aggregate_depth
@@ -155,7 +166,43 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		 *	do_group_by_checks
 		 */
 		break;
+	case select_STATEMENT:
+		UNPACK_SQL_STATEMENT(select, stmt, select);
+		CALL_DECOMPRESS_HELPER(select->select_list, out, out_length);
+		CALL_DECOMPRESS_HELPER(select->table_list, out, out_length);
+		CALL_DECOMPRESS_HELPER(select->where_expression, out, out_length);
+		CALL_DECOMPRESS_HELPER(select->group_by_expression, out, out_length);
+		CALL_DECOMPRESS_HELPER(select->having_expression, out, out_length);
+		CALL_DECOMPRESS_HELPER(select->order_by_expression, out, out_length);
+		CALL_DECOMPRESS_HELPER(select->optional_words, out, out_length);
+		break;
+	case column_list_alias_STATEMENT:
+		UNPACK_SQL_STATEMENT(column_list_alias, stmt, column_list_alias);
+		CALL_DECOMPRESS_HELPER(column_list_alias->column_list, out, out_length);
+		CALL_DECOMPRESS_HELPER(column_list_alias->alias, out, out_length);
+		CALL_DECOMPRESS_HELPER(column_list_alias->keywords, out, out_length);
+
+		// more
+		break;
+	case column_list_STATEMENT:
+		UNPACK_SQL_STATEMENT(column_list, stmt, column_list);
+		CALL_DECOMPRESS_HELPER(column_list->value, out, out_length);
+
+		// more
+		break;
+	case column_alias_STATEMENT:
+		UNPACK_SQL_STATEMENT(column_alias, stmt, column_alias);
+		CALL_DECOMPRESS_HELPER(column_alias->column, out, out_length);
+		CALL_DECOMPRESS_HELPER(column_alias->table_alias_stmt, out, out_length);
+		break;
+	case join_STATEMENT:
+		UNPACK_SQL_STATEMENT(join, stmt, join);
+		CALL_DECOMPRESS_HELPER(join->value, out, out_length);
+		CALL_DECOMPRESS_HELPER(join->condition, out, out_length);
+		// Add doubly-linked list?
+		break;
 	default:
+		printf("stmt->type: %d\n", stmt->type);
 		assert(FALSE);
 		FATAL(ERR_UNKNOWN_KEYWORD_STATE, "");
 		return NULL;

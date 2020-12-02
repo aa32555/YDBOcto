@@ -268,6 +268,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 			new_column_list = ((void *)&out[*out_length]);
 			memcpy(new_column_list, column_list, sizeof(SqlColumnList));
 		}
+		*out_length += sizeof(SqlColumnList);
 		CALL_COMPRESS_HELPER(r, column_list->value, new_column_list->value, out, out_length);
 
 		// more
@@ -278,6 +279,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 			new_column_alias = ((void *)&out[*out_length]);
 			memcpy(new_column_alias, column_alias, sizeof(SqlColumnAlias));
 		}
+		*out_length += sizeof(SqlColumnAlias);
 		CALL_COMPRESS_HELPER(r, column_alias->column, new_column_alias->column, out, out_length);
 		CALL_COMPRESS_HELPER(r, column_alias->table_alias_stmt, new_column_alias->table_alias_stmt, out, out_length);
 		break;
