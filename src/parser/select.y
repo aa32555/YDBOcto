@@ -262,7 +262,11 @@ from_clause
 	/* Traverse the all tables in the join list and ensure that each table has a unique alias. Else issue an error.
 	 * Also use this opportunity to finish setting up the NATURAL JOIN condition (deferred in a "qualified_join" rule).
 	 */
-	UNPACK_SQL_STATEMENT(start_join, $$, join);
+	if (create_view_STATEMENT == ($$)->type) {
+		UNPACK_SQL_STATEMENT(start_join, ($$)->v.create_view->table->v.table_alias->table->v.select->table_list, join);
+	} else {
+		UNPACK_SQL_STATEMENT(start_join, $$, join);
+	}
 	cmp_join = start_join;
 	do {
 		SqlJoin		*cur_join;
