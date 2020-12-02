@@ -85,7 +85,8 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 				SqlColumnListAlias *cla_primary;
 				SqlColumnListAlias *cla_new;
 
-				cla_primary = ((NULL == asterisk_table_name) ? cla_cur->duplicate_of_column : NULL);
+				cla_primary = ((NULL == asterisk_table_name)
+						? cla_cur->duplicate_of_column->v.column_list_alias : NULL);
 				if (NULL == cla_primary) {
 					SqlColumnList *cur;
 
@@ -108,7 +109,7 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 					 * The overload not required when processing TABLENAME.ASTERISK
 					 */
 					if (NULL == asterisk_table_name)
-						cla_cur->duplicate_of_column = cla_new;
+						cla_cur->duplicate_of_column->v.column_list_alias = cla_new;
 				} else {
 					/* This is a common column. The column that this is a duplicate of has to be
 					 * moved ahead in the SELECT column list. We will for now note this column
@@ -119,14 +120,14 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 					assert(NATURAL_JOIN == cur_join->type);
 					common_column_seen = TRUE;
 					/* First go from the cla in the tablejoin to the cla in the select column list */
-					cla_primary = cla_primary->duplicate_of_column;
+					cla_primary = cla_primary->duplicate_of_column->v.column_list_alias;
 					/* Note down that this cla in the select column list is a common column
 					 * on the left side for this right side table. We use the
 					 * "duplicate_of_column" field for this purpose by setting it to a unique
 					 * number that corresponds to this particular right side table (hence the use
 					 * of "tablejoin_num" which is incremented for every table in the join list).
 					 */
-					cla_primary->duplicate_of_column = (void *)(intptr_t)tablejoin_num;
+					cla_primary->duplicate_of_column->v.column_list_alias = (void *)(intptr_t)tablejoin_num;
 					assert(NULL != cla_alias);
 				}
 				cla_cur = cla_cur->next;
@@ -145,8 +146,8 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 					SqlColumnListAlias *cla_next;
 
 					cla_next = cla_cur->next;
-					if ((void *)(intptr_t)tablejoin_num == cla_cur->duplicate_of_column) {
-						cla_cur->duplicate_of_column = NULL;
+					if ((void *)(intptr_t)tablejoin_num == cla_cur->duplicate_of_column->v.column_list_alias) {
+						cla_cur->duplicate_of_column->v.column_list_alias = NULL;
 						/* This column is a common column. Move it to a separate common list. */
 						/* Before the "dqdel" is done (which would modify "cla_primary->next")
 						 * do any "cla_alias" (non-common list of columns) related adjustments.

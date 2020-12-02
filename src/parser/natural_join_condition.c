@@ -66,7 +66,7 @@ int natural_join_condition(SqlJoin *start, SqlJoin *r_join) {
 		l_table_name_len = strlen(l_table_name);
 		l_cl_cur = l_cl_start;
 		do { /* Loop through each column on left side table of the NATURAL JOIN */
-			if (NULL == l_cl_cur->duplicate_of_column) {
+			if (NULL == l_cl_cur->duplicate_of_column->v.column_list_alias) {
 				char *		    l_column_name;
 				size_t		    l_column_name_len;
 				SqlColumnListAlias *r_matched_column;
@@ -87,7 +87,7 @@ int natural_join_condition(SqlJoin *start, SqlJoin *r_join) {
 					SqlStatement *	    cur_condition;
 					SqlBinaryOperation *binary;
 
-					if (NULL != r_matched_column->duplicate_of_column) {
+					if (NULL != r_matched_column->duplicate_of_column->v.column_list_alias) {
 						ERROR(ERR_COMMON_COLUMN, l_column_name, "left");
 						return 1;
 					}
@@ -95,8 +95,8 @@ int natural_join_condition(SqlJoin *start, SqlJoin *r_join) {
 						ERROR(ERR_COMMON_COLUMN, l_column_name, "right");
 						return 1;
 					}
-					assert(NULL == r_matched_column->duplicate_of_column);
-					r_matched_column->duplicate_of_column = l_cl_cur;
+					assert(NULL == r_matched_column->duplicate_of_column->v.column_list_alias);
+					r_matched_column->duplicate_of_column->v.column_list_alias = l_cl_cur;
 
 					// Create a value for the left item
 					SQL_STATEMENT(l_qual_col_name, value_STATEMENT);

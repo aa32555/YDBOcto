@@ -259,6 +259,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		CALL_COMPRESS_HELPER(r, column_list_alias->column_list, new_column_list_alias->column_list, out, out_length);
 		CALL_COMPRESS_HELPER(r, column_list_alias->alias, new_column_list_alias->alias, out, out_length);
 		CALL_COMPRESS_HELPER(r, column_list_alias->keywords, new_column_list_alias->keywords, out, out_length);
+		CALL_COMPRESS_HELPER(r, column_list_alias->duplicate_of_column, new_column_list_alias->duplicate_of_column, out, out_length);
 
 		// more
 		break;
