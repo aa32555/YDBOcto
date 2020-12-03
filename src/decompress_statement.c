@@ -15,6 +15,29 @@
 #include "octo.h"
 #include "octo_types.h"
 
+#define DECOMPRESS_DQ_LIST(START, STRUCT_TYPE) \
+{ \
+	int cur_list_item, list_len = 0; \
+	struct STRUCT_TYPE *cur; \
+	struct STRUCT_TYPE *list_block; \
+ \
+	cur = START; \
+	do { \
+		list_len++; \
+		cur = cur->next; \
+	} while (cur != START); \
+\
+	list_block = (struct STRUCT_TYPE *)malloc(sizeof(STRUCT_TYPE) * list_len); \
+	cur_list_item = 0; \
+	cur = START; \
+	do { \
+		list_block[cur_list_item] = *cur; \
+		cur_list_item++; \
+		cur = cur->next; \
+	} while (cur != START); \
+	assert(cur_list_item == list_len); \
+}
+
 #define CALL_DECOMPRESS_HELPER(value, out, out_length)                       \
 	{                                                                    \
 		if (value != NULL) {                                         \
@@ -187,8 +210,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 	case column_list_STATEMENT:
 		UNPACK_SQL_STATEMENT(column_list, stmt, column_list);
 		CALL_DECOMPRESS_HELPER(column_list->value, out, out_length);
-
-		// more
+		DECOMPRESS_DQ_LIST(column_list->next, SqlColumnList);
 		break;
 	case column_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(column_alias, stmt, column_alias);

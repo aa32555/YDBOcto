@@ -15,7 +15,7 @@
 #include "octo_types.h"
 
 
-#define COMPRESS_DQ_LIST(START, STRUCT_TYPE) \
+#define COMPRESS_DQ_LIST(START, NEW_START, STRUCT_TYPE, OUT_LENGTH) \
 { \
 	int cur_list_item, list_len = 0; \
 	struct STRUCT_TYPE *cur; \
@@ -27,15 +27,23 @@
 		cur = cur->next; \
 	} while (cur != START); \
 \
+	printf("PRE MALLOC\n"); \
 	list_block = (struct STRUCT_TYPE *)malloc(sizeof(STRUCT_TYPE) * list_len); \
+	OUT_LENGTH += sizeof(STRUCT_TYPE) * list_len; \
 	cur_list_item = 0; \
 	cur = START; \
 	do { \
 		list_block[cur_list_item] = *cur; \
+		list_block[cur_list_item].next = \
+			((list_len <= (cur_list_item+1)) ?  list_block : &list_block[cur_list_item+1]); \
+		list_block[cur_list_item].prev = \
+			((0 == cur_list_item) ?  &list_block[list_len-1] : &list_block[cur_list_item-1]); \
 		cur_list_item++; \
 		cur = cur->next; \
 	} while (cur != START); \
+	printf("POST LOOP\n"); \
 	assert(cur_list_item == list_len); \
+	NEW_START = list_block; \
 }
 
 #define CALL_COMPRESS_HELPER(temp, value, new_value, out, out_length)             \
@@ -285,8 +293,8 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		printf("POST COLUMN_LIST\n");
 		CALL_COMPRESS_HELPER(r, column_list_alias->alias, new_column_list_alias->alias, out, out_length);
 		CALL_COMPRESS_HELPER(r, column_list_alias->keywords, new_column_list_alias->keywords, out, out_length);
-		CALL_COMPRESS_HELPER(r, column_list_alias->duplicate_of_column, new_column_list_alias->duplicate_of_column, out,
-				     out_length);
+		// CALL_COMPRESS_HELPER(r, column_list_alias->duplicate_of_column, new_column_list_alias->duplicate_of_column, out,
+				     // out_length);
 
 		// more
 		break;
@@ -300,7 +308,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		CALL_COMPRESS_HELPER(r, column_list->value, new_column_list->value, out, out_length);
 		// Compress linked list
 		printf("PRE COMPRESS_DQ_LIST\n");
-		COMPRESS_DQ_LIST(column_list->next, SqlColumnList);
+		COMPRESS_DQ_LIST(column_list->next, new_column_list->next, SqlColumnList, out_length);
 		printf("POST COMPRESS_DQ_LIST\n");
 		break;
 	case column_alias_STATEMENT:
