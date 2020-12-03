@@ -23,18 +23,18 @@
  * Note that this function is similar to store_table_in_pg_class.
  */
 int store_view_in_pg_views(SqlView *view) {
-	SqlValue *	      name_value, *defn_value;
-	ydb_buffer_t	      pg_views[5];
-	ydb_buffer_t	      octo_views[5];
-	ydb_buffer_t	      row_buffer;
-	ydb_buffer_t	      oid_buffer;
-	long long	      view_oid;
-	int		      status;
-	char *		      view_name, *schema_name, *definition;
-	char		      row_str[MAX_STR_CONST];
-	char		      view_oid_str[INT32_TO_STRING_MAX]; /* OIDs are stored as 4-byte unsigned integers:
-								  * https://www.postgresql.org/docs/current/datatype-oid.html
-								  */
+	SqlValue *   name_value, *defn_value;
+	ydb_buffer_t pg_views[5];
+	ydb_buffer_t octo_views[5];
+	ydb_buffer_t row_buffer;
+	ydb_buffer_t oid_buffer;
+	long long    view_oid;
+	int	     status;
+	char *	     view_name, *schema_name, *definition;
+	char	     row_str[MAX_STR_CONST];
+	char	     view_oid_str[INT32_TO_STRING_MAX]; /* OIDs are stored as 4-byte unsigned integers:
+							 * https://www.postgresql.org/docs/current/datatype-oid.html
+							 */
 	// Extract the view name and set the schema_name
 	UNPACK_SQL_STATEMENT(name_value, view->view_name, value);
 	view_name = name_value->v.string_literal;
@@ -63,9 +63,7 @@ int store_view_in_pg_views(SqlView *view) {
 	 * Columns of `pg_catalog.pg_views` table in `tests/fixtures/octo-seed.sql`.
 	 * Any changes to that table definition will require changes here too.
 	 */
-	snprintf(row_str, sizeof(row_str), "%s|%s",
-			((config->is_rocto) ? config->rocto_config.username : "octo"),
-			definition);
+	snprintf(row_str, sizeof(row_str), "%s|%s", ((config->is_rocto) ? config->rocto_config.username : "octo"), definition);
 	row_buffer.len_alloc = row_buffer.len_used = strlen(row_str);
 	row_buffer.buf_addr = row_str;
 	/* Set the view name passed in as having an oid VIEWOID in the pg_catalog.
@@ -112,7 +110,7 @@ int store_view_in_pg_views(SqlView *view) {
 		return 1;
 	}
 	view->oid = view_oid; /* Initialize OID in SqlView. Caller later invokes "compress_statement()" that stores
-				   * this as part of the binary view definition in the database.
-				   */
+			       * this as part of the binary view definition in the database.
+			       */
 	return 0;
 }

@@ -450,7 +450,7 @@ typedef struct SqlView {
 	struct SqlStatement *view_name;
 	struct SqlStatement *table;
 	char *		     query; /* The query string to be executed when this view is referenced in a query */
-	uint64_t	     oid; /* VIEWOID; compared against ^%ydboctoocto(OCTOLIT_VIEWS,schema_name,view_name,OCTOLIT_OID) */
+	uint64_t	     oid;   /* VIEWOID; compared against ^%ydboctoocto(OCTOLIT_VIEWS,schema_name,view_name,OCTOLIT_OID) */
 } SqlView;
 
 /* Below is the table constructed by the VALUES (...) syntax */
@@ -642,7 +642,7 @@ typedef struct SqlDropFunctionStatement {
 } SqlDropFunctionStatement;
 
 typedef struct SqlDropViewStatement {
-	struct SqlStatement *view_name;	  // SqlValue
+	struct SqlStatement *view_name; // SqlValue
 } SqlDropViewStatement;
 
 typedef struct SqlParameterTypeList {
@@ -697,13 +697,13 @@ typedef struct SqlColumnListAlias {
 	 * SELECT column list of that table if this cla was matched to an ALIAS NAME from another cla
 	 * (see "QUALIFY_COLUMN_REFERENCE" in qualify_statement.c).
 	 */
-	SqlTableIdColumnId	   tbl_and_col_id;
+	SqlTableIdColumnId   tbl_and_col_id;
 	struct SqlStatement *duplicate_of_column; /* SqlColumnListAlias. NULL mostly. If non-NULL (possible only in case of a
-							 * NATURAL JOIN), this points to the column from a preceding
-							 * table in the join list with the same name as this column.
-							 */
-	SqlColumnAlias *outer_query_column_alias;	// the ColumnAlias structure corresponding to this
-							// ColumnListAlias if/when referenced in outer query
+						   * NATURAL JOIN), this points to the column from a preceding
+						   * table in the join list with the same name as this column.
+						   */
+	SqlColumnAlias *outer_query_column_alias; // the ColumnAlias structure corresponding to this
+						  // ColumnListAlias if/when referenced in outer query
 	dqcreate(SqlColumnListAlias);
 } SqlColumnListAlias;
 

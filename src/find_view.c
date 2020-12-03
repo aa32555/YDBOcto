@@ -22,7 +22,7 @@
 
 // Note that this view is very similar to find_table.c and find_function.c, so changes there may need to be reflected here also.
 SqlStatement *find_view(const char *view_name) {
-	SqlView * view;
+	SqlView *     view;
 	SqlStatement *stmt;
 	ydb_buffer_t  save_value;
 	ydb_buffer_t  value_buffer;

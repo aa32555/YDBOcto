@@ -24,8 +24,8 @@
 // Returns:
 //	0 for success, 1 for error
 int emit_create_view(FILE *output, struct SqlStatement *stmt) {
-	SqlView *	      view;
-	SqlValue *	      view_name;
+	SqlView * view;
+	SqlValue *view_name;
 
 	if (stmt == NULL)
 		return 0;

@@ -670,8 +670,8 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 		}
 		release_query_lock = FALSE; /* Set variable to FALSE so we do not try releasing same lock later */
 		break;
-	case drop_view_STATEMENT:	    /* DROP VIEW */
-	case create_view_STATEMENT:	    /* CREATE VIEW */
+	case drop_view_STATEMENT:   /* DROP VIEW */
+	case create_view_STATEMENT: /* CREATE VIEW */
 		/* Note that CREATE/DROP VIEW is very similar to CREATE/DROP TABLE, and changes to either may need to be
 		 * reflected in the other.
 		 *
@@ -773,7 +773,7 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 				CLEANUP_AND_RETURN(memory_chunks, buffer, spcfc_buffer, query_lock);
 			}
 
-			 // Set the view-related gvn in the database.
+			// Set the view-related gvn in the database.
 			YDB_STRING_TO_BUFFER(buffer, &view_create_buffer);
 			/* Store the text representation of the CREATE VIEW statement:
 			 *	^%ydboctoocto(OCTOLIT_VIEWS,schema_name,view_name,OCTOLIT_TEXT)

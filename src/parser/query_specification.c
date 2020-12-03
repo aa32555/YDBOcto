@@ -85,8 +85,8 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 				SqlColumnListAlias *cla_primary;
 				SqlColumnListAlias *cla_new;
 
-				cla_primary = ((NULL == asterisk_table_name)
-						? cla_cur->duplicate_of_column->v.column_list_alias : NULL);
+				cla_primary
+				    = ((NULL == asterisk_table_name) ? cla_cur->duplicate_of_column->v.column_list_alias : NULL);
 				if (NULL == cla_primary) {
 					SqlColumnList *cur;
 

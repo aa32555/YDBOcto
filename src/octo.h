@@ -547,8 +547,8 @@ void cleanup_tables();
 int  store_function_in_pg_proc(SqlFunction *function, char *function_hash);
 int  delete_function_from_pg_proc(ydb_buffer_t *function_name_buffer, ydb_buffer_t *function_hash_buffer);
 int  regex_has_no_special_characters(SqlStatement *op1, enum RegexType regex_type, ParseContext *parse_context);
-int store_view_in_pg_views(SqlView *view);
-int delete_view_from_pg_views(ydb_buffer_t *view_name_buffer);
+int  store_view_in_pg_views(SqlView *view);
+int  delete_view_from_pg_views(ydb_buffer_t *view_name_buffer);
 
 /* Parse related functions invoked from the .y files (parser.y, select.y etc.) */
 int	      as_name(SqlStatement *as_name, ParseContext *parse_context);
