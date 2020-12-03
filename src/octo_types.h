@@ -698,7 +698,7 @@ typedef struct SqlColumnListAlias {
 	 * (see "QUALIFY_COLUMN_REFERENCE" in qualify_statement.c).
 	 */
 	SqlTableIdColumnId   tbl_and_col_id;
-	struct SqlStatement *duplicate_of_column; /* SqlColumnListAlias. NULL mostly. If non-NULL (possible only in case of a
+	struct SqlColumnListAlias *duplicate_of_column; /* NULL mostly. If non-NULL (possible only in case of a
 						   * NATURAL JOIN), this points to the column from a preceding
 						   * table in the join list with the same name as this column.
 						   */

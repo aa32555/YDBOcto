@@ -26,7 +26,7 @@ SqlColumnListAlias *copy_column_list_alias_list(SqlColumnListAlias *cla, SqlStat
 	do {
 		OCTO_CMALLOC_STRUCT(cla_new, SqlColumnListAlias);
 		if (NULL == sql_stmt) {
-			assert(NULL == cla_cur->duplicate_of_column->v.column_list_alias);
+			assert(NULL == cla_cur->duplicate_of_column);
 			*cla_new = *cla_cur;
 		} else {
 			SqlColumnAlias *column_alias;

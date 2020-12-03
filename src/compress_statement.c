@@ -14,6 +14,30 @@
 #include "octo.h"
 #include "octo_types.h"
 
+
+#define COMPRESS_DQ_LIST(START, STRUCT_TYPE) \
+{ \
+	int cur_list_item, list_len = 0; \
+	struct STRUCT_TYPE *cur; \
+	struct STRUCT_TYPE *list_block; \
+ \
+	cur = START; \
+	do { \
+		list_len++; \
+		cur = cur->next; \
+	} while (cur != START); \
+\
+	list_block = (struct STRUCT_TYPE *)malloc(sizeof(STRUCT_TYPE) * list_len); \
+	cur_list_item = 0; \
+	cur = START; \
+	do { \
+		list_block[cur_list_item] = *cur; \
+		cur_list_item++; \
+		cur = cur->next; \
+	} while (cur != START); \
+	assert(cur_list_item == list_len); \
+}
+
 #define CALL_COMPRESS_HELPER(temp, value, new_value, out, out_length)             \
 	{                                                                         \
 		(temp) = compress_statement_helper((value), (out), (out_length)); \
@@ -256,7 +280,9 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 			memcpy(new_column_list_alias, column_list_alias, sizeof(SqlColumnListAlias));
 		}
 		*out_length += sizeof(SqlColumnListAlias);
+		printf("PRE COLUMN_LIST\n");
 		CALL_COMPRESS_HELPER(r, column_list_alias->column_list, new_column_list_alias->column_list, out, out_length);
+		printf("POST COLUMN_LIST\n");
 		CALL_COMPRESS_HELPER(r, column_list_alias->alias, new_column_list_alias->alias, out, out_length);
 		CALL_COMPRESS_HELPER(r, column_list_alias->keywords, new_column_list_alias->keywords, out, out_length);
 		CALL_COMPRESS_HELPER(r, column_list_alias->duplicate_of_column, new_column_list_alias->duplicate_of_column, out,
@@ -272,8 +298,10 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		}
 		*out_length += sizeof(SqlColumnList);
 		CALL_COMPRESS_HELPER(r, column_list->value, new_column_list->value, out, out_length);
-
-		// more
+		// Compress linked list
+		printf("PRE COMPRESS_DQ_LIST\n");
+		COMPRESS_DQ_LIST(column_list->next, SqlColumnList);
+		printf("POST COMPRESS_DQ_LIST\n");
 		break;
 	case column_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(column_alias, stmt, column_alias);
