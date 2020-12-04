@@ -14,38 +14,6 @@
 #include "octo.h"
 #include "octo_types.h"
 
-
-#define COMPRESS_DQ_LIST(START, NEW_START, STRUCT_TYPE, OUT_LENGTH) \
-{ \
-	int cur_list_item, list_len = 0; \
-	struct STRUCT_TYPE *cur; \
-	struct STRUCT_TYPE *list_block; \
- \
-	cur = START; \
-	do { \
-		list_len++; \
-		cur = cur->next; \
-	} while (cur != START); \
-\
-	printf("PRE MALLOC\n"); \
-	list_block = (struct STRUCT_TYPE *)malloc(sizeof(STRUCT_TYPE) * list_len); \
-	OUT_LENGTH += sizeof(STRUCT_TYPE) * list_len; \
-	cur_list_item = 0; \
-	cur = START; \
-	do { \
-		list_block[cur_list_item] = *cur; \
-		list_block[cur_list_item].next = \
-			((list_len <= (cur_list_item+1)) ?  list_block : &list_block[cur_list_item+1]); \
-		list_block[cur_list_item].prev = \
-			((0 == cur_list_item) ?  &list_block[list_len-1] : &list_block[cur_list_item-1]); \
-		cur_list_item++; \
-		cur = cur->next; \
-	} while (cur != START); \
-	printf("POST LOOP\n"); \
-	assert(cur_list_item == list_len); \
-	NEW_START = list_block; \
-}
-
 #define CALL_COMPRESS_HELPER(temp, value, new_value, out, out_length)             \
 	{                                                                         \
 		(temp) = compress_statement_helper((value), (out), (out_length)); \
@@ -56,6 +24,78 @@
 			}                                                         \
 		}                                                                 \
 	}
+
+int compress_sqlcolumnlist_list(SqlColumnList *stmt, SqlColumnList *new_stmt) {
+	SqlColumnList cur_stmt;
+	int cur_list_index, list_len = 0;
+
+	// Get total length of linked list to allocate buffers in a single contiguous block
+	cur_stmt = stmt;
+	do {
+		list_len++;
+		cur_stmt = cur_stmt->next;
+	} while (cur_stmt != stmt);
+
+	list_block = (stmt_type *)malloc(sizeof(SqlColumnList) * list_len);
+	cur_list_index = 0;
+	cur_stmt = stmt;
+	cur_new_stmt = new_stmt;
+	do {
+		UNPACK_SQL_STATEMENT(value, cur_stmt->value, value);
+		if (NULL != out) {
+			new_value = ((void *)&out[*out_length]);
+			memcpy(new_value, value, sizeof(SqlValue));
+		}
+		*out_length += sizeof(SqlValue);
+		len = strlen(value->v.string_literal);
+		if (NULL != out) {
+			memcpy(&out[*out_length], value->v.string_literal, len);
+			new_value->v.string_literal = &out[*out_length];
+			A2R(new_value->v.string_literal, new_value->v.string_literal);
+		}
+		*out_length += len;
+		if (NULL != out) {
+			out[*out_length] = '\0';
+		}
+		*out_length += 1;
+
+		cur_list_index++;
+		cur_stmt = cur_stmt->next;
+	} while (cur_stmt != stmt);
+	assert(cur_list_index == list_len);
+
+		list_block[cur_list_index] = *cur_stmt;
+		list_block[cur_list_index].next =
+			((list_len <= (cur_list_index+1)) ?  list_block : &list_block[cur_list_index+1]);
+		list_block[cur_list_index].prev =
+			((0 == cur_list_index) ?  &list_block[list_len-1] : &list_block[cur_list_index-1]);
+}
+
+int compress_dq_list(SqlStatement *stmt, SqlStatement *new_stmt, SqlStatementType stmt_type) {
+	SqlStatement cur_stmt;
+	int cur_list_index, list_len = 0;
+
+	// Get total length of linked list to allocate buffers in a single contiguous block
+	cur_stmt = stmt;
+	do {
+		list_len++;
+		cur_stmt = cur_stmt->next;
+	} while (cur_stmt != stmt);
+
+	list_block = (stmt_type *)malloc(sizeof(stmt_type) * list_len);
+	cur_list_index = 0;
+	cur_stmt = stmt;
+	do {
+		list_block[cur_list_index] = *cur_stmt;
+		list_block[cur_list_index].next =
+			((list_len <= (cur_list_index+1)) ?  list_block : &list_block[cur_list_index+1]);
+		list_block[cur_list_index].prev =
+			((0 == cur_list_index) ?  &list_block[list_len-1] : &list_block[cur_list_index-1]);
+		cur_list_index++;
+		cur_stmt = cur_stmt->next;
+	} while (cur_stmt != stmt);
+	assert(cur_list_index == list_len);
+}
 
 void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length);
 
