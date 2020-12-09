@@ -58,7 +58,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 	SqlColumnList *	      column_list;
 	SqlColumnAlias *      column_alias;
 	SqlValue *	      value;
-	SqlJoin *	      join;
+	SqlJoin *	      join, *cur_join;
 	SqlOptionalKeyword *  start_keyword, *cur_keyword;
 	SqlFunction *	      function;
 	SqlView *	      view;
@@ -211,10 +211,16 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		break;
 	case join_STATEMENT:
 		UNPACK_SQL_STATEMENT(join, stmt, join);
-		CALL_DECOMPRESS_HELPER(join->value, out, out_length);
+		// CALL_DECOMPRESS_HELPER(join->value, out, out_length);
 		fprintf(stderr, "join->value: %p\n", join->value);
-		CALL_DECOMPRESS_HELPER(join->condition, out, out_length);
-		// Add doubly-linked list?
+		// CALL_DECOMPRESS_HELPER(join->condition, out, out_length);
+		do {
+			CALL_DECOMPRESS_HELPER(join->value, out, out_length);
+			CALL_DECOMPRESS_HELPER(join->condition, out, out_length);
+			cur_join->next = R2A(cur_join->next);
+			cur_join->prev = R2A(cur_join->prev);
+			cur_join = cur_join->next;
+		} while (cur_join != join);
 		break;
 	default:
 		printf("stmt->type: %d\n", stmt->type);

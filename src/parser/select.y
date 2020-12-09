@@ -291,7 +291,8 @@ from_clause
 		cmp_name = value->v.string_literal;
 		cur_join = cmp_join->next;
 		while (cur_join != start_join) {
-			fprintf(stderr, "cur_join->value: %p\n", cur_join->value);
+			fprintf(stderr, "cur_join: %p\n", cur_join);
+			// fprintf(stderr, "cur_join->value: %p\n", cur_join->value);
 			stmt = drill_to_table_alias(cur_join->value);
 			UNPACK_SQL_STATEMENT(alias, stmt, table_alias);
 			UNPACK_SQL_STATEMENT(value, alias->alias, value);

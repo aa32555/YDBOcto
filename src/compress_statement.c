@@ -57,29 +57,14 @@ void *compress_sqlcolumnlist_list(void *temp, SqlColumnList *stmt, SqlColumnList
 		cur_stmt = cur_stmt->next;
 	} while (cur_stmt != stmt);
 	*out_length += list_len * sizeof(SqlColumnList);
-	if (NULL == out) {
-		/* We are doing the preliminary count of the total out buffer size, so simply add the total size of the structs to
-		 * be copied. During the second pass when compression does occur, out_length will be managed as needed in the loop
-		 * below.
-		 */
-		// *out_length += list_len * sizeof(SqlColumnList);
-	}
-	/* Set an index into the out buffer to be after the SqlColumnList structs composing the linked list. The addresses starting
-	 * after the SqlColumnList block will be used to store the SqlValue structs pointed to by each respective SqlColumnList.
-	 */
-	// value_block_index = list_len * sizeof(SqlColumnList);
 
 	cur_stmt = stmt;
 	list_index = 0;
 	do {
 		if (NULL != out) {
 			memcpy(cur_new_stmt, cur_stmt, sizeof(SqlColumnList));
-			/* Increment length here so that the SqlValue compressed below is copied to the location immediately
-			 * following its containing SqlColumnList structure.
-			 */
 		}
 		CALL_COMPRESS_HELPER(temp, cur_stmt->value, cur_new_stmt->value, out, out_length);
-		// No need to relativize pointers below since these items are contiguous in memory
 		if (NULL != out) {
 			/* The previous item of the first item should be the last item in the list, since the list is doubly-linked.
 			 * Conversely, the next item of the last item should be the first in the list.
@@ -97,8 +82,6 @@ void *compress_sqlcolumnlist_list(void *temp, SqlColumnList *stmt, SqlColumnList
 		cur_stmt = cur_stmt->next;
 		list_index++;
 	} while (cur_stmt != stmt);
-	// printf("cur_new_stmt: %p\tnew_stmt: %p\t column_list: %p\n", cur_new_stmt, new_stmt, column_list);
-	// assert(cur_new_stmt == new_stmt);
 	assert(list_index == list_len);
 
 	fprintf(stderr, "END: out_length: %d\n", *out_length);
@@ -122,10 +105,10 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 	SqlTableAlias *	      table_alias, *new_table_alias;
 	SqlFunction *	      function, *new_function;
 	SqlView *	      view, *new_view;
-	SqlJoin *	      join, *new_join;
+	SqlJoin *	      join, *new_join, *cur_join, *cur_new_join, *join_list;
 	SqlParameterTypeList *new_parameter_type_list, *cur_parameter_type_list, *start_parameter_type_list;
 	SqlValue *	      value, *new_value;
-	int		      len;
+	int		      len, list_len = 0, list_index;
 	void *		      r, *ret;
 
 	if ((NULL == stmt) || (NULL == stmt->v.value))
@@ -362,13 +345,47 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 	case join_STATEMENT:
 		UNPACK_SQL_STATEMENT(join, stmt, join);
 		if (NULL != out) {
-			new_join = ((void *)&out[*out_length]);
-			memcpy(new_join, join, sizeof(SqlJoin));
+			join_list = ((SqlJoin *)&out[*out_length]);
+			cur_new_join = new_join = join_list;
 		}
-		*out_length += sizeof(SqlJoin);
-		CALL_COMPRESS_HELPER(r, join->value, new_join->value, out, out_length);
-		CALL_COMPRESS_HELPER(r, join->condition, new_join->condition, out, out_length);
-		// Add doubly-linked list?
+
+		// Get total length of linked list to be allocated
+		list_len = 0;
+		cur_join = join;
+		do {
+			list_len++;
+			cur_join = cur_join->next;
+		} while (cur_join != join);
+		*out_length += list_len * sizeof(SqlJoin);
+
+		cur_join = join;
+		list_index = 0;
+		do {
+			if (NULL != out) {
+				memcpy(cur_new_join, cur_join, sizeof(SqlJoin));
+			}
+			// Compress each field
+			CALL_COMPRESS_HELPER(r, join->value, new_join->value, out, out_length);
+			CALL_COMPRESS_HELPER(r, join->condition, new_join->condition, out, out_length);
+			// Compress the linked list pointers
+			if (NULL != out) {
+				/* The previous item of the first item should be the last item in the list, since the list is
+				 * doubly-linked. Conversely, the next item of the last item should be the first in the list.
+				 */
+				if (0 == list_index) {
+					cur_new_join->prev = ((1 == list_len) ? &join_list[0] : &join_list[list_index - 1]);
+				} else {
+					cur_new_join->prev = &join_list[list_index];
+				}
+				A2R(cur_new_join->prev, cur_new_join->prev);
+				cur_new_join->next = ((list_index + 1 == list_len) ? &join_list[0] : &join_list[list_index + 1]);
+				cur_new_join = cur_new_join->next;
+				A2R(cur_new_join->next, cur_new_join->next);
+			}
+			cur_join = cur_join->next;
+			list_index++;
+		} while (cur_join != join);
+		assert(list_index == list_len);
 		break;
 	default:
 		printf("type: %d\n", stmt->type);
