@@ -697,13 +697,13 @@ typedef struct SqlColumnListAlias {
 	 * SELECT column list of that table if this cla was matched to an ALIAS NAME from another cla
 	 * (see "QUALIFY_COLUMN_REFERENCE" in qualify_statement.c).
 	 */
-	SqlTableIdColumnId   tbl_and_col_id;
+	SqlTableIdColumnId	   tbl_and_col_id;
 	struct SqlColumnListAlias *duplicate_of_column; /* NULL mostly. If non-NULL (possible only in case of a
-						   * NATURAL JOIN), this points to the column from a preceding
-						   * table in the join list with the same name as this column.
-						   */
-	SqlColumnAlias *outer_query_column_alias; // the ColumnAlias structure corresponding to this
-						  // ColumnListAlias if/when referenced in outer query
+							 * NATURAL JOIN), this points to the column from a preceding
+							 * table in the join list with the same name as this column.
+							 */
+	SqlColumnAlias *outer_query_column_alias;	// the ColumnAlias structure corresponding to this
+							// ColumnListAlias if/when referenced in outer query
 	dqcreate(SqlColumnListAlias);
 } SqlColumnListAlias;
 
