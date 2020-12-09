@@ -36,61 +36,70 @@ void compress_statement(SqlStatement *stmt, char **out, int *out_length) {
 }
 
 #define PRINT_A2R(X, Y) fprintf(stderr, "A2R: %p\n", (void *)(((unsigned char *)(Y)) - ((unsigned char *)&(X))))
-#define PRINT_R2A(X) fprintf(stderr, "R2A: %p\n", (void *)(((unsigned char *)&(X)) + ((size_t)X)))
+#define PRINT_R2A(X)	fprintf(stderr, "R2A: %p\n", (void *)(((unsigned char *)&(X)) + ((size_t)X)))
 
 void *compress_sqlcolumnlist_list(void *temp, SqlColumnList *stmt, SqlColumnList *new_stmt, char *out, int *out_length) {
 	SqlColumnList *cur_stmt, *cur_new_stmt;
 	SqlColumnList *column_list;
-	int list_len = 0, list_index;
-	void *ret;
+	int	       list_len = 0, list_index, value_block_index;
+	void *	       ret;
 
+	fprintf(stderr, "START: out_length: %d\n", *out_length);
 	if (NULL != out) {
 		ret = ((void *)&out[*out_length]);
+		fprintf(stderr, "compress ret: %p\n", ret);
 		column_list = ((SqlColumnList *)&out[*out_length]);
 		cur_new_stmt = new_stmt = column_list;
 	} else {
 		ret = NULL;
 	}
 
-	// Get total length of linked list to allocate buffers in a single contiguous block
+	// Get total length of linked list to be allocated
 	cur_stmt = stmt;
 	do {
 		list_len++;
 		cur_stmt = cur_stmt->next;
 	} while (cur_stmt != stmt);
 	*out_length += list_len * sizeof(SqlColumnList);
+	if (NULL == out) {
+		/* We are doing the preliminary count of the total out buffer size, so simply add the total size of the structs to
+		 * be copied. During the second pass when compression does occur, out_length will be managed as needed in the loop
+		 * below.
+		 */
+		// *out_length += list_len * sizeof(SqlColumnList);
+	}
+	/* Set an index into the out buffer to be after the SqlColumnList structs composing the linked list. The addresses starting
+	 * after the SqlColumnList block will be used to store the SqlValue structs pointed to by each respective SqlColumnList.
+	 */
+	value_block_index = list_len * sizeof(SqlColumnList);
 
 	cur_stmt = stmt;
 	list_index = 0;
 	do {
-		fprintf(stderr, "compress value: %p\n", cur_stmt->value);
 		if (NULL != out) {
 			memcpy(cur_new_stmt, cur_stmt, sizeof(SqlColumnList));
+			/* Increment length here so that the SqlValue compressed below is copied to the location immediately
+			 * following its containing SqlColumnList structure.
+			 */
 		}
-		if (NULL != out) {
-			fprintf(stderr, "old value: %p\n", cur_new_stmt->value);
-		}
-		if (NULL != out) {
-			// fprintf(stderr, "new value: %p\n", cur_new_stmt->value);
-			PRINT_A2R(cur_new_stmt->value, cur_new_stmt->value);
-		}
+		fprintf(stderr, "PRE\n");
+		fprintf(stderr, "out_length: %d\n", *out_length);
 		CALL_COMPRESS_HELPER(temp, cur_stmt->value, cur_new_stmt->value, out, out_length);
-		if (NULL != out) {
-			fprintf(stderr, "new value: %p\tconverted: %p\n", cur_new_stmt->value, R2A(cur_new_stmt->value));
-		}
 		fprintf(stderr, "POST\n");
+		fprintf(stderr, "out_length: %d\n", *out_length);
 		// No need to relativize pointers below since these items are contiguous in memory
 		if (NULL != out) {
 			/* The previous item of the first item should be the last item in the list, since the list is doubly-linked.
 			 * Conversely, the next item of the last item should be the first in the list.
 			 */
 			if (0 == list_index) {
-				cur_new_stmt->prev = ((1 == list_len) ? &column_list[0] : &column_list[list_index-1]);
+				cur_new_stmt->prev = ((1 == list_len) ? &column_list[0] : &column_list[list_index - 1]);
 			} else {
 				cur_new_stmt->prev = &column_list[list_index];
 			}
+			fprintf(stderr, "pdiff: %d\n", cur_new_stmt - cur_new_stmt->prev);
 			A2R(cur_new_stmt->prev, cur_new_stmt->prev);
-			cur_new_stmt->next = ((list_index+1 == list_len) ? &column_list[0] : &column_list[list_index+1]);
+			cur_new_stmt->next = ((list_index + 1 == list_len) ? &column_list[0] : &column_list[list_index + 1]);
 			cur_new_stmt = cur_new_stmt->next;
 			A2R(cur_new_stmt->next, cur_new_stmt->next);
 		}
@@ -101,9 +110,9 @@ void *compress_sqlcolumnlist_list(void *temp, SqlColumnList *stmt, SqlColumnList
 	// assert(cur_new_stmt == new_stmt);
 	assert(list_index == list_len);
 
+	fprintf(stderr, "END: out_length: %d\n", *out_length);
 	return ret;
 }
-
 
 /*
  * Returns a pointer to a new memory location for stmt within the out buffer
@@ -222,7 +231,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 	case value_STATEMENT:
 		UNPACK_SQL_STATEMENT(value, stmt, value);
 		if (NULL != out) {
-		// fprintf(stderr, "value ret: %p\tstr: %s\n", ret, value->v.string_literal);
+			// fprintf(stderr, "value ret: %p\tstr: %s\n", ret, value->v.string_literal);
 			new_value = ((void *)&out[*out_length]);
 			memcpy(new_value, value, sizeof(SqlValue));
 		}
@@ -332,7 +341,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		CALL_COMPRESS_HELPER(r, column_list_alias->alias, new_column_list_alias->alias, out, out_length);
 		CALL_COMPRESS_HELPER(r, column_list_alias->keywords, new_column_list_alias->keywords, out, out_length);
 		// CALL_COMPRESS_HELPER(r, column_list_alias->duplicate_of_column, new_column_list_alias->duplicate_of_column, out,
-				     // out_length);
+		// out_length);
 
 		// more
 		break;
@@ -340,6 +349,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		UNPACK_SQL_STATEMENT(column_list, stmt, column_list);
 		if (NULL != out) {
 			new_column_list = ((void *)&out[*out_length]);
+			fprintf(stderr, "new_column_list: %p\n", new_column_list);
 			memcpy(new_column_list, column_list, sizeof(SqlColumnList));
 		}
 		// *out_length += sizeof(SqlColumnList);

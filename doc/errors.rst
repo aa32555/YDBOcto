@@ -129,6 +129,15 @@ Text: Cannot DROP function 'xxx': no function defined with given name and parame
 
 Description/Action: This error indicates an attempt to drop a non-existent function. PSQL Error Code: 42883
 
+
+++++++++++++++++++++
+ERR_CANNOT_DROP_VIEW
+++++++++++++++++++++
+
+Text: Cannot DROP view 'xxx': no view defined with the given name
+
+Description/Action: This error indicates an attempt to drop a view definition that doesn't exist. PSQL Error Code: 42704
+
 ++++++++++++++++++++++++++++++
 ERR_CASE_BRANCH_TYPE_MISMATCH
 ++++++++++++++++++++++++++++++
