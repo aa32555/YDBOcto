@@ -35,19 +35,15 @@ void compress_statement(SqlStatement *stmt, char **out, int *out_length) {
 	compress_statement_helper(stmt, *out, out_length);
 }
 
-#define PRINT_A2R(X, Y) fprintf(stderr, "A2R: %p\n", (void *)(((unsigned char *)(Y)) - ((unsigned char *)&(X))))
-#define PRINT_R2A(X)	fprintf(stderr, "R2A: %p\n", (void *)(((unsigned char *)&(X)) + ((size_t)X)))
-
 void *compress_sqlcolumnlist_list(void *temp, SqlColumnList *stmt, SqlColumnList *new_stmt, char *out, int *out_length) {
 	SqlColumnList *cur_stmt, *cur_new_stmt;
 	SqlColumnList *column_list;
-	int	       list_len = 0, list_index, value_block_index;
+	int	       list_len = 0, list_index;
 	void *	       ret;
 
 	fprintf(stderr, "START: out_length: %d\n", *out_length);
 	if (NULL != out) {
 		ret = ((void *)&out[*out_length]);
-		fprintf(stderr, "compress ret: %p\n", ret);
 		column_list = ((SqlColumnList *)&out[*out_length]);
 		cur_new_stmt = new_stmt = column_list;
 	} else {
@@ -71,7 +67,7 @@ void *compress_sqlcolumnlist_list(void *temp, SqlColumnList *stmt, SqlColumnList
 	/* Set an index into the out buffer to be after the SqlColumnList structs composing the linked list. The addresses starting
 	 * after the SqlColumnList block will be used to store the SqlValue structs pointed to by each respective SqlColumnList.
 	 */
-	value_block_index = list_len * sizeof(SqlColumnList);
+	// value_block_index = list_len * sizeof(SqlColumnList);
 
 	cur_stmt = stmt;
 	list_index = 0;
@@ -82,11 +78,7 @@ void *compress_sqlcolumnlist_list(void *temp, SqlColumnList *stmt, SqlColumnList
 			 * following its containing SqlColumnList structure.
 			 */
 		}
-		fprintf(stderr, "PRE\n");
-		fprintf(stderr, "out_length: %d\n", *out_length);
 		CALL_COMPRESS_HELPER(temp, cur_stmt->value, cur_new_stmt->value, out, out_length);
-		fprintf(stderr, "POST\n");
-		fprintf(stderr, "out_length: %d\n", *out_length);
 		// No need to relativize pointers below since these items are contiguous in memory
 		if (NULL != out) {
 			/* The previous item of the first item should be the last item in the list, since the list is doubly-linked.
@@ -97,7 +89,6 @@ void *compress_sqlcolumnlist_list(void *temp, SqlColumnList *stmt, SqlColumnList
 			} else {
 				cur_new_stmt->prev = &column_list[list_index];
 			}
-			fprintf(stderr, "pdiff: %d\n", cur_new_stmt - cur_new_stmt->prev);
 			A2R(cur_new_stmt->prev, cur_new_stmt->prev);
 			cur_new_stmt->next = ((list_index + 1 == list_len) ? &column_list[0] : &column_list[list_index + 1]);
 			cur_new_stmt = cur_new_stmt->next;

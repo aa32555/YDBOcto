@@ -26,7 +26,7 @@ SqlStatement *find_view(const char *view_name) {
 	SqlStatement *stmt;
 	ydb_buffer_t  save_value;
 	ydb_buffer_t  value_buffer;
-	char	      value_str[MAX_BINARY_DEFINITION_FRAGMENT_SIZE];
+	char	      value_str[MAX_DEFINITION_FRAGMENT_SIZE];
 	char *	      buff, *cur_buff;
 	int	      status;
 	int32_t	      length;
@@ -172,7 +172,7 @@ SqlStatement *find_view(const char *view_name) {
 			break;
 		memcpy(cur_buff, value_buffer.buf_addr, value_buffer.len_used);
 		cur_buff += value_buffer.len_used;
-		assert(MAX_BINARY_DEFINITION_FRAGMENT_SIZE >= value_buffer.len_used);
+		assert(MAX_DEFINITION_FRAGMENT_SIZE >= value_buffer.len_used);
 		if (length == (cur_buff - buff)) {
 			break;
 		}

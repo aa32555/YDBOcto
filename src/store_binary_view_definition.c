@@ -24,7 +24,7 @@
  *	^%ydboctoschema(OCTOLIT_VIEWS,schema_name,view_name,OCTOLIT_BINARY,1)
  *	^%ydboctoschema(OCTOLIT_VIEWS,schema_name,view_name,OCTOLIT_BINARY,2)
  *	...
- * Each node can store up to MAX_BINARY_DEFINITION_FRAGMENT_SIZE bytes.
+ * Each node can store up to MAX_DEFINITION_FRAGMENT_SIZE bytes.
  * Assumes "view_name_buffers" is an array of 5 "ydb_buffer_t" structures with the following initialized
  *	view_name_buffers[0] = OCTOLIT_VIEWS
  *	view_name_buffers[1] = schema_name
@@ -42,7 +42,7 @@ int store_binary_view_definition(ydb_buffer_t *view_name_buffers, char *binary_v
 	int	     i, cur_length, status;
 	char	     fragment_num_buff[INT64_TO_STRING_MAX];
 
-	view_binary_buffer.len_alloc = MAX_BINARY_DEFINITION_FRAGMENT_SIZE;
+	view_binary_buffer.len_alloc = MAX_DEFINITION_FRAGMENT_SIZE;
 	YDB_STRING_TO_BUFFER(config->global_names.octo, &octo_global);
 	YDB_STRING_TO_BUFFER(OCTOLIT_BINARY, &view_name_buffers[3]);
 	sub_buffer = &view_name_buffers[4];
@@ -53,14 +53,14 @@ int store_binary_view_definition(ydb_buffer_t *view_name_buffers, char *binary_v
 	while (cur_length < binary_view_defn_length) {
 		sub_buffer->len_used = snprintf(sub_buffer->buf_addr, sub_buffer->len_alloc, "%d", i);
 		view_binary_buffer.buf_addr = &binary_view_defn[cur_length];
-		if (MAX_BINARY_DEFINITION_FRAGMENT_SIZE < (binary_view_defn_length - cur_length)) {
-			view_binary_buffer.len_used = MAX_BINARY_DEFINITION_FRAGMENT_SIZE;
+		if (MAX_DEFINITION_FRAGMENT_SIZE < (binary_view_defn_length - cur_length)) {
+			view_binary_buffer.len_used = MAX_DEFINITION_FRAGMENT_SIZE;
 		} else {
 			view_binary_buffer.len_used = binary_view_defn_length - cur_length;
 		}
 		status = ydb_set_s(&octo_global, 5, view_name_buffers, &view_binary_buffer);
 		CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status);
-		cur_length += MAX_BINARY_DEFINITION_FRAGMENT_SIZE;
+		cur_length += MAX_DEFINITION_FRAGMENT_SIZE;
 		i++;
 	}
 	YDB_STRING_TO_BUFFER(OCTOLIT_LENGTH, &view_name_buffers[3]);

@@ -15,29 +15,6 @@
 #include "octo.h"
 #include "octo_types.h"
 
-#define DECOMPRESS_DQ_LIST(START, STRUCT_TYPE) \
-{ \
-	int cur_list_item, list_len = 0; \
-	struct STRUCT_TYPE *cur; \
-	struct STRUCT_TYPE *list_block; \
- \
-	cur = START; \
-	do { \
-		list_len++; \
-		cur = cur->next; \
-	} while (cur != START); \
-\
-	list_block = (struct STRUCT_TYPE *)malloc(sizeof(STRUCT_TYPE) * list_len); \
-	cur_list_item = 0; \
-	cur = START; \
-	do { \
-		list_block[cur_list_item] = *cur; \
-		cur_list_item++; \
-		cur = cur->next; \
-	} while (cur != START); \
-	assert(cur_list_item == list_len); \
-}
-
 #define CALL_DECOMPRESS_HELPER(value, out, out_length)                       \
 	{                                                                    \
 		if (value != NULL) {                                         \
@@ -50,6 +27,21 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 
 SqlStatement *decompress_statement(char *buffer, int out_length) {
 	return (SqlStatement *)decompress_statement_helper((SqlStatement *)buffer, buffer, out_length);
+}
+
+void *decompress_sqlcolumnlist_list(SqlColumnList *stmt, char *out, int out_length) {
+	SqlColumnList *cur_stmt;
+
+	cur_stmt = stmt;
+	do {
+		printf("cur_stmt: %p\tstmt: %p\n", cur_stmt, stmt);
+		CALL_DECOMPRESS_HELPER(stmt->value, out, out_length);
+		cur_stmt->next = R2A(cur_stmt->next);
+		cur_stmt->prev = R2A(cur_stmt->prev);
+		cur_stmt = cur_stmt->next;
+	} while (cur_stmt != stmt);
+
+	return stmt;
 }
 
 /*
@@ -209,8 +201,8 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		break;
 	case column_list_STATEMENT:
 		UNPACK_SQL_STATEMENT(column_list, stmt, column_list);
-		CALL_DECOMPRESS_HELPER(column_list->value, out, out_length);
-		DECOMPRESS_DQ_LIST(column_list->next, SqlColumnList);
+		// CALL_DECOMPRESS_HELPER(column_list->value, out, out_length);
+		decompress_sqlcolumnlist_list(column_list, out, out_length);
 		break;
 	case column_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(column_alias, stmt, column_alias);
@@ -220,6 +212,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 	case join_STATEMENT:
 		UNPACK_SQL_STATEMENT(join, stmt, join);
 		CALL_DECOMPRESS_HELPER(join->value, out, out_length);
+		fprintf(stderr, "join->value: %p\n", join->value);
 		CALL_DECOMPRESS_HELPER(join->condition, out, out_length);
 		// Add doubly-linked list?
 		break;

@@ -143,7 +143,6 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 	char *		function_name;
 	ydb_buffer_t	function_name_buffers[5];
 	ydb_buffer_t *	function_name_buffer, *function_hash_buffer;
-	ydb_buffer_t	function_create_buffer;
 	SqlView *	view;
 	char *		view_name;
 	ydb_buffer_t	view_name_buffers[5];
