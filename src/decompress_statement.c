@@ -34,7 +34,6 @@ void *decompress_sqlcolumnlist_list(SqlColumnList *stmt, char *out, int out_leng
 
 	cur_stmt = stmt;
 	do {
-		printf("cur_stmt: %p\tstmt: %p\n", cur_stmt, stmt);
 		CALL_DECOMPRESS_HELPER(stmt->value, out, out_length);
 		cur_stmt->next = R2A(cur_stmt->next);
 		cur_stmt->prev = R2A(cur_stmt->prev);
@@ -211,12 +210,10 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		break;
 	case join_STATEMENT:
 		UNPACK_SQL_STATEMENT(join, stmt, join);
-		// CALL_DECOMPRESS_HELPER(join->value, out, out_length);
-		fprintf(stderr, "join->value: %p\n", join->value);
-		// CALL_DECOMPRESS_HELPER(join->condition, out, out_length);
+		cur_join = join;
 		do {
-			CALL_DECOMPRESS_HELPER(join->value, out, out_length);
-			CALL_DECOMPRESS_HELPER(join->condition, out, out_length);
+			CALL_DECOMPRESS_HELPER(cur_join->value, out, out_length);
+			CALL_DECOMPRESS_HELPER(cur_join->condition, out, out_length);
 			cur_join->next = R2A(cur_join->next);
 			cur_join->prev = R2A(cur_join->prev);
 			cur_join = cur_join->next;

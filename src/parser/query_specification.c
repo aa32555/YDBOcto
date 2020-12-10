@@ -50,7 +50,13 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 	SqlTableAlias *	    table_alias;
 	int		    tablejoin_num, comp_result, asterisk_table_name_len;
 
-	UNPACK_SQL_STATEMENT(join, select->table_list, join);
+	if (create_view_STATEMENT == select->table_list->type) {
+		// In the case of SqlView statements we need to drill down to the relevant SqlJoin
+		UNPACK_SQL_STATEMENT(join, select->table_list->v.create_view->table->v.table_alias->table->v.select->table_list,
+				     join);
+	} else {
+		UNPACK_SQL_STATEMENT(join, select->table_list, join);
+	}
 	start_join = cur_join = join;
 	tablejoin_num = 1;
 	comp_result = 0;
