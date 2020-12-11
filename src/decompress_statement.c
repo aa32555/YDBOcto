@@ -26,6 +26,7 @@
 void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length);
 
 SqlStatement *decompress_statement(char *buffer, int out_length) {
+	hash_canonical_query_cycle++;
 	return (SqlStatement *)decompress_statement_helper((SqlStatement *)buffer, buffer, out_length);
 }
 
@@ -76,6 +77,13 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 	if (NULL == stmt->v.value) {
 		return NULL;
 	}
+	if (stmt->hash_canonical_query_cycle == hash_canonical_query_cycle) {
+		return NULL;
+	}
+	stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
+									* multiple visits down this same node in the same
+									* outermost call of "compress_statement_helper".
+									*/
 	if (data_type_struct_STATEMENT == stmt->type) {
 		/* Relevant data is the SqlDataTypeStruct member in the `stmt` union member, which is NOT a pointer.
 		 * So, do not do R2A conversion and just return as-is. See similar note in compress_statement.c.
@@ -166,13 +174,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		CALL_DECOMPRESS_HELPER(table_alias->table, out, out_length);
 		CALL_DECOMPRESS_HELPER(table_alias->alias, out, out_length);
 		CALL_DECOMPRESS_HELPER(table_alias->parent_table_alias, out, out_length);
-		if (stmt->hash_canonical_query_cycle != hash_canonical_query_cycle) {
-			CALL_DECOMPRESS_HELPER(table_alias->column_list, out, out_length);
-		}
-		stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
-										* multiple visits down this same node in the same
-										* outermost call of "compress_statement_helper".
-										*/
+		CALL_DECOMPRESS_HELPER(table_alias->column_list, out, out_length);
 		/* The following fields of a SqlTableAlias are not pointer values and so need no CALL_DECOMPRESS_HELPER call:
 		 *	unique_id
 		 *	aggregate_depth
@@ -213,6 +215,9 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		cur_join = join;
 		do {
 			CALL_DECOMPRESS_HELPER(cur_join->value, out, out_length);
+			SqlStatement *temp;
+			temp = drill_to_table_alias(cur_join->value);
+			fprintf(stderr, "join value: %d\n", temp->type);
 			CALL_DECOMPRESS_HELPER(cur_join->condition, out, out_length);
 			cur_join->next = R2A(cur_join->next);
 			cur_join->prev = R2A(cur_join->prev);

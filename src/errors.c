@@ -121,8 +121,12 @@ void populate_and_print_full_err_str(enum ERROR error, char **full_err_str, int 
 
 OctoConfig * config;
 MemoryChunk *memory_chunks;
-uint64_t     hash_canonical_query_cycle; // incremented before every outermost call to "hash_canonical_query"
-int	     cur_input_index;		 // Current index of input_buffer_combined the parser should read from,
+uint64_t     hash_canonical_query_cycle; /* Incremented before every outermost call to functions that recurse through a parse tree
+					  * in order to prevent infinite recursion. This is principally done for
+					  * "hash_canonical_query", but may also be useful in other recursive functions, such as
+					  * "compress_statement_helper".
+					  */
+int cur_input_index;			 // Current index of input_buffer_combined the parser should read from,
 					 // and readlines should write to. Effectively marks the end of the
 					 // current query.
 int old_input_index;			 // The previous value of cur_input_index before the parser modifies it.

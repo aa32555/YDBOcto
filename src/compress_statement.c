@@ -41,10 +41,13 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length);
 
 void compress_statement(SqlStatement *stmt, char **out, int *out_length) {
 	*out_length = 0;
+	hash_canonical_query_cycle++;
 	compress_statement_helper(stmt, NULL, out_length);
+	hash_canonical_query_cycle--;
 	assert(0 != *out_length);
 	*out = malloc(*out_length);
 	*out_length = 0;
+	hash_canonical_query_cycle++;
 	compress_statement_helper(stmt, *out, out_length);
 }
 
@@ -73,6 +76,13 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 
 	if ((NULL == stmt) || (NULL == stmt->v.value))
 		return NULL;
+	if (stmt->hash_canonical_query_cycle == hash_canonical_query_cycle) {
+		return NULL;
+	}
+	stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
+									* multiple visits down this same node in the same
+									* outermost call of "compress_statement_helper".
+									*/
 	if (NULL != out) {
 		new_stmt = ((void *)&out[*out_length]);
 		memcpy(new_stmt, stmt, sizeof(SqlStatement));
@@ -92,6 +102,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		new_stmt->v.value = ((void *)&out[*out_length]);
 		A2R(new_stmt->v.value);
 	}
+	// fprintf(stderr, "type: %d\n", stmt->type);
 	switch (stmt->type) {
 	case create_table_STATEMENT:
 		UNPACK_SQL_STATEMENT(table, stmt, create_table);
@@ -165,7 +176,6 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 	case value_STATEMENT:
 		UNPACK_SQL_STATEMENT(value, stmt, value);
 		if (NULL != out) {
-			// fprintf(stderr, "value ret: %p\tstr: %s\n", ret, value->v.string_literal);
 			new_value = ((void *)&out[*out_length]);
 			memcpy(new_value, value, sizeof(SqlValue));
 		}
@@ -233,13 +243,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		CALL_COMPRESS_HELPER(r, table_alias->table, new_table_alias->table, out, out_length);
 		CALL_COMPRESS_HELPER(r, table_alias->alias, new_table_alias->alias, out, out_length);
 		CALL_COMPRESS_HELPER(r, table_alias->parent_table_alias, new_table_alias->parent_table_alias, out, out_length);
-		if (stmt->hash_canonical_query_cycle != hash_canonical_query_cycle) {
-			CALL_COMPRESS_HELPER(r, table_alias->column_list, new_table_alias->column_list, out, out_length);
-		}
-		stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
-										* multiple visits down this same node in the same
-										* outermost call of "compress_statement_helper".
-										*/
+		CALL_COMPRESS_HELPER(r, table_alias->column_list, new_table_alias->column_list, out, out_length);
 		/* The following fields of a SqlTableAlias are not pointer values and so need no CALL_COMPRESS_HELPER call:
 		 *	unique_id
 		 *	aggregate_depth
@@ -331,14 +335,12 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 		break;
 	case join_STATEMENT:
 		UNPACK_SQL_STATEMENT(join, stmt, join);
+
 		if (NULL != out) {
 			join_list = ((SqlJoin *)&out[*out_length]);
 			cur_new_join = new_join = join_list;
 		}
-
-		printf("1: list_length: %d\n", list_len);
 		GET_LIST_LENGTH_AND_UPDATE_OUT_LENGTH(list_len, cur_join, join, out_length, SqlJoin);
-		printf("2: list_length: %d\n", list_len);
 
 		cur_join = join;
 		list_index = 0;
