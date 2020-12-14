@@ -330,10 +330,11 @@ int copied_so_far;
 		RESET_BUFFER(lex_buffer);
                 return INTRINSIC_FUNCTION;
               }
-(current_(catalog|role|user|schema))|((session_)?user) {
+current_(catalog|role|user|schema)|(session_)?user|localtime(stamp)?|current_timestamp {
 		/* The following SQL functions are syntactically exceptional
 		* in that they must be called without parentheses:
-		* current_catalog, current_role, current_user, current_schema, session_user, user.
+		* current_catalog, current_role, current_user, current_schema, session_user, user,
+		* localtime, localtimestamp, current_timestamp
 		* See the note at https://www.postgresql.org/docs/11/functions-info.html for details.
 		*/
                 copied_so_far = 0;

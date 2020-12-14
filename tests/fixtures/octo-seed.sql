@@ -300,6 +300,26 @@ CREATE FUNCTION TRUNC(NUMERIC, INTEGER) RETURNS NUMERIC AS $$TRUNC^%ydboctosqlfu
 CREATE FUNCTION TRUNC(INTEGER, NUMERIC) RETURNS NUMERIC AS $$TRUNC^%ydboctosqlfunctions;
 CREATE FUNCTION TRUNC(NUMERIC, NUMERIC) RETURNS NUMERIC AS $$TRUNC^%ydboctosqlfunctions;
 CREATE FUNCTION TRUNC(INTEGER, INTEGER) RETURNS NUMERIC AS $$TRUNC^%ydboctosqlfunctions;
+/* The following are non-standard MySQL and MariaDB functions. */
+CREATE FUNCTION TRUNCATE(NUMERIC, INTEGER) RETURNS NUMERIC AS $$TRUNC^%ydboctosqlfunctions;
+CREATE FUNCTION TRUNCATE(INTEGER, NUMERIC) RETURNS NUMERIC AS $$TRUNC^%ydboctosqlfunctions;
+CREATE FUNCTION TRUNCATE(NUMERIC, NUMERIC) RETURNS NUMERIC AS $$TRUNC^%ydboctosqlfunctions;
+CREATE FUNCTION TRUNCATE(INTEGER, INTEGER) RETURNS NUMERIC AS $$TRUNC^%ydboctosqlfunctions;
+
+/* TODO(#382): When DATETIME is implemented, change these to return DATETIME */
+CREATE FUNCTION NOW() RETURNS VARCHAR AS $$CURRENTTIMESTAMP^%ydboctosqlfunctions;
+CREATE FUNCTION DAY(VARCHAR) RETURNS VARCHAR AS $$DAY^%ydboctosqlfunctions;
+/* Aliases for NOW
+   TODO: move these to a MariaDB-specific seed file
+*/
+CREATE FUNCTION LOCALTIME() RETURNS VARCHAR AS $$CURRENTTIME^%ydboctosqlfunctions;
+CREATE FUNCTION LOCALTIMESTAMP() RETURNS VARCHAR AS $$CURRENTTIMESTAMP^%ydboctosqlfunctions;
+CREATE FUNCTION CURRENT_TIMESTAMP() RETURNS VARCHAR AS $$CURRENTTIMESTAMP^%ydboctosqlfunctions;
+CREATE FUNCTION CURRENT_TIME() RETURNS VARCHAR AS $$CURRENTTIME^%ydboctosqlfunctions;
+/* Alias for DAY */
+CREATE FUNCTION DAYOFMONTH(VARCHAR) RETURNS VARCHAR AS $$DAY^%ydboctosqlfunctions;
+
+CREATE FUNCTION LPAD(VARCHAR, INTEGER) RETURNS VARCHAR AS $$LPAD^%ydboctosqlfunctions;
 
 /* REPLACE is used by SquirrelSQL during connection intialize and so is included here.
  * Note that REPLACE is not currently implemented and the matching M routine is an empty placeholder that
@@ -357,4 +377,3 @@ CREATE FUNCTION PG_IS_XLOG_REPLAY_PAUSED() RETURNS BOOLEAN AS $$pgIsXlogReplayPa
 /* Since Octo currently does not implement privileges, the following always return TRUE */
 CREATE FUNCTION HAS_DATABASE_PRIVILEGE(INTEGER, VARCHAR) RETURNS BOOLEAN AS $$pgHasDatabasePrivilege^%ydboctopgfunctions;
 CREATE FUNCTION HAS_DATABASE_PRIVILEGE(VARCHAR, VARCHAR, VARCHAR) RETURNS BOOLEAN AS $$pgHasDatabasePrivilege^%ydboctopgfunctions;
-

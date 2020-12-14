@@ -104,3 +104,6 @@ setup() {
 	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TSCP10.sql
 }
 
+@test "TSCP11 : OCTO288 : Support functions now(), lpad(), date_add(), coalesce(), date_format(), isnull(), current_user(), truncate(), day()" {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TSCP11.sql
+}

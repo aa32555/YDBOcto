@@ -55,3 +55,21 @@ TRUNC(num,precision)
 
 VERSION()
 	quit "PostgreSQL 9.6.5 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 7.1.1 20170630, 64-bit"
+
+CURRENTTIMESTAMP()
+	; Returns the current date and time in `YYYY-MM-DD HH:MM:SS.US-TT` format
+	; (where `US` is microseconds and `TT` is the current timezone as a UTC offset).
+	; The accuracy of microseconds has the same limitations as in https://docs.yottadb.com/ProgrammersGuide/isv.html#zhorolog.
+	new tz  set tz=$piece($zhorolog,",",4)/3600
+	quit $ZDATE($H,"YYYY-MM-DD 24:60:SS")_"."_$piece($zhorolog,",",3)_$select(tz>0:"-",1:"+")_$translate($justify(tz,2)," ","0")
+
+CURRENTTIME()
+	; Returns the current time in `HH:MM:SS.US-TT` format
+	quit $extract($$CURRENTTIMESTAMP(),11,29)
+
+LPAD(str,num)
+	; Return `str` padded to `num` spaces. If `num` is less than the length of the string, truncate to `num` characters instead.
+	quit $extract($justify(str,num),0,num)
+
+DAY(date)
+	quit $zdate(date,"DD")
