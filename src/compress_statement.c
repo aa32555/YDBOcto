@@ -43,12 +43,12 @@ void compress_statement(SqlStatement *stmt, char **out, int *out_length) {
 	*out_length = 0;
 	hash_canonical_query_cycle++;
 	compress_statement_helper(stmt, NULL, out_length);
-	hash_canonical_query_cycle--;
 	assert(0 != *out_length);
 	*out = malloc(*out_length);
 	*out_length = 0;
 	hash_canonical_query_cycle++;
 	compress_statement_helper(stmt, *out, out_length);
+	fprintf(stderr, "AFTER COMP: %p\tlen: %d\n", *out, *out_length);
 }
 
 /*
@@ -76,6 +76,9 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 
 	if ((NULL == stmt) || (NULL == stmt->v.value))
 		return NULL;
+	if (NULL != out) {
+		fprintf(stderr, "COMP hash: %d\tglobal hash: %d\n", stmt->hash_canonical_query_cycle, hash_canonical_query_cycle);
+	}
 	if (stmt->hash_canonical_query_cycle == hash_canonical_query_cycle) {
 		return NULL;
 	}
@@ -84,9 +87,13 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 									* outermost call of "compress_statement_helper".
 									*/
 	if (NULL != out) {
+		fprintf(stderr, "COMP hash: %d\tglobal hash: %d\n", stmt->hash_canonical_query_cycle, hash_canonical_query_cycle);
+	}
+	if (NULL != out) {
 		new_stmt = ((void *)&out[*out_length]);
 		memcpy(new_stmt, stmt, sizeof(SqlStatement));
 		ret = new_stmt;
+		// fprintf(stderr, "new_stmt: %p\n", new_stmt);
 	} else {
 		ret = NULL;
 	}
@@ -100,9 +107,11 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 			return ret;
 		}
 		new_stmt->v.value = ((void *)&out[*out_length]);
+		// fprintf(stderr, "COMP: new_stmt->v.value: %p\n", (void*)new_stmt->v.value);
 		A2R(new_stmt->v.value);
 	}
 	// fprintf(stderr, "type: %d\n", stmt->type);
+	fprintf(stderr, "COMP: stmt->type: %d\n", stmt->type);
 	switch (stmt->type) {
 	case create_table_STATEMENT:
 		UNPACK_SQL_STATEMENT(table, stmt, create_table);
@@ -208,6 +217,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 			CALL_COMPRESS_HELPER(r, cur_column->columnName, new_column->columnName, out, out_length);
 			CALL_COMPRESS_HELPER(r, cur_column->keywords, new_column->keywords, out, out_length);
 			CALL_COMPRESS_HELPER(r, cur_column->delim, new_column->delim, out, out_length);
+			fprintf(stderr, "COMP: table type: %d\n", cur_column->table->type);
 			cur_column = cur_column->next;
 			if ((NULL != out) && (cur_column != start_column)) {
 				new_column->next = ((void *)&out[*out_length]);
@@ -349,6 +359,9 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length) 
 				memcpy(cur_new_join, cur_join, sizeof(SqlJoin));
 			}
 			// Compress each field
+
+			// fprintf(stderr, "COMP: join: %p\tcur_join: %p\n", join, cur_join);
+			// fprintf(stderr, "join val: %p\ttype: %d\n", join->value, join->type);
 			CALL_COMPRESS_HELPER(r, join->value, new_join->value, out, out_length);
 			CALL_COMPRESS_HELPER(r, join->condition, new_join->condition, out, out_length);
 			// Compress the linked list pointers
