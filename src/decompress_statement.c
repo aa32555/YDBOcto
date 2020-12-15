@@ -27,7 +27,6 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 
 SqlStatement *decompress_statement(char *buffer, int out_length) {
 	hash_canonical_query_cycle++;
-	fprintf(stderr, "DECOMP: %p\tlen: %d\n", buffer, out_length);
 	return (SqlStatement *)decompress_statement_helper((SqlStatement *)buffer, buffer, out_length);
 }
 
@@ -51,7 +50,6 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 	SqlView *	      view;
 	SqlParameterTypeList *cur_parameter_type_list, *start_parameter_type_list;
 
-	// fprintf(stderr, "stmt: %p\n", stmt);
 	assert(((char *)stmt) < out + out_length);
 	if (NULL == stmt) {
 		return NULL;
@@ -65,16 +63,13 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 	if (NULL == stmt->v.value) {
 		return NULL;
 	}
-	fprintf(stderr, "DECOMP hash: %d\tglobal hash: %d\n", stmt->hash_canonical_query_cycle, hash_canonical_query_cycle);
 	if (stmt->hash_canonical_query_cycle == hash_canonical_query_cycle) {
-		// fprintf(stderr, "decomp hash: %d\n", stmt->hash_canonical_query_cycle);
 		return NULL;
 	}
 	stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
 									* multiple visits down this same node in the same
 									* outermost call of "compress_statement_helper".
 									*/
-	fprintf(stderr, "DECOMP hash: %d\tglobal hash: %d\n", stmt->hash_canonical_query_cycle, hash_canonical_query_cycle);
 	if (data_type_struct_STATEMENT == stmt->type) {
 		/* Relevant data is the SqlDataTypeStruct member in the `stmt` union member, which is NOT a pointer.
 		 * So, do not do R2A conversion and just return as-is. See similar note in compress_statement.c.
@@ -82,8 +77,6 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		return stmt;
 	}
 	stmt->v.value = R2A(stmt->v.value);
-	// fprintf(stderr, "DECOMP: stmt->v.value: %p\n", (void*)stmt->v.value);
-	fprintf(stderr, "DECOMP: stmt->type: %d\n", stmt->type);
 	switch (stmt->type) {
 	case create_table_STATEMENT:
 		UNPACK_SQL_STATEMENT(table, stmt, create_table);
@@ -143,8 +136,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 			} else {
 				cur_column->next = R2A(cur_column->next);
 			}
-			cur_column->table = (SqlStatement *)out; /* table is first element in compressed structure i.e. "out" */
-			fprintf(stderr, "DECOMP: table type: %d\n", cur_column->table->type);
+			cur_column->table = R2A(cur_column->table);
 			cur_column->next->prev = cur_column;
 			cur_column = cur_column->next;
 		} while (cur_column != start_column);
@@ -215,8 +207,6 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		UNPACK_SQL_STATEMENT(join, stmt, join);
 		cur_join = join;
 		do {
-			// fprintf(stderr, "DECOMP: join: %p\tcur_join: %p\n", join, cur_join);
-			// fprintf(stderr, "cur join type: %d\tvalue: %p\n", cur_join->type, cur_join->value);
 			CALL_DECOMPRESS_HELPER(cur_join->value, out, out_length);
 			CALL_DECOMPRESS_HELPER(cur_join->condition, out, out_length);
 			cur_join->next = R2A(cur_join->next);
