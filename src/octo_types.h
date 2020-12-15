@@ -840,6 +840,23 @@ typedef struct SqlStatement {
 	 * "hash_canonical_query" it is safe to reuse this field there.
 	 */
 	uint64_t hash_canonical_query_cycle;
+	/* The below is used in "compress_statement.c" and "decompress_statement.c" for the following reason:
+	 *
+	 * Some queries (create_table_STATEMENT and create_view_STATEMENT as of this writing) are compressed and stored in YDB for
+	 * later retrieval when running queries that rely on their contents. Since the original pointers in the parse tree
+	 * compressed in compress_statement.c may not be valid at decompress time, the are converted into "relative pointers" into a
+	 * contiguously allocated block of memory, which is used to store the parse tree.
+	 *
+	 * These "relative pointers" are simply offsets into the the contiguously allocated block, and so
+	 * are used for the creation of absolute pointers when the start of such a block is known at decompress time. This is
+	 * normally done through a straightforward conversion process ("A2R" and "R2A" in octo.h), but this is not viable for cases
+	 * where the pointer to be stored is to a node in the parse tree that's already been processed (we don't want to duplicate
+	 * effort or cause infinite recursion in the case of self-referential structures). As a simple workaround for this, simply
+	 * store the relevant offset ("relative pointer") on the structure to be stored itself. This makes it straightforward to
+	 * determine the correct absolute pointer into the contiguous memory block at decompress time.
+	 */
+	// uint64_t compressed_offset;
+	void *compressed_offset;
 } SqlStatement;
 
 /* The below is used by qualify_statement.c */

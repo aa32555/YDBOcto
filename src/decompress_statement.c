@@ -207,7 +207,8 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		UNPACK_SQL_STATEMENT(join, stmt, join);
 		cur_join = join;
 		do {
-			CALL_DECOMPRESS_HELPER(cur_join->value, out, out_length);
+			cur_join->value = R2A(cur_join->value);
+			// CALL_DECOMPRESS_HELPER(cur_join->value, out, out_length);
 			CALL_DECOMPRESS_HELPER(cur_join->condition, out, out_length);
 			cur_join->next = R2A(cur_join->next);
 			cur_join->prev = R2A(cur_join->prev);

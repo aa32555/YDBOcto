@@ -67,7 +67,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 	SqlTableAlias *	      table_alias, *new_table_alias;
 	SqlFunction *	      function, *new_function;
 	SqlView *	      view, *new_view;
-	SqlJoin *	      join, *new_join, *cur_join, *cur_new_join, *join_list;
+	SqlJoin *	      join, *cur_join, *cur_new_join, *join_list;
 	SqlParameterTypeList *new_parameter_type_list, *cur_parameter_type_list, *start_parameter_type_list;
 	SqlValue *	      value, *new_value;
 	int		      len, list_len = 0, list_index;
@@ -75,8 +75,6 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 
 	if ((NULL == stmt) || (NULL == stmt->v.value))
 		return NULL;
-	if (NULL != out) {
-	}
 	if (stmt->hash_canonical_query_cycle == hash_canonical_query_cycle) {
 		return NULL;
 	}
@@ -87,6 +85,10 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 	if (NULL != out) {
 		new_stmt = ((void *)&out[*out_length]);
 		memcpy(new_stmt, stmt, sizeof(SqlStatement));
+		fprintf(stderr, "BEFORE\n");
+		stmt->compressed_offset = new_stmt;
+		A2R(stmt->compressed_offset, stmt->compressed_offset);
+		fprintf(stderr, "compressed_offset: %p\tout_length: %d\n", stmt->compressed_offset, *out_length);
 		ret = new_stmt;
 	} else {
 		ret = NULL;
@@ -347,7 +349,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 
 		if (NULL != out) {
 			join_list = ((SqlJoin *)&out[*out_length]);
-			cur_new_join = new_join = join_list;
+			cur_new_join = join_list;
 		}
 		GET_LIST_LENGTH_AND_UPDATE_OUT_LENGTH(list_len, cur_join, join, out_length, SqlJoin);
 
@@ -355,12 +357,17 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 		list_index = 0;
 		do {
 			if (NULL != out) {
-				memcpy(cur_new_join, cur_join, sizeof(SqlJoin));
+				// memcpy(cur_new_join, cur_join, sizeof(SqlJoin));
 			}
 			// Compress each field
 
-			CALL_COMPRESS_HELPER(r, join->value, new_join->value, out, out_length, parent_table);
-			CALL_COMPRESS_HELPER(r, join->condition, new_join->condition, out, out_length, parent_table);
+			if (NULL != out) {
+				fprintf(stderr, "join->value: %p\tjoin->value->compress_offset: %p\n", join->value,
+					join->value->compressed_offset);
+				cur_new_join->value = cur_join->value->compressed_offset;
+			}
+			// CALL_COMPRESS_HELPER(r, cur_join->value, cur_new_join->value, out, out_length, parent_table);
+			CALL_COMPRESS_HELPER(r, cur_join->condition, cur_new_join->condition, out, out_length, parent_table);
 			// Compress the linked list pointers
 			if (NULL != out) {
 				/* The previous item of the first item should be the last item in the list, since the list is
