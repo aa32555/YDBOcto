@@ -283,6 +283,7 @@ from_clause
 				YYERROR;
 			}
 		}
+		// fprintf(stderr, "cmp_join: %p\ttype: %d\tcmp_join->value: %p\n", cmp_join, cmp_join->type, cmp_join->value);
 		stmt = drill_to_table_alias(cmp_join->value);
 		UNPACK_SQL_STATEMENT(alias, stmt, table_alias);
 		UNPACK_SQL_STATEMENT(value, alias->alias, value);

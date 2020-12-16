@@ -14,6 +14,15 @@
 #include "octo.h"
 #include "octo_types.h"
 
+#define A2R(X, Y)                                                                                                       \
+	fprintf(stderr, "X1: %p\t((unsigned char *)(Y)): %p\t((unsigned char *)&(X)): %p\n", X, ((unsigned char *)(Y)), \
+		((unsigned char *)&(X)));                                                                               \
+	((X) = (void *)(((unsigned char *)(Y)) - ((unsigned char *)&(X))));                                             \
+	if ((0 < *out_length) && (NULL != out)) {                                                                       \
+		fprintf(stderr, "X2: %p\tout_length: %p\n", X, *out_length);                                            \
+		assert((void *)X < ((void *)(*out_length)));                                                            \
+	}
+
 #define CALL_COMPRESS_HELPER(temp, value, new_value, out, out_length, parent_table)             \
 	{                                                                                       \
 		(temp) = compress_statement_helper((value), (out), (out_length), parent_table); \
@@ -84,11 +93,14 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 									*/
 	if (NULL != out) {
 		new_stmt = ((void *)&out[*out_length]);
+		fprintf(stderr, "new_stmt: %p\tstmt->type: %d\n", &new_stmt, stmt->type);
 		memcpy(new_stmt, stmt, sizeof(SqlStatement));
-		fprintf(stderr, "BEFORE\n");
 		stmt->compressed_offset = new_stmt;
 		A2R(stmt->compressed_offset, stmt->compressed_offset);
-		fprintf(stderr, "compressed_offset: %p\tout_length: %d\n", stmt->compressed_offset, *out_length);
+		if (table_alias_STATEMENT == stmt->type) {
+			fprintf(stderr, "C: top: table_alias: %p\tcompressed: %p\tout_length: %d\n", stmt, stmt->compressed_offset,
+				*out_length);
+		}
 		ret = new_stmt;
 	} else {
 		ret = NULL;
@@ -240,6 +252,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 		break;
 	case table_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(table_alias, stmt, table_alias);
+		fprintf(stderr, "C: table_alias: %p\n", stmt);
 		if (NULL != out) {
 			new_table_alias = ((void *)&out[*out_length]);
 			memcpy(new_table_alias, table_alias, sizeof(SqlTableAlias));
@@ -362,8 +375,9 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 			// Compress each field
 
 			if (NULL != out) {
-				fprintf(stderr, "join->value: %p\tjoin->value->compress_offset: %p\n", join->value,
-					join->value->compressed_offset);
+				fprintf(stderr, "C: cur_join->value: %p\tcur_join->value->type: %d\t", cur_join->value,
+					cur_join->value->type);
+				fprintf(stderr, "cur_join->value->compressed_offset: %p\n", cur_join->value->compressed_offset);
 				cur_new_join->value = cur_join->value->compressed_offset;
 			}
 			// CALL_COMPRESS_HELPER(r, cur_join->value, cur_new_join->value, out, out_length, parent_table);

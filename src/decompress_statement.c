@@ -64,6 +64,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		return NULL;
 	}
 	if (stmt->hash_canonical_query_cycle == hash_canonical_query_cycle) {
+		// fprintf(stderr, "stmt->type: %d\n", stmt->type);
 		return NULL;
 	}
 	stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
@@ -76,6 +77,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		 */
 		return stmt;
 	}
+	fprintf(stderr, "stmt->type: %d\n", stmt->type);
 	stmt->v.value = R2A(stmt->v.value);
 	switch (stmt->type) {
 	case create_table_STATEMENT:
@@ -157,6 +159,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		break;
 	case table_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(table_alias, stmt, table_alias);
+		fprintf(stderr, "D: table_alias: %p\n", stmt);
 		CALL_DECOMPRESS_HELPER(table_alias->table, out, out_length);
 		CALL_DECOMPRESS_HELPER(table_alias->alias, out, out_length);
 		CALL_DECOMPRESS_HELPER(table_alias->parent_table_alias, out, out_length);
@@ -207,7 +210,11 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		UNPACK_SQL_STATEMENT(join, stmt, join);
 		cur_join = join;
 		do {
+			fprintf(stderr, "D: cur_join->value: %p\n", cur_join->value);
 			cur_join->value = R2A(cur_join->value);
+			assert((char *)cur_join->value <= (out + out_length));
+			fprintf(stderr, "D: cur_join->value: %p\tout + len: %p\tcur_join->value: %p\tout_length: %d\n",
+				cur_join->value, out + out_length, (char *)cur_join->value, out_length);
 			// CALL_DECOMPRESS_HELPER(cur_join->value, out, out_length);
 			CALL_DECOMPRESS_HELPER(cur_join->condition, out, out_length);
 			cur_join->next = R2A(cur_join->next);
