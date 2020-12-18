@@ -14,13 +14,22 @@
 #include "octo.h"
 #include "octo_types.h"
 
-#define A2R(X, Y)                                                                                                       \
-	fprintf(stderr, "X1: %p\t((unsigned char *)(Y)): %p\t((unsigned char *)&(X)): %p\n", X, ((unsigned char *)(Y)), \
-		((unsigned char *)&(X)));                                                                               \
-	((X) = (void *)(((unsigned char *)(Y)) - ((unsigned char *)&(X))));                                             \
-	if ((0 < *out_length) && (NULL != out)) {                                                                       \
+#define STATIC_A2R(X) ((void *)(((unsigned char *)(X)) - ((unsigned char *)&(X))))
+
+/*
+#define A2R(X)                                                                                                       \
+	fprintf(stderr, "X: %p\t&X: %p\tX - out: %p\n", ((unsigned char *)(X)), ((unsigned char *)&(X)), (char*)X - out);\
+	((X) = (void *)(((unsigned char *)(X)) - ((unsigned char *)&(X))));                                             \
+	if ((NULL != out)) {                                                                       \
 		fprintf(stderr, "X2: %p\tout_length: %p\n", X, *out_length);                                            \
 		assert((void *)X < ((void *)(*out_length)));                                                            \
+	}
+	*/
+
+#define A2R(X)                                               \
+	((X) = (void *)(((char *)&(X)) - out));              \
+	if ((NULL != out)) {                                 \
+		assert((void *)X < ((void *)(*out_length))); \
 	}
 
 #define CALL_COMPRESS_HELPER(temp, value, new_value, out, out_length, parent_table)             \
@@ -29,7 +38,7 @@
 		if (NULL != (out)) {                                                            \
 			(new_value) = (temp);                                                   \
 			if (NULL != new_value) {                                                \
-				A2R((new_value));                                         \
+				A2R((new_value));                                               \
 			}                                                                       \
 		}                                                                               \
 	}
@@ -93,14 +102,11 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 									*/
 	if (NULL != out) {
 		new_stmt = ((void *)&out[*out_length]);
-		fprintf(stderr, "new_stmt: %p\tstmt->type: %d\n", &new_stmt, stmt->type);
+		// fprintf(stderr, "type: %d\tnew_stmt: %p\n", stmt->type, new_stmt);
 		memcpy(new_stmt, stmt, sizeof(SqlStatement));
-		stmt->compressed_offset = new_stmt;
-		A2R(stmt->compressed_offset, stmt->compressed_offset);
-		if (table_alias_STATEMENT == stmt->type) {
-			fprintf(stderr, "C: top: table_alias: %p\tcompressed: %p\tout_length: %d\n", stmt, stmt->compressed_offset,
-				*out_length);
-		}
+		// fprintf(stderr, "new_stmt: %p\tSTATIC_A2R(new_stmt): %p\n", new_stmt, STATIC_A2R(new_stmt));
+		// A2R(new_stmt);
+		stmt->compressed_offset = STATIC_A2R(new_stmt);
 		ret = new_stmt;
 	} else {
 		ret = NULL;
@@ -118,6 +124,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 		// fprintf(stderr, "COMP: new_stmt->v.value: %p\n", (void*)new_stmt->v.value);
 		A2R(new_stmt->v.value);
 	}
+	// fprintf(stderr, "stmt->type: %d\n", stmt->type);
 	switch (stmt->type) {
 	case create_table_STATEMENT:
 		UNPACK_SQL_STATEMENT(table, stmt, create_table);
@@ -218,8 +225,8 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 				new_column = ((void *)&out[*out_length]);
 				memcpy(new_column, cur_column, sizeof(SqlColumn));
 				new_column->next = new_column->prev = NULL;
-				new_column->table = parent_table;
-				A2R(new_column->table, new_column->table);
+				// new_column->table = parent_table;
+				// A2R(new_column->table);
 			}
 			*out_length += sizeof(SqlColumn);
 			CALL_COMPRESS_HELPER(r, cur_column->columnName, new_column->columnName, out, out_length, parent_table);
@@ -252,7 +259,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 		break;
 	case table_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(table_alias, stmt, table_alias);
-		fprintf(stderr, "C: table_alias: %p\n", stmt);
+		// fprintf(stderr, "C: table_alias: %p\n", stmt);
 		if (NULL != out) {
 			new_table_alias = ((void *)&out[*out_length]);
 			memcpy(new_table_alias, table_alias, sizeof(SqlTableAlias));
@@ -333,11 +340,11 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 				} else {
 					cur_new_column_list->prev = &column_list_list[list_index];
 				}
-				A2R(cur_new_column_list->prev, cur_new_column_list->prev);
+				A2R(cur_new_column_list->prev);
 				cur_new_column_list->next
 				    = ((list_index + 1 == list_len) ? &column_list_list[0] : &column_list_list[list_index + 1]);
 				cur_new_column_list = cur_new_column_list->next;
-				A2R(cur_new_column_list->next, cur_new_column_list->next);
+				A2R(cur_new_column_list->next);
 			}
 			cur_column_list = cur_column_list->next;
 			list_index++;
@@ -392,10 +399,10 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 				} else {
 					cur_new_join->prev = &join_list[list_index];
 				}
-				A2R(cur_new_join->prev, cur_new_join->prev);
+				A2R(cur_new_join->prev);
 				cur_new_join->next = ((list_index + 1 == list_len) ? &join_list[0] : &join_list[list_index + 1]);
 				cur_new_join = cur_new_join->next;
-				A2R(cur_new_join->next, cur_new_join->next);
+				A2R(cur_new_join->next);
 			}
 			cur_join = cur_join->next;
 			list_index++;

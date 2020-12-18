@@ -103,7 +103,7 @@ typedef void *yyscan_t;
 
 /* Shamelessly stolen from mlkdef.h in YottaDB */
 /* convert relative pointer to absolute pointer */
-#define R2A(X) (void *)(((unsigned char *)&(X)) + ((size_t)X))
+// #define R2A(X) (void *)(((unsigned char *)&(X)) + ((size_t)X))
 
 /* store absolute pointer Y in X as a relative pointer */
 // #define A2R(X) ((X) = (void *)(((unsigned char *)(X)) - ((unsigned char *)&(X))))
@@ -855,7 +855,6 @@ typedef struct SqlStatement {
 	 * store the relevant offset ("relative pointer") on the structure to be stored itself. This makes it straightforward to
 	 * determine the correct absolute pointer into the contiguous memory block at decompress time.
 	 */
-	// uint64_t compressed_offset;
 	void *compressed_offset;
 } SqlStatement;
 

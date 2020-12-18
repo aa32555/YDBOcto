@@ -15,9 +15,12 @@
 #include "octo.h"
 #include "octo_types.h"
 
+#define R2A(X) (void *)((out) + ((size_t)X))
+
 #define CALL_DECOMPRESS_HELPER(value, out, out_length)                       \
 	{                                                                    \
 		if (value != NULL) {                                         \
+			fprintf(stderr, "offset: %p\n", value);              \
 			value = R2A(value);                                  \
 			decompress_statement_helper(value, out, out_length); \
 		}                                                            \
@@ -50,6 +53,8 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 	SqlView *	      view;
 	SqlParameterTypeList *cur_parameter_type_list, *start_parameter_type_list;
 
+	fprintf(stderr, "stmt: %p\tout: %p\tout_length: %d\tout + out_length: %p\n", ((char *)stmt), out, out_length,
+		out + out_length);
 	assert(((char *)stmt) < out + out_length);
 	if (NULL == stmt) {
 		return NULL;
@@ -77,11 +82,13 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		 */
 		return stmt;
 	}
-	fprintf(stderr, "stmt->type: %d\n", stmt->type);
+	// fprintf(stderr, "stmt->type: %d\n", stmt->type);
 	stmt->v.value = R2A(stmt->v.value);
+	// fprintf(stderr, "stmt->v.value: %p\n", stmt->v.value);
 	switch (stmt->type) {
 	case create_table_STATEMENT:
 		UNPACK_SQL_STATEMENT(table, stmt, create_table);
+		fprintf(stderr, "table: %p\ttable->tableName: %p\n", table, table->tableName);
 		CALL_DECOMPRESS_HELPER(table->tableName, out, out_length);
 		CALL_DECOMPRESS_HELPER(table->source, out, out_length);
 		CALL_DECOMPRESS_HELPER(table->columns, out, out_length);
@@ -159,7 +166,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		break;
 	case table_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(table_alias, stmt, table_alias);
-		fprintf(stderr, "D: table_alias: %p\n", stmt);
+		// fprintf(stderr, "D: table_alias: %p\n", stmt);
 		CALL_DECOMPRESS_HELPER(table_alias->table, out, out_length);
 		CALL_DECOMPRESS_HELPER(table_alias->alias, out, out_length);
 		CALL_DECOMPRESS_HELPER(table_alias->parent_table_alias, out, out_length);
