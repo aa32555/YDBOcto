@@ -14,7 +14,8 @@
 #include "octo.h"
 #include "octo_types.h"
 
-#define STATIC_A2R(X) ((void *)(((unsigned char *)(X)) - ((unsigned char *)&(X))))
+// #define STATIC_A2R(X) ((void *)(((unsigned char *)(X)) - ((unsigned char *)&(X))))
+#define STATIC_A2R(X) (void *)(((char *)X) - out)
 
 /*
 #define A2R(X)                                                                                                       \
@@ -26,10 +27,10 @@
 	}
 	*/
 
-#define A2R(X)                                               \
-	((X) = (void *)(((char *)&(X)) - out));              \
-	if ((NULL != out)) {                                 \
-		assert((void *)X < ((void *)(*out_length))); \
+#define A2R(X)                                                \
+	((X) = (void *)(((char *)X) - out));                  \
+	if ((NULL != out)) {                                  \
+		assert((void *)X <= ((void *)(*out_length))); \
 	}
 
 #define CALL_COMPRESS_HELPER(temp, value, new_value, out, out_length, parent_table)             \
@@ -102,9 +103,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 									*/
 	if (NULL != out) {
 		new_stmt = ((void *)&out[*out_length]);
-		// fprintf(stderr, "type: %d\tnew_stmt: %p\n", stmt->type, new_stmt);
 		memcpy(new_stmt, stmt, sizeof(SqlStatement));
-		// fprintf(stderr, "new_stmt: %p\tSTATIC_A2R(new_stmt): %p\n", new_stmt, STATIC_A2R(new_stmt));
 		// A2R(new_stmt);
 		stmt->compressed_offset = STATIC_A2R(new_stmt);
 		ret = new_stmt;
@@ -121,7 +120,6 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 			return ret;
 		}
 		new_stmt->v.value = ((void *)&out[*out_length]);
-		// fprintf(stderr, "COMP: new_stmt->v.value: %p\n", (void*)new_stmt->v.value);
 		A2R(new_stmt->v.value);
 	}
 	// fprintf(stderr, "stmt->type: %d\n", stmt->type);

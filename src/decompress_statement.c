@@ -17,10 +17,9 @@
 
 #define R2A(X) (void *)((out) + ((size_t)X))
 
-#define CALL_DECOMPRESS_HELPER(value, out, out_length)                       \
+#define CALL_DECOMPRESS_HELPER(value, out, out_length, skip_R2A)             \
 	{                                                                    \
-		if (value != NULL) {                                         \
-			fprintf(stderr, "offset: %p\n", value);              \
+		if (NULL != value) {                                         \
 			value = R2A(value);                                  \
 			decompress_statement_helper(value, out, out_length); \
 		}                                                            \
@@ -53,8 +52,8 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 	SqlView *	      view;
 	SqlParameterTypeList *cur_parameter_type_list, *start_parameter_type_list;
 
-	fprintf(stderr, "stmt: %p\tout: %p\tout_length: %d\tout + out_length: %p\n", ((char *)stmt), out, out_length,
-		out + out_length);
+	// fprintf(stderr, "\nD: stmt: %p\tout: %p\tout_length: %d\tout + out_length: %p\n", ((char *)stmt), out, out_length,
+	// out + out_length);
 	assert(((char *)stmt) < out + out_length);
 	if (NULL == stmt) {
 		return NULL;
@@ -69,7 +68,6 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		return NULL;
 	}
 	if (stmt->hash_canonical_query_cycle == hash_canonical_query_cycle) {
-		// fprintf(stderr, "stmt->type: %d\n", stmt->type);
 		return NULL;
 	}
 	stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
@@ -84,30 +82,28 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 	}
 	// fprintf(stderr, "stmt->type: %d\n", stmt->type);
 	stmt->v.value = R2A(stmt->v.value);
-	// fprintf(stderr, "stmt->v.value: %p\n", stmt->v.value);
 	switch (stmt->type) {
 	case create_table_STATEMENT:
 		UNPACK_SQL_STATEMENT(table, stmt, create_table);
-		fprintf(stderr, "table: %p\ttable->tableName: %p\n", table, table->tableName);
-		CALL_DECOMPRESS_HELPER(table->tableName, out, out_length);
-		CALL_DECOMPRESS_HELPER(table->source, out, out_length);
-		CALL_DECOMPRESS_HELPER(table->columns, out, out_length);
-		CALL_DECOMPRESS_HELPER(table->delim, out, out_length);
-		CALL_DECOMPRESS_HELPER(table->nullchar, out, out_length);
+		CALL_DECOMPRESS_HELPER(table->tableName, out, out_length, TRUE);
+		CALL_DECOMPRESS_HELPER(table->source, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(table->columns, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(table->delim, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(table->nullchar, out, out_length, FALSE);
 		/* table->oid is not a pointer value so no need to call CALL_DECOMPRESS_HELPER on this member */
 		break;
 	case create_function_STATEMENT:
 		UNPACK_SQL_STATEMENT(function, stmt, create_function);
-		CALL_DECOMPRESS_HELPER(function->function_name, out, out_length);
-		CALL_DECOMPRESS_HELPER(function->parameter_type_list, out, out_length);
-		CALL_DECOMPRESS_HELPER(function->return_type, out, out_length);
-		CALL_DECOMPRESS_HELPER(function->extrinsic_function, out, out_length);
-		CALL_DECOMPRESS_HELPER(function->function_hash, out, out_length);
+		CALL_DECOMPRESS_HELPER(function->function_name, out, out_length, TRUE);
+		CALL_DECOMPRESS_HELPER(function->parameter_type_list, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(function->return_type, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(function->extrinsic_function, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(function->function_hash, out, out_length, FALSE);
 		break;
 	case create_view_STATEMENT:
 		UNPACK_SQL_STATEMENT(view, stmt, create_view);
-		CALL_DECOMPRESS_HELPER(view->view_name, out, out_length);
-		CALL_DECOMPRESS_HELPER(view->table, out, out_length);
+		CALL_DECOMPRESS_HELPER(view->view_name, out, out_length, TRUE);
+		CALL_DECOMPRESS_HELPER(view->table, out, out_length, FALSE);
 		/* view->query and view->oid are not pointer values so no need to call CALL_DECOMPRESS_HELPER on these members */
 		break;
 	case parameter_type_list_STATEMENT:
@@ -123,7 +119,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 			} else {
 				cur_parameter_type_list->next = R2A(cur_parameter_type_list->next);
 			}
-			CALL_DECOMPRESS_HELPER(cur_parameter_type_list->data_type_struct, out, out_length);
+			CALL_DECOMPRESS_HELPER(cur_parameter_type_list->data_type_struct, out, out_length, FALSE);
 			cur_parameter_type_list->next->prev = cur_parameter_type_list;
 			cur_parameter_type_list = cur_parameter_type_list->next;
 		} while (cur_parameter_type_list != start_parameter_type_list);
@@ -136,10 +132,10 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		UNPACK_SQL_STATEMENT(cur_column, stmt, column);
 		start_column = cur_column;
 		do {
-			CALL_DECOMPRESS_HELPER(cur_column->columnName, out, out_length);
+			CALL_DECOMPRESS_HELPER(cur_column->columnName, out, out_length, FALSE);
 			// Don't copy table
-			CALL_DECOMPRESS_HELPER(cur_column->keywords, out, out_length);
-			CALL_DECOMPRESS_HELPER(cur_column->delim, out, out_length);
+			CALL_DECOMPRESS_HELPER(cur_column->keywords, out, out_length, FALSE);
+			CALL_DECOMPRESS_HELPER(cur_column->delim, out, out_length, FALSE);
 			if (0 == cur_column->next) {
 				cur_column->next = start_column;
 			} else {
@@ -154,7 +150,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		UNPACK_SQL_STATEMENT(start_keyword, stmt, keyword);
 		cur_keyword = start_keyword;
 		do {
-			CALL_DECOMPRESS_HELPER(cur_keyword->v, out, out_length);
+			CALL_DECOMPRESS_HELPER(cur_keyword->v, out, out_length, TRUE);
 			if (cur_keyword->next == 0) {
 				cur_keyword->next = start_keyword;
 			} else {
@@ -166,11 +162,10 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		break;
 	case table_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(table_alias, stmt, table_alias);
-		// fprintf(stderr, "D: table_alias: %p\n", stmt);
-		CALL_DECOMPRESS_HELPER(table_alias->table, out, out_length);
-		CALL_DECOMPRESS_HELPER(table_alias->alias, out, out_length);
-		CALL_DECOMPRESS_HELPER(table_alias->parent_table_alias, out, out_length);
-		CALL_DECOMPRESS_HELPER(table_alias->column_list, out, out_length);
+		CALL_DECOMPRESS_HELPER(table_alias->table, out, out_length, TRUE);
+		CALL_DECOMPRESS_HELPER(table_alias->alias, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(table_alias->parent_table_alias, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(table_alias->column_list, out, out_length, FALSE);
 		/* The following fields of a SqlTableAlias are not pointer values and so need no CALL_DECOMPRESS_HELPER call:
 		 *	unique_id
 		 *	aggregate_depth
@@ -180,19 +175,19 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		break;
 	case select_STATEMENT:
 		UNPACK_SQL_STATEMENT(select, stmt, select);
-		CALL_DECOMPRESS_HELPER(select->select_list, out, out_length);
-		CALL_DECOMPRESS_HELPER(select->table_list, out, out_length);
-		CALL_DECOMPRESS_HELPER(select->where_expression, out, out_length);
-		CALL_DECOMPRESS_HELPER(select->group_by_expression, out, out_length);
-		CALL_DECOMPRESS_HELPER(select->having_expression, out, out_length);
-		CALL_DECOMPRESS_HELPER(select->order_by_expression, out, out_length);
-		CALL_DECOMPRESS_HELPER(select->optional_words, out, out_length);
+		CALL_DECOMPRESS_HELPER(select->select_list, out, out_length, TRUE);
+		CALL_DECOMPRESS_HELPER(select->table_list, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(select->where_expression, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(select->group_by_expression, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(select->having_expression, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(select->order_by_expression, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(select->optional_words, out, out_length, FALSE);
 		break;
 	case column_list_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(column_list_alias, stmt, column_list_alias);
-		CALL_DECOMPRESS_HELPER(column_list_alias->column_list, out, out_length);
-		CALL_DECOMPRESS_HELPER(column_list_alias->alias, out, out_length);
-		CALL_DECOMPRESS_HELPER(column_list_alias->keywords, out, out_length);
+		CALL_DECOMPRESS_HELPER(column_list_alias->column_list, out, out_length, TRUE);
+		CALL_DECOMPRESS_HELPER(column_list_alias->alias, out, out_length, FALSE);
+		CALL_DECOMPRESS_HELPER(column_list_alias->keywords, out, out_length, FALSE);
 
 		// more
 		break;
@@ -201,7 +196,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		// CALL_DECOMPRESS_HELPER(column_list->value, out, out_length);
 		cur_column_list = column_list;
 		do {
-			CALL_DECOMPRESS_HELPER(cur_column_list->value, out, out_length);
+			CALL_DECOMPRESS_HELPER(cur_column_list->value, out, out_length, TRUE);
 			cur_column_list->next = R2A(cur_column_list->next);
 			cur_column_list->prev = R2A(cur_column_list->prev);
 			cur_column_list = cur_column_list->next;
@@ -210,8 +205,8 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		break;
 	case column_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(column_alias, stmt, column_alias);
-		CALL_DECOMPRESS_HELPER(column_alias->column, out, out_length);
-		CALL_DECOMPRESS_HELPER(column_alias->table_alias_stmt, out, out_length);
+		CALL_DECOMPRESS_HELPER(column_alias->column, out, out_length, TRUE);
+		CALL_DECOMPRESS_HELPER(column_alias->table_alias_stmt, out, out_length, FALSE);
 		break;
 	case join_STATEMENT:
 		UNPACK_SQL_STATEMENT(join, stmt, join);
@@ -223,7 +218,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 			fprintf(stderr, "D: cur_join->value: %p\tout + len: %p\tcur_join->value: %p\tout_length: %d\n",
 				cur_join->value, out + out_length, (char *)cur_join->value, out_length);
 			// CALL_DECOMPRESS_HELPER(cur_join->value, out, out_length);
-			CALL_DECOMPRESS_HELPER(cur_join->condition, out, out_length);
+			CALL_DECOMPRESS_HELPER(cur_join->condition, out, out_length, FALSE);
 			cur_join->next = R2A(cur_join->next);
 			cur_join->prev = R2A(cur_join->prev);
 			cur_join = cur_join->next;
