@@ -286,6 +286,8 @@ from_clause
 		// fprintf(stderr, "cmp_join: %p\ttype: %d\tcmp_join->value: %p\n", cmp_join, cmp_join->type, cmp_join->value);
 		stmt = drill_to_table_alias(cmp_join->value);
 		UNPACK_SQL_STATEMENT(alias, stmt, table_alias);
+		// fprintf(stderr, "\nP: alias: %p\n", alias);
+		// fprintf(stderr, "\nP: alias->alias: %p\n", alias->alias);
 		UNPACK_SQL_STATEMENT(value, alias->alias, value);
 		assert((COLUMN_REFERENCE == value->type) || (NUL_VALUE == value->type) || (STRING_LITERAL == value->type));
 		cmp_name = value->v.string_literal;
