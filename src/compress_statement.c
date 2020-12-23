@@ -16,18 +16,12 @@
 
 #define STATIC_A2R(X) (void *)(((char *)X) - out)
 
-#define A2R(X)                                                                                         \
-	if ((NULL != out)) {                                                                           \
-		if (!(STATIC_A2R(X) <= ((void *)(*out_length)))) {                                     \
-			fprintf(stderr, "X: %p\n", (void *)X);                                         \
-		}                                                                                      \
-	}                                                                                              \
-	((X) = (void *)(((char *)X) - out));                                                           \
-	if ((NULL != out)) {                                                                           \
-		if (!((void *)X <= ((void *)(*out_length)))) {                                         \
-			fprintf(stderr, "X: %p\t*out_length: %p\n", (void *)X, ((void *)*out_length)); \
-		}                                                                                      \
-		assert((void *)X <= ((void *)(*out_length)));                                          \
+#define A2R(X)                                                 \
+	((X) = (void *)(((char *)X) - out));                   \
+	if ((NULL != out)) {                                   \
+		if (!((void *)X <= ((void *)(*out_length)))) { \
+		}                                              \
+		assert((void *)X <= ((void *)(*out_length)));  \
 	}
 
 #define CALL_COMPRESS_HELPER(temp, value, new_value, out, out_length, parent_table)             \
@@ -36,12 +30,13 @@
 		if (NULL != (out)) {                                                            \
 			if ((temp) != (value)) {                                                \
 				(new_value) = (temp);                                           \
-				fprintf(stderr, "C: if: new_value: %p\n", new_value);           \
 				if (NULL != new_value) {                                        \
 					A2R((new_value));                                       \
 				}                                                               \
 			} else {                                                                \
-				fprintf(stderr, "C: else: new_value: %p\n", new_value);         \
+				if (NULL != (value)) {                                          \
+					(new_value) = value->compressed_offset;                 \
+				}                                                               \
 			}                                                                       \
 		}                                                                               \
 	}
@@ -68,7 +63,6 @@ void compress_statement(SqlStatement *stmt, char **out, int *out_length) {
 	*out = malloc(*out_length);
 	*out_length = 0;
 	hash_canonical_query_cycle++;
-	fprintf(stderr, "\n\nC: out: %p\n", *out);
 	compress_statement_helper(stmt, *out, out_length, NULL);
 }
 
@@ -98,10 +92,6 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 	if ((NULL == stmt) || (NULL == stmt->v.value))
 		return NULL;
 	if (stmt->hash_canonical_query_cycle == hash_canonical_query_cycle) {
-		if (value_STATEMENT == stmt->type) {
-			fprintf(stderr, "out_length: %p\n", (void *)*out_length);
-			fprintf(stderr, "H: stmt: %p\tA2R: %p\tout_length: %p\n", stmt, STATIC_A2R(stmt), (void *)*out_length);
-		}
 		return stmt;
 	}
 	stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
@@ -129,7 +119,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 		new_stmt->v.value = ((void *)&out[*out_length]);
 		A2R(new_stmt->v.value);
 	}
-	// fprintf(stderr, "stmt->type: %d\n", stmt->type);
+	// fprintf(stderr, "C: stmt->type: %d\n", stmt->type);
 	switch (stmt->type) {
 	case create_table_STATEMENT:
 		UNPACK_SQL_STATEMENT(table, stmt, create_table);
@@ -234,12 +224,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 				// A2R(new_column->table);
 			}
 			*out_length += sizeof(SqlColumn);
-			// fprintf(stderr, "C: new_column->columnName: %p\tA2R: %p\n", new_column->columnName,
-			// STATIC_A2R(new_column->columnName));
 			CALL_COMPRESS_HELPER(r, cur_column->columnName, new_column->columnName, out, out_length, parent_table);
-			if (NULL != out) {
-				fprintf(stderr, "C: new_column->columnName: %p\n", new_column->columnName);
-			}
 			CALL_COMPRESS_HELPER(r, cur_column->keywords, new_column->keywords, out, out_length, parent_table);
 			CALL_COMPRESS_HELPER(r, cur_column->delim, new_column->delim, out, out_length, parent_table);
 			cur_column = cur_column->next;
@@ -387,13 +372,10 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 		list_index = 0;
 		do {
 			if (NULL != out) {
-				fprintf(stderr, "\nC: cur_join->value: %p\tcur_join->value->type: %d\t", cur_join->value,
-					cur_join->value->type);
-				fprintf(stderr, "C: cur_join->value->compressed_offset: %p\n", cur_join->value->compressed_offset);
-				fprintf(stderr, "C: cur_join->max_unique_id: %d\n", cur_join->max_unique_id);
 				memcpy(cur_new_join, cur_join, sizeof(SqlJoin));
 				cur_new_join->value = cur_join->value->compressed_offset;
 			}
+			fprintf(stderr, "C: cur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
 			CALL_COMPRESS_HELPER(r, cur_join->condition, cur_new_join->condition, out, out_length, parent_table);
 			// Compress the linked list pointers
 			if (NULL != out) {

@@ -122,6 +122,7 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 					 * side table (since common columns have to be in the order they are seen
 					 * in the left side table and not the right side table).
 					 */
+					fprintf(stderr, "cur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
 					assert(NATURAL_JOIN == cur_join->type);
 					common_column_seen = TRUE;
 					/* First go from the cla in the tablejoin to the cla in the select column list */

@@ -21,7 +21,6 @@
 	{                                                                              \
 		if (NULL != value) {                                                   \
 			if ((R2A(value) >= out) && (R2A(value) <= out + out_length)) { \
-				fprintf(stderr, "D: R2A\n");                           \
 				value = R2A(value);                                    \
 			}                                                              \
 			decompress_statement_helper(value, out, out_length);           \
@@ -55,10 +54,8 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 	SqlView *	      view;
 	SqlParameterTypeList *cur_parameter_type_list, *start_parameter_type_list;
 
-	fprintf(stderr, "\nD: stmt: %p\tout: %p\tout_length: %d\nout + out_length: %p\n", ((char *)stmt), out, out_length,
-		out + out_length);
-	fprintf(stderr, "D: hash_canonical_query_cycle: %lu\tstmt->hash_canonical_query_cycle: %lu\ttype: %d\n",
-		hash_canonical_query_cycle, stmt->hash_canonical_query_cycle, stmt->type);
+	// fprintf(stderr, "\nD: stmt: %p\tout: %p\tout_length: %d\nout + out_length: %p\n", ((char *)stmt), out, out_length,
+	// out + out_length);
 	assert(((char *)stmt) < out + out_length);
 	if (NULL == stmt) {
 		return NULL;
@@ -137,7 +134,6 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		UNPACK_SQL_STATEMENT(cur_column, stmt, column);
 		start_column = cur_column;
 		do {
-			fprintf(stderr, "D: cur_column->columnName: %p\n", cur_column->columnName);
 			CALL_DECOMPRESS_HELPER(cur_column->columnName, out, out_length);
 			// Don't copy table
 			CALL_DECOMPRESS_HELPER(cur_column->keywords, out, out_length);
@@ -218,12 +214,8 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		UNPACK_SQL_STATEMENT(join, stmt, join);
 		cur_join = join;
 		do {
-			// fprintf(stderr, "D: cur_join->value: %p\n", cur_join->value);
 			cur_join->value = R2A(cur_join->value);
 			assert((char *)cur_join->value <= (out + out_length));
-			// fprintf(stderr, "D: cur_join->value: %p\tout + len: %p\tcur_join->value: %p\tout_length: %d\n",
-			// cur_join->value, out + out_length, (char *)cur_join->value, out_length);
-			// fprintf(stderr, "D: cur_join->max_unique_id: %d\n", cur_join->max_unique_id);
 			CALL_DECOMPRESS_HELPER(cur_join->condition, out, out_length);
 			cur_join->next = R2A(cur_join->next);
 			cur_join->prev = R2A(cur_join->prev);
