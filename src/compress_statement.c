@@ -336,9 +336,11 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 				cur_new_column_list_alias->next
 				    = ((list_index + 1 == list_len) ? &column_list_alias_list[0]
 								    : &column_list_alias_list[list_index + 1]);
-				printf("cur_new_column_list_alias->next: %p\n", cur_new_column_list_alias->next);
+				printf("cur_new_column_list_alias->next: %p\t - out: %p\n", cur_new_column_list_alias->next, (void*)cur_new_column_list_alias->next - (void*)out);
 				cur_new_column_list_alias = cur_new_column_list_alias->next;
-				A2R(cur_new_column_list_alias->next);
+				if (NULL != cur_new_column_list_alias->next) {
+					A2R(cur_new_column_list_alias->next);
+				}
 			}
 			cur_column_list_alias = cur_column_list_alias->next;
 			list_index++;
