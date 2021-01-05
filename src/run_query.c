@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2020 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -131,7 +131,7 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 	ydb_buffer_t	schema_global;
 	ydb_buffer_t	octo_global;
 	boolean_t	canceled = FALSE, cursor_used;
-	int		length;
+	long int	length;
 	int		i;
 	unsigned int	ret_value;
 	SqlTable *	table;

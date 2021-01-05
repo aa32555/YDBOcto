@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2020 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2020-2021 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -74,7 +74,7 @@ int auto_upgrade_binary_table_definition(void) {
 	table_buff = &table_subs[0]; /* Note down that this buffer needs to be freed in case of error code path */
 	while (TRUE) {
 		char *	     binary_table_defn; /* pointer to the binary table definition */
-		int	     binary_table_defn_length;
+		long int     binary_table_defn_length;
 		ydb_buffer_t cursor_ydb_buff;
 		ydb_long_t   cursorId;
 		char	     cursor_buffer[INT64_TO_STRING_MAX];

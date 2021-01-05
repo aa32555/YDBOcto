@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2020 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -53,9 +53,9 @@
 		*OUT_LENGTH += LIST_LEN * sizeof(TYPE);                               \
 	}
 
-void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, SqlStatement *parent_table);
+void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_length, SqlStatement *parent_table);
 
-void compress_statement(SqlStatement *stmt, char **out, int *out_length) {
+void compress_statement(SqlStatement *stmt, char **out, long int *out_length) {
 	*out_length = 0;
 	hash_canonical_query_cycle++;
 	compress_statement_helper(stmt, NULL, out_length, NULL);
@@ -71,11 +71,11 @@ void compress_statement(SqlStatement *stmt, char **out, int *out_length) {
  *
  * If the out buffer is NULL, doesn't copy the statement, but just counts size
  */
-void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, SqlStatement *parent_table) {
+void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_length, SqlStatement *parent_table) {
 	SqlColumn *	      cur_column, *start_column, *new_column;
 	SqlColumnAlias *      column_alias, *new_column_alias;
 	SqlColumnList *	      column_list, *new_column_list, *cur_column_list, *cur_new_column_list, *column_list_list;
-	SqlColumnListAlias *  column_list_alias, *new_column_list_alias;
+	SqlColumnListAlias *  column_list_alias, *cur_new_column_list_alias, *cur_column_list_alias, *column_list_alias_list;
 	SqlOptionalKeyword *  start_keyword, *cur_keyword, *new_keyword;
 	SqlStatement *	      new_stmt;
 	SqlSelectStatement *  select, *new_select;
@@ -291,23 +291,49 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 		break;
 	case column_list_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(column_list_alias, stmt, column_list_alias);
-		if (NULL != out) {
-			new_column_list_alias = ((void *)&out[*out_length]);
-			memcpy(new_column_list_alias, column_list_alias, sizeof(SqlColumnListAlias));
-		}
-		*out_length += sizeof(SqlColumnListAlias);
-		CALL_COMPRESS_HELPER(r, column_list_alias->column_list, new_column_list_alias->column_list, out, out_length,
-				     parent_table);
-		CALL_COMPRESS_HELPER(r, column_list_alias->alias, new_column_list_alias->alias, out, out_length, parent_table);
-		CALL_COMPRESS_HELPER(r, column_list_alias->keywords, new_column_list_alias->keywords, out, out_length,
-				     parent_table);
-		// CALL_COMPRESS_HELPER(r, column_list_alias->duplicate_of_column, new_column_list_alias->duplicate_of_column, out,
-		// out_length);
-		// SqlTableIdColumnId	   tbl_and_col_id;
-		// SqlColumnAlias *outer_query_column_alias;
-		// dqcreate(SqlColumnListAlias);
 
-		// more
+		if (NULL != out) {
+			column_list_alias_list = ((SqlJoin *)&out[*out_length]);
+			cur_new_column_list_alias = column_list_alias_list;
+		}
+		GET_LIST_LENGTH_AND_UPDATE_OUT_LENGTH(list_len, cur_column_list_alias, column_list_alias, out_length,
+				SqlColumnListAlias);
+
+		list_index = 0;
+		cur_column_list_alias = column_list_alias;
+		do {
+			if (NULL != out) {
+				cur_new_column_list_alias = ((void *)&out[*out_length]);
+				memcpy(cur_new_column_list_alias, cur_column_list_alias, sizeof(SqlColumnListAlias));
+			}
+			*out_length += sizeof(SqlColumnListAlias);
+			CALL_COMPRESS_HELPER(r, cur_column_list_alias->column_list, cur_new_column_list_alias->column_list, out, out_length,
+					     parent_table);
+			CALL_COMPRESS_HELPER(r, cur_column_list_alias->alias, cur_new_column_list_alias->alias, out, out_length, parent_table);
+			CALL_COMPRESS_HELPER(r, cur_column_list_alias->keywords, cur_new_column_list_alias->keywords, out, out_length,
+					     parent_table);
+			// CALL_COMPRESS_HELPER(r, column_list_alias->duplicate_of_column, new_column_list_alias->duplicate_of_column, out,
+			// out_length);
+			// SqlTableIdColumnId	   tbl_and_col_id;
+			// SqlColumnAlias *outer_query_column_alias;
+			if (NULL != out) {
+				/* The previous item of the first item should be the last item in the list, since the list is
+				 * doubly-linked. Conversely, the next item of the last item should be the first in the list.
+				 */
+				if (0 == list_index) {
+					cur_new_column_list_alias->prev = ((1 == list_len) ? &column_list_alias_list[0] : &column_list_alias_list[list_len - 1]);
+				} else {
+					cur_new_column_list_alias->prev = &column_list_alias_list[list_index];
+				}
+				A2R(cur_new_column_list_alias->prev);
+				cur_new_column_list_alias->next = ((list_index + 1 == list_len) ? &column_list_alias_list[0] : &column_list_alias_list[list_index + 1]);
+				cur_new_column_list_alias = cur_new_column_list_alias->next;
+				A2R(cur_new_column_list_alias->next);
+			}
+			cur_column_list_alias = cur_column_list_alias->next;
+			list_index++;
+		} while (cur_column_list_alias != column_list_alias);
+		assert(list_index == list_len);
 		break;
 	case column_list_STATEMENT:
 		UNPACK_SQL_STATEMENT(column_list, stmt, column_list);

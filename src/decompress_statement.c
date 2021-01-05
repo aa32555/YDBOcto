@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2020 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -20,16 +20,16 @@
 #define CALL_DECOMPRESS_HELPER(value, out, out_length)                                 \
 	{                                                                              \
 		if (NULL != value) {                                                   \
-			if ((R2A(value) >= out) && (R2A(value) <= out + out_length)) { \
+			if ((R2A(value) >= (void*)out) && (R2A(value) <= (void*)(out + out_length))) { \
 				value = R2A(value);                                    \
 			}                                                              \
 			decompress_statement_helper(value, out, out_length);           \
 		}                                                                      \
 	}
 
-void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length);
+void *decompress_statement_helper(SqlStatement *stmt, char *out, long int out_length);
 
-SqlStatement *decompress_statement(char *buffer, int out_length) {
+SqlStatement *decompress_statement(char *buffer, long int out_length) {
 	hash_canonical_query_cycle++;
 	return (SqlStatement *)decompress_statement_helper((SqlStatement *)buffer, buffer, out_length);
 }
@@ -39,12 +39,12 @@ SqlStatement *decompress_statement(char *buffer, int out_length) {
  *
  * If the out buffer is NULL, doesn't copy the statement, but just counts size
  */
-void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length) {
+void *decompress_statement_helper(SqlStatement *stmt, char *out, long int out_length) {
 	SqlTable *	      table;
 	SqlTableAlias *	      table_alias;
 	SqlSelectStatement *  select;
 	SqlColumn *	      cur_column, *start_column;
-	SqlColumnListAlias *  column_list_alias;
+	SqlColumnListAlias *  column_list_alias, *cur_column_list_alias;
 	SqlColumnList *	      column_list, *cur_column_list;
 	SqlColumnAlias *      column_alias;
 	SqlValue *	      value;
@@ -188,11 +188,17 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 		break;
 	case column_list_alias_STATEMENT:
 		UNPACK_SQL_STATEMENT(column_list_alias, stmt, column_list_alias);
-		CALL_DECOMPRESS_HELPER(column_list_alias->column_list, out, out_length);
-		CALL_DECOMPRESS_HELPER(column_list_alias->alias, out, out_length);
-		CALL_DECOMPRESS_HELPER(column_list_alias->keywords, out, out_length);
 
-		// more
+		cur_column_list_alias = column_list_alias;
+		do {
+			CALL_DECOMPRESS_HELPER(column_list_alias->column_list, out, out_length);
+			CALL_DECOMPRESS_HELPER(column_list_alias->alias, out, out_length);
+			CALL_DECOMPRESS_HELPER(column_list_alias->keywords, out, out_length);
+
+			cur_column_list_alias->next = R2A(cur_column_list_alias->next);
+			cur_column_list_alias->prev = R2A(cur_column_list_alias->prev);
+			cur_column_list_alias = cur_column_list_alias->next;
+		} while (cur_column_list_alias != column_list_alias);
 		break;
 	case column_list_STATEMENT:
 		UNPACK_SQL_STATEMENT(column_list, stmt, column_list);

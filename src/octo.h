@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2020 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -533,8 +533,8 @@ SqlColumnListAlias *copy_column_list_alias_list(SqlColumnListAlias *cla, SqlStat
 SqlStatement *	    copy_sql_statement(SqlStatement *stmt);
 boolean_t	    match_sql_statement(SqlStatement *stmt, SqlStatement *match_stmt);
 
-void	      compress_statement(SqlStatement *stmt, char **out, int *out_length);
-SqlStatement *decompress_statement(char *buffer, int out_length);
+void	      compress_statement(SqlStatement *stmt, char **out, long int *out_length);
+SqlStatement *decompress_statement(char *buffer, long int out_length);
 
 int store_table_definition(ydb_buffer_t *table_name_buff, char *table_defn, int table_defn_length, boolean_t is_text);
 int store_function_definition(ydb_buffer_t *function_name_buffers, char *function_defn, int function_defn_length,

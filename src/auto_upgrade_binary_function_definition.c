@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2020 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2020-2021 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -83,7 +83,7 @@ int auto_upgrade_binary_function_definition(void) {
 		function_subs[2].len_used = 0;
 		while (TRUE) {
 			char *	     binary_function_defn; /* pointer to the binary function definition */
-			int	     binary_function_defn_length;
+			long int     binary_function_defn_length;
 			char	     text_defn_str[MAX_DEFINITION_FRAGMENT_SIZE];
 			long	     text_defn_len;
 			ydb_buffer_t text_defn_buff;
