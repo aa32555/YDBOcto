@@ -17,14 +17,14 @@
 
 #define R2A(X) (void *)((out) + ((size_t)X))
 
-#define CALL_DECOMPRESS_HELPER(value, out, out_length)                                 \
-	{                                                                              \
-		if (NULL != value) {                                                   \
-			if ((R2A(value) >= (void*)out) && (R2A(value) <= (void*)(out + out_length))) { \
-				value = R2A(value);                                    \
-			}                                                              \
-			decompress_statement_helper(value, out, out_length);           \
-		}                                                                      \
+#define CALL_DECOMPRESS_HELPER(value, out, out_length)                                                   \
+	{                                                                                                \
+		if (NULL != value) {                                                                     \
+			if ((R2A(value) >= (void *)out) && (R2A(value) <= (void *)(out + out_length))) { \
+				value = R2A(value);                                                      \
+			}                                                                                \
+			decompress_statement_helper(value, out, out_length);                             \
+		}                                                                                        \
 	}
 
 void *decompress_statement_helper(SqlStatement *stmt, char *out, long int out_length);

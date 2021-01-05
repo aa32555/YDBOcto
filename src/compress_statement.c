@@ -297,7 +297,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 			cur_new_column_list_alias = column_list_alias_list;
 		}
 		GET_LIST_LENGTH_AND_UPDATE_OUT_LENGTH(list_len, cur_column_list_alias, column_list_alias, out_length,
-				SqlColumnListAlias);
+						      SqlColumnListAlias);
 
 		list_index = 0;
 		cur_column_list_alias = column_list_alias;
@@ -307,26 +307,29 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 				memcpy(cur_new_column_list_alias, cur_column_list_alias, sizeof(SqlColumnListAlias));
 			}
 			*out_length += sizeof(SqlColumnListAlias);
-			CALL_COMPRESS_HELPER(r, cur_column_list_alias->column_list, cur_new_column_list_alias->column_list, out, out_length,
+			CALL_COMPRESS_HELPER(r, cur_column_list_alias->column_list, cur_new_column_list_alias->column_list, out,
+					     out_length, parent_table);
+			CALL_COMPRESS_HELPER(r, cur_column_list_alias->alias, cur_new_column_list_alias->alias, out, out_length,
 					     parent_table);
-			CALL_COMPRESS_HELPER(r, cur_column_list_alias->alias, cur_new_column_list_alias->alias, out, out_length, parent_table);
-			CALL_COMPRESS_HELPER(r, cur_column_list_alias->keywords, cur_new_column_list_alias->keywords, out, out_length,
-					     parent_table);
-			// CALL_COMPRESS_HELPER(r, column_list_alias->duplicate_of_column, new_column_list_alias->duplicate_of_column, out,
-			// out_length);
-			// SqlTableIdColumnId	   tbl_and_col_id;
+			CALL_COMPRESS_HELPER(r, cur_column_list_alias->keywords, cur_new_column_list_alias->keywords, out,
+					     out_length, parent_table);
+			// CALL_COMPRESS_HELPER(r, column_list_alias->duplicate_of_column,
+			// new_column_list_alias->duplicate_of_column, out, out_length); SqlTableIdColumnId	   tbl_and_col_id;
 			// SqlColumnAlias *outer_query_column_alias;
 			if (NULL != out) {
 				/* The previous item of the first item should be the last item in the list, since the list is
 				 * doubly-linked. Conversely, the next item of the last item should be the first in the list.
 				 */
 				if (0 == list_index) {
-					cur_new_column_list_alias->prev = ((1 == list_len) ? &column_list_alias_list[0] : &column_list_alias_list[list_len - 1]);
+					cur_new_column_list_alias->prev = ((1 == list_len) ? &column_list_alias_list[0]
+											   : &column_list_alias_list[list_len - 1]);
 				} else {
 					cur_new_column_list_alias->prev = &column_list_alias_list[list_index];
 				}
 				A2R(cur_new_column_list_alias->prev);
-				cur_new_column_list_alias->next = ((list_index + 1 == list_len) ? &column_list_alias_list[0] : &column_list_alias_list[list_index + 1]);
+				cur_new_column_list_alias->next
+				    = ((list_index + 1 == list_len) ? &column_list_alias_list[0]
+								    : &column_list_alias_list[list_index + 1]);
 				cur_new_column_list_alias = cur_new_column_list_alias->next;
 				A2R(cur_new_column_list_alias->next);
 			}
