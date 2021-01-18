@@ -76,7 +76,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 	SqlColumn *	      cur_column, *start_column, *new_column;
 	SqlColumnAlias *      column_alias, *new_column_alias;
 	SqlColumnList *	      column_list, *new_column_list, *cur_column_list, *cur_new_column_list, *column_list_list;
-	SqlColumnListAlias *  column_list_alias, *cur_new_column_list_alias, *cur_column_list_alias, *column_list_alias_list;
+	SqlColumnListAlias *  column_list_alias, *cur_new_column_list_alias, *cur_column_list_alias, *column_list_alias_list, *tmp_cla;
 	SqlOptionalKeyword *  start_keyword, *cur_keyword, *new_keyword;
 	SqlStatement *	      new_stmt;
 	SqlSelectStatement *  select, *new_select;
@@ -84,7 +84,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 	SqlTableAlias *	      table_alias, *new_table_alias;
 	SqlFunction *	      function, *new_function;
 	SqlView *	      view, *new_view;
-	SqlJoin *	      join, *cur_join, *cur_new_join, *join_list;
+	SqlJoin *	      join, *cur_join, *cur_new_join, *join_list, *tmp_join;
 	SqlParameterTypeList *new_parameter_type_list, *cur_parameter_type_list, *start_parameter_type_list;
 	SqlValue *	      value, *new_value;
 	int		      len, list_len = 0, list_index;
@@ -325,7 +325,6 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 				/* The previous item of the first item should be the last item in the list, since the list is
 				 * doubly-linked. Conversely, the next item of the last item should be the first in the list.
 				 */
-				printf("cur_column_list_alias: %p\n", cur_column_list_alias);
 				if (0 == list_index) {
 					cur_new_column_list_alias->prev = ((1 == list_len) ? &column_list_alias_list[0]
 											   : &column_list_alias_list[list_len - 1]);
@@ -336,11 +335,12 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 				cur_new_column_list_alias->next
 				    = ((list_index + 1 == list_len) ? &column_list_alias_list[0]
 								    : &column_list_alias_list[list_index + 1]);
-				printf("cur_new_column_list_alias->next: %p\t - out: %p\n", cur_new_column_list_alias->next, (void*)cur_new_column_list_alias->next - (void*)out);
-				cur_new_column_list_alias = cur_new_column_list_alias->next;
+				tmp_cla = cur_new_column_list_alias->next;
+				// cur_new_column_list_alias = cur_new_column_list_alias->next;
 				if (NULL != cur_new_column_list_alias->next) {
 					A2R(cur_new_column_list_alias->next);
 				}
+				cur_new_column_list_alias = tmp_cla;
 			}
 			cur_column_list_alias = cur_column_list_alias->next;
 			list_index++;
@@ -427,8 +427,9 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 				}
 				A2R(cur_new_join->prev);
 				cur_new_join->next = ((list_index + 1 == list_len) ? &join_list[0] : &join_list[list_index + 1]);
-				cur_new_join = cur_new_join->next;
+				tmp_join = cur_new_join->next;
 				A2R(cur_new_join->next);
+				cur_new_join = tmp_join;
 			}
 			cur_join = cur_join->next;
 			list_index++;
