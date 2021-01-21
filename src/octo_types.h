@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2020 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -704,6 +704,7 @@ typedef struct SqlColumnListAlias {
 							 */
 	SqlColumnAlias *outer_query_column_alias;	// the ColumnAlias structure corresponding to this
 							// ColumnListAlias if/when referenced in outer query
+	int		     list_index; // Index of the position of the current SqlColumnListAlias in the linked list below
 	dqcreate(SqlColumnListAlias);
 } SqlColumnListAlias;
 

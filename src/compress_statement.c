@@ -303,6 +303,8 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 		list_index = 0;
 		cur_column_list_alias = column_list_alias;
 		do {
+			cur_column_list_alias->list_index = list_index;
+			printf("C: cur_column_list_alias: %p\n", cur_column_list_alias);
 			if (NULL != out) {
 				memcpy(cur_new_column_list_alias, cur_column_list_alias, sizeof(SqlColumnListAlias));
 				// cur_new_column_list_alias->value = cur_column_list_alias->value->compressed_offset;
@@ -314,8 +316,11 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 					     parent_table);
 			CALL_COMPRESS_HELPER(r, cur_column_list_alias->keywords, cur_new_column_list_alias->keywords, out,
 					     out_length, parent_table);
-			if (NULL != column_list_alias->duplicate_of_column) {
-				printf("duplicate: %p\n", column_list_alias->duplicate_of_column);
+			if ((NULL != out) && (NULL != cur_column_list_alias->duplicate_of_column)) {
+				printf("C: duplicate: %p\tlist_index: %d\n", cur_column_list_alias->duplicate_of_column, cur_column_list_alias->list_index);
+				cur_new_column_list_alias->duplicate_of_column = &column_list_alias_list[list_index];
+				A2R(cur_new_column_list_alias->duplicate_of_column);
+				printf("C: POST: duplicate: %p\n", cur_new_column_list_alias->duplicate_of_column);
 			}
 			// CALL_COMPRESS_HELPER(r, column_list_alias->duplicate_of_column,
 			// new_column_list_alias->duplicate_of_column, out, out_length);

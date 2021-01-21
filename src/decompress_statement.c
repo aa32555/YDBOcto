@@ -195,6 +195,9 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, long int out_le
 			CALL_DECOMPRESS_HELPER(column_list_alias->alias, out, out_length);
 			CALL_DECOMPRESS_HELPER(column_list_alias->keywords, out, out_length);
 
+			if (NULL != cur_column_list_alias->duplicate_of_column) {
+				cur_column_list_alias->duplicate_of_column = R2A(cur_column_list_alias->duplicate_of_column);
+			}
 			cur_column_list_alias->next = R2A(cur_column_list_alias->next);
 			cur_column_list_alias->prev = R2A(cur_column_list_alias->prev);
 			cur_column_list_alias = cur_column_list_alias->next;
