@@ -76,6 +76,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 	SqlColumn *	      cur_column, *start_column, *new_column;
 	SqlColumnAlias *      column_alias, *new_column_alias;
 	SqlColumnList *	      column_list, *new_column_list, *cur_column_list, *cur_new_column_list, *column_list_list;
+	SqlColumnList *	      tmp_column_list;
 	SqlColumnListAlias *  column_list_alias, *cur_new_column_list_alias, *cur_column_list_alias, *column_list_alias_list, *tmp_cla;
 	SqlOptionalKeyword *  start_keyword, *cur_keyword, *new_keyword;
 	SqlStatement *	      new_stmt;
@@ -304,26 +305,25 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 		cur_column_list_alias = column_list_alias;
 		do {
 			cur_column_list_alias->list_index = list_index;
-			printf("C: cur_column_list_alias: %p\n", cur_column_list_alias);
+			// fprintf(stderr, "C: cur_column_list_alias: %p\n", cur_column_list_alias);
 			if (NULL != out) {
 				memcpy(cur_new_column_list_alias, cur_column_list_alias, sizeof(SqlColumnListAlias));
 				// cur_new_column_list_alias->value = cur_column_list_alias->value->compressed_offset;
 			}
 			*out_length += sizeof(SqlColumnListAlias);
+			fprintf(stderr, "C: PRE: cur_new_column_list_alias->column_list: %p\n", cur_new_column_list_alias->column_list);
 			CALL_COMPRESS_HELPER(r, cur_column_list_alias->column_list, cur_new_column_list_alias->column_list, out,
 					     out_length, parent_table);
+			fprintf(stderr, "C: POST: cur_new_column_list_alias->column_list: %p\n", cur_new_column_list_alias->column_list);
 			CALL_COMPRESS_HELPER(r, cur_column_list_alias->alias, cur_new_column_list_alias->alias, out, out_length,
 					     parent_table);
 			CALL_COMPRESS_HELPER(r, cur_column_list_alias->keywords, cur_new_column_list_alias->keywords, out,
 					     out_length, parent_table);
 			if ((NULL != out) && (NULL != cur_column_list_alias->duplicate_of_column)) {
-				printf("C: duplicate: %p\tlist_index: %d\n", cur_column_list_alias->duplicate_of_column, cur_column_list_alias->list_index);
 				cur_new_column_list_alias->duplicate_of_column = &column_list_alias_list[list_index];
 				A2R(cur_new_column_list_alias->duplicate_of_column);
-				printf("C: POST: duplicate: %p\n", cur_new_column_list_alias->duplicate_of_column);
+				// fprintf(stderr, "C: duplicate: %p\n", cur_new_column_list_alias->duplicate_of_column);
 			}
-			// CALL_COMPRESS_HELPER(r, column_list_alias->duplicate_of_column,
-			// new_column_list_alias->duplicate_of_column, out, out_length);
 			// SqlTableIdColumnId	   tbl_and_col_id;
 			// SqlColumnAlias *outer_query_column_alias;
 			if (NULL != out) {
@@ -381,8 +381,9 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 				A2R(cur_new_column_list->prev);
 				cur_new_column_list->next
 				    = ((list_index + 1 == list_len) ? &column_list_list[0] : &column_list_list[list_index + 1]);
-				cur_new_column_list = cur_new_column_list->next;
+				tmp_column_list = cur_new_column_list->next;
 				A2R(cur_new_column_list->next);
+				cur_new_column_list = tmp_column_list;
 			}
 			cur_column_list = cur_column_list->next;
 			list_index++;
@@ -418,7 +419,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 				memcpy(cur_new_join, cur_join, sizeof(SqlJoin));
 				cur_new_join->value = cur_join->value->compressed_offset;
 			}
-			fprintf(stderr, "C: cur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
+			// fprintf(stderr, "C: cur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
 			CALL_COMPRESS_HELPER(r, cur_join->condition, cur_new_join->condition, out, out_length, parent_table);
 			// Compress the linked list pointers
 			if (NULL != out) {

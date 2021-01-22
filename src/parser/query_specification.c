@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2020 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -91,7 +91,10 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 				SqlColumnListAlias *cla_primary;
 				SqlColumnListAlias *cla_new;
 
+				// fprintf(stderr, "QS: asterisk_table_name: %p\n", asterisk_table_name);
+				// fprintf(stderr, "QS: 1: cla_cur->duplicate_of_column: %p\n", cla_cur->duplicate_of_column);
 				cla_primary = ((NULL == asterisk_table_name) ? cla_cur->duplicate_of_column : NULL);
+				// fprintf(stderr, "QS: cla_cur:\t%p\tcla_primary: %p\n", cla_cur, cla_primary);
 				if (NULL == cla_primary) {
 					SqlColumnList *cur;
 
@@ -113,8 +116,12 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 					 * This is used by the "else" block below.
 					 * The overload not required when processing TABLENAME.ASTERISK
 					 */
-					if (NULL == asterisk_table_name)
+					if (NULL == asterisk_table_name) {
+						// fprintf(stderr, "QS: IF:\tcur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
 						cla_cur->duplicate_of_column = cla_new;
+						// fprintf(stderr, "QS: IF:\tcla_cur->duplicate_of_column: %p\n\n", cla_cur->duplicate_of_column);
+					}
+					// fprintf(stderr, "QS: 2: cla_cur->duplicate_of_column: %p\n", cla_cur->duplicate_of_column);
 				} else {
 					/* This is a common column. The column that this is a duplicate of has to be
 					 * moved ahead in the SELECT column list. We will for now note this column
@@ -122,20 +129,28 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 					 * side table (since common columns have to be in the order they are seen
 					 * in the left side table and not the right side table).
 					 */
-					fprintf(stderr, "cur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
-					assert(NATURAL_JOIN == cur_join->type);
-					common_column_seen = TRUE;
-					/* First go from the cla in the tablejoin to the cla in the select column list */
-					cla_primary = cla_primary->duplicate_of_column;
-					/* Note down that this cla in the select column list is a common column
-					 * on the left side for this right side table. We use the
-					 * "duplicate_of_column" field for this purpose by setting it to a unique
-					 * number that corresponds to this particular right side table (hence the use
-					 * of "tablejoin_num" which is incremented for every table in the join list).
-					 */
-					cla_primary->duplicate_of_column = (void *)(intptr_t)tablejoin_num;
-					assert(NULL != cla_alias);
+					// fprintf(stderr, "QS: ELSE:\tcur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
+					// fprintf(stderr, "QS: ELSE:\tcla_primary: %p\tcla_primary->duplicate_of_column: %p\n\n", cla_primary, cla_primary->duplicate_of_column);
+					if (NATURAL_JOIN == cur_join->type) {
+						common_column_seen = TRUE;
+						/* First go from the cla in the tablejoin to the cla in the select column list */
+						cla_primary = cla_primary->duplicate_of_column;
+						/* Note down that this cla in the select column list is a common column
+						 * on the left side for this right side table. We use the
+						 * "duplicate_of_column" field for this purpose by setting it to a unique
+						 * number that corresponds to this particular right side table (hence the use
+						 * of "tablejoin_num" which is incremented for every table in the join list).
+						 */
+						cla_primary->duplicate_of_column = (void *)(intptr_t)tablejoin_num;
+						assert(NULL != cla_alias);
+					} else if (NO_JOIN == cur_join->type) {
+						// fprintf(stderr, "QS: ELSE: NO_JOIN\n");
+					} else {
+						assert(FALSE);
+					}
 				}
+				// fprintf(stderr, "QS: POST:\tcur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
+				// fprintf(stderr, "QS: POST:\tcla_primary: %p\n\n", cla_primary);
 				cla_cur = cla_cur->next;
 			} while (cla_start != cla_cur);
 			if (common_column_seen) {

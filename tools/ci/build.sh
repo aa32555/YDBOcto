@@ -1,7 +1,7 @@
 #!/bin/bash
 #################################################################
 #								#
-# Copyright (c) 2019-2020 YottaDB LLC and/or its subsidiaries.	#
+# Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	#
 # All rights reserved.						#
 #								#
 #	This source code contains the intellectual property	#
@@ -829,7 +829,11 @@ if [[ 0 != $exit_status ]]; then
 		echo "# ----------------------------------------------------------"
 		echo "# List of failed tests/subtests and their output directories"
 		echo "# ----------------------------------------------------------"
-		grep -A 6 -E "not ok|Test: " Testing/Temporary/LastTest.log | grep -E "not ok|# Temporary|Test: " | grep -C 1 "not ok" | sed "s/^not/  &/;s/^#/  &/"
+		if [[ -z Testing/Temporary/LastTest.log ]]; then
+			grep -A 6 -E "not ok|Test: " Testing/Temporary/LastTest.log | grep -E "not ok|# Temporary|Test: " | grep -C 1 "not ok" | sed "s/^not/  &/;s/^#/  &/"
+		else
+			echo "# Detected script failure prior to BATS test execution. Please review script output to determine source."
+		fi
 		echo "# -----------------------------"
 	else
 		echo "# ----------------------------------------------------------"

@@ -20,6 +20,7 @@
 #define CALL_DECOMPRESS_HELPER(value, out, out_length)                                                   \
 	{                                                                                                \
 		if (NULL != value) {                                                                     \
+			/* fprintf(stderr, "\nD: value: %p\tout: %p\tmax: %p\n", (void*)(R2A(value)), (void *)out, (void *)(out + out_length)); */ \
 			if ((R2A(value) >= (void *)out) && (R2A(value) <= (void *)(out + out_length))) { \
 				value = R2A(value);                                                      \
 			}                                                                                \
@@ -54,8 +55,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, long int out_le
 	SqlView *	      view;
 	SqlParameterTypeList *cur_parameter_type_list, *start_parameter_type_list;
 
-	// fprintf(stderr, "\nD: stmt: %p\tout: %p\tout_length: %d\nout + out_length: %p\n", ((char *)stmt), out, out_length,
-	// out + out_length);
+	// fprintf(stderr, "\nD: stmt: %p\n", ((char *)stmt));
 	assert(((char *)stmt) < out + out_length);
 	if (NULL == stmt) {
 		return NULL;
@@ -191,13 +191,18 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, long int out_le
 
 		cur_column_list_alias = column_list_alias;
 		do {
+			fprintf(stderr, "D: cur_column_list_alias: %p\n", cur_column_list_alias);
+			fprintf(stderr, "D: PRE: cur_column_list_alias->column_list: %p\n", cur_column_list_alias->column_list);
 			CALL_DECOMPRESS_HELPER(column_list_alias->column_list, out, out_length);
+			fprintf(stderr, "D: POST: cur_column_list_alias->column_list: %p\n", cur_column_list_alias->column_list);
 			CALL_DECOMPRESS_HELPER(column_list_alias->alias, out, out_length);
 			CALL_DECOMPRESS_HELPER(column_list_alias->keywords, out, out_length);
 
 			if (NULL != cur_column_list_alias->duplicate_of_column) {
 				cur_column_list_alias->duplicate_of_column = R2A(cur_column_list_alias->duplicate_of_column);
+				// fprintf(stderr, "D: duplicate: %p\n", cur_column_list_alias->duplicate_of_column);
 			}
+
 			cur_column_list_alias->next = R2A(cur_column_list_alias->next);
 			cur_column_list_alias->prev = R2A(cur_column_list_alias->prev);
 			cur_column_list_alias = cur_column_list_alias->next;
@@ -228,6 +233,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, long int out_le
 			CALL_DECOMPRESS_HELPER(cur_join->condition, out, out_length);
 			cur_join->next = R2A(cur_join->next);
 			cur_join->prev = R2A(cur_join->prev);
+			// fprintf(stderr, "D: cur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
 			cur_join = cur_join->next;
 		} while (cur_join != join);
 		break;

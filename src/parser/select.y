@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2020 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -283,7 +283,10 @@ from_clause
 				YYERROR;
 			}
 		}
-		// fprintf(stderr, "cmp_join: %p\ttype: %d\tcmp_join->value: %p\n", cmp_join, cmp_join->type, cmp_join->value);
+		if (create_view_STATEMENT == ($$)->type) {
+			fprintf(stderr, "cmp_join: %p\ttype: %d\tcmp_join->value: %p\n", cmp_join, cmp_join->type, cmp_join->value);
+			// assert(FALSE);
+		}
 		stmt = drill_to_table_alias(cmp_join->value);
 		UNPACK_SQL_STATEMENT(alias, stmt, table_alias);
 		// fprintf(stderr, "\nP: alias: %p\n", alias);
