@@ -44,7 +44,6 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 	int			i;
 
 	result = 0;
-	fprintf(stderr, "stmt: %p\n", stmt);
 	if (NULL == stmt)
 		return result;
 	switch (stmt->type) {
@@ -271,7 +270,6 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 			ret_cla = ((NULL == ret) ? NULL : ret->ret_cla);
 			assert(depth || (NULL == ret_cla)
 			       || (NULL == *ret_cla)); /* assert that caller has initialized "*ret_cla" */
-			fprintf(stderr, "cur_cla: %p\n", cur_cla);
 			result |= qualify_statement(cur_cla->column_list, tables, table_alias_stmt, depth + 1, ret);
 			if ((NULL != ret_cla) && (0 == depth)) {
 				SqlColumnListAlias *qualified_cla;
@@ -444,7 +442,6 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 		break;
 	case table_value_STATEMENT:
 	default:
-		fprintf(stderr, "stmt->type: %d\n", stmt->type);
 		ERROR(ERR_UNKNOWN_KEYWORD_STATE, "");
 		assert(FALSE);
 		result = 1;

@@ -166,7 +166,6 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, long int out_le
 		UNPACK_SQL_STATEMENT(table_alias, stmt, table_alias);
 		CALL_DECOMPRESS_HELPER(table_alias->table, out, out_length);
 		CALL_DECOMPRESS_HELPER(table_alias->alias, out, out_length);
-		// fprintf(stderr, "\nD: table_alias: %p\ttable_alias->alias: %p\n", table_alias, table_alias->alias);
 		CALL_DECOMPRESS_HELPER(table_alias->parent_table_alias, out, out_length);
 		CALL_DECOMPRESS_HELPER(table_alias->column_list, out, out_length);
 		/* The following fields of a SqlTableAlias are not pointer values and so need no CALL_DECOMPRESS_HELPER call:
@@ -191,16 +190,12 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, long int out_le
 
 		cur_column_list_alias = column_list_alias;
 		do {
-			fprintf(stderr, "D: cur_column_list_alias: %p\n", cur_column_list_alias);
-			fprintf(stderr, "D: PRE: cur_column_list_alias->column_list: %p\n", cur_column_list_alias->column_list);
-			CALL_DECOMPRESS_HELPER(column_list_alias->column_list, out, out_length);
-			fprintf(stderr, "D: POST: cur_column_list_alias->column_list: %p\n", cur_column_list_alias->column_list);
-			CALL_DECOMPRESS_HELPER(column_list_alias->alias, out, out_length);
-			CALL_DECOMPRESS_HELPER(column_list_alias->keywords, out, out_length);
+			CALL_DECOMPRESS_HELPER(cur_column_list_alias->column_list, out, out_length);
+			CALL_DECOMPRESS_HELPER(cur_column_list_alias->alias, out, out_length);
+			CALL_DECOMPRESS_HELPER(cur_column_list_alias->keywords, out, out_length);
 
 			if (NULL != cur_column_list_alias->duplicate_of_column) {
 				cur_column_list_alias->duplicate_of_column = R2A(cur_column_list_alias->duplicate_of_column);
-				// fprintf(stderr, "D: duplicate: %p\n", cur_column_list_alias->duplicate_of_column);
 			}
 
 			cur_column_list_alias->next = R2A(cur_column_list_alias->next);
@@ -233,7 +228,6 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, long int out_le
 			CALL_DECOMPRESS_HELPER(cur_join->condition, out, out_length);
 			cur_join->next = R2A(cur_join->next);
 			cur_join->prev = R2A(cur_join->prev);
-			// fprintf(stderr, "D: cur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
 			cur_join = cur_join->next;
 		} while (cur_join != join);
 		break;

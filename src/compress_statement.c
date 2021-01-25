@@ -311,10 +311,10 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, long int *out_len
 				// cur_new_column_list_alias->value = cur_column_list_alias->value->compressed_offset;
 			}
 			*out_length += sizeof(SqlColumnListAlias);
-			fprintf(stderr, "C: PRE: cur_new_column_list_alias->column_list: %p\n", cur_new_column_list_alias->column_list);
+			// fprintf(stderr, "C: PRE: cur_new_column_list_alias->column_list: %ld\n", cur_new_column_list_alias->column_list);
 			CALL_COMPRESS_HELPER(r, cur_column_list_alias->column_list, cur_new_column_list_alias->column_list, out,
 					     out_length, parent_table);
-			fprintf(stderr, "C: POST: cur_new_column_list_alias->column_list: %p\n", cur_new_column_list_alias->column_list);
+			// fprintf(stderr, "C: POST: cur_new_column_list_alias->column_list: %ld\n", cur_new_column_list_alias->column_list);
 			CALL_COMPRESS_HELPER(r, cur_column_list_alias->alias, cur_new_column_list_alias->alias, out, out_length,
 					     parent_table);
 			CALL_COMPRESS_HELPER(r, cur_column_list_alias->keywords, cur_new_column_list_alias->keywords, out,

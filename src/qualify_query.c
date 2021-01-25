@@ -66,7 +66,6 @@ int qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlState
 		assert(table_alias->parent_table_alias == parent_table_alias);
 	}
 	table_type = table_alias->table->type;
-	fprintf(stderr, "QQ: table_type: %d\n", table_type);
 	switch (table_type) {
 	case create_table_STATEMENT:
 		return result;
@@ -90,7 +89,6 @@ int qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlState
 	}
 
 	UNPACK_SQL_STATEMENT(select, table_alias->table, select);
-	fprintf(stderr, "QQ: select->table_list->type: %d\n", select->table_list->type);
 	if (create_view_STATEMENT == select->table_list->type) {
 		// UNPACK_SQL_STATEMENT(join, select->table_list->v.create_view->table->v.table_alias->table->v.select->table_list, join);
 		result |= qualify_statement(select->table_list->v.create_view->table, parent_join, table_alias_stmt, 0, NULL);
@@ -141,7 +139,6 @@ int qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlState
 		 */
 		cur_join->next = ((NULL != parent_join) ? parent_join : start_join); /* stop join list at current join */
 		table_alias->aggregate_depth = AGGREGATE_DEPTH_FROM_CLAUSE;
-		fprintf(stderr, "QQ: select: %p\n", select);
 		result |= qualify_statement(cur_join->condition, start_join, table_alias_stmt, 0, NULL);
 		cur_join->next = next_join; /* restore join list to original */
 		cur_join = next_join;

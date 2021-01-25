@@ -91,10 +91,7 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 				SqlColumnListAlias *cla_primary;
 				SqlColumnListAlias *cla_new;
 
-				// fprintf(stderr, "QS: asterisk_table_name: %p\n", asterisk_table_name);
-				// fprintf(stderr, "QS: 1: cla_cur->duplicate_of_column: %p\n", cla_cur->duplicate_of_column);
 				cla_primary = ((NULL == asterisk_table_name) ? cla_cur->duplicate_of_column : NULL);
-				// fprintf(stderr, "QS: cla_cur:\t%p\tcla_primary: %p\n", cla_cur, cla_primary);
 				if (NULL == cla_primary) {
 					SqlColumnList *cur;
 
@@ -117,11 +114,8 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 					 * The overload not required when processing TABLENAME.ASTERISK
 					 */
 					if (NULL == asterisk_table_name) {
-						// fprintf(stderr, "QS: IF:\tcur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
 						cla_cur->duplicate_of_column = cla_new;
-						// fprintf(stderr, "QS: IF:\tcla_cur->duplicate_of_column: %p\n\n", cla_cur->duplicate_of_column);
 					}
-					// fprintf(stderr, "QS: 2: cla_cur->duplicate_of_column: %p\n", cla_cur->duplicate_of_column);
 				} else {
 					/* This is a common column. The column that this is a duplicate of has to be
 					 * moved ahead in the SELECT column list. We will for now note this column
@@ -129,8 +123,6 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 					 * side table (since common columns have to be in the order they are seen
 					 * in the left side table and not the right side table).
 					 */
-					// fprintf(stderr, "QS: ELSE:\tcur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
-					// fprintf(stderr, "QS: ELSE:\tcla_primary: %p\tcla_primary->duplicate_of_column: %p\n\n", cla_primary, cla_primary->duplicate_of_column);
 					if (NATURAL_JOIN == cur_join->type) {
 						common_column_seen = TRUE;
 						/* First go from the cla in the tablejoin to the cla in the select column list */
@@ -144,13 +136,31 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 						cla_primary->duplicate_of_column = (void *)(intptr_t)tablejoin_num;
 						assert(NULL != cla_alias);
 					} else if (NO_JOIN == cur_join->type) {
-						// fprintf(stderr, "QS: ELSE: NO_JOIN\n");
+						/* This case occurs when a query includes usage of a view. No action is required in
+						 * this case since the containing `else` block is chosen due to the abuse of
+						 * duplicate_of_column in the above `if (NULL == cla_primary)` block. That block
+						 * updates the `duplicate_of_column` member regardless of whether a NATURAL_JOIN is
+						 * implicated.
+						 *
+						 * This was previously true and asserted here, since multiple executions
+						 * of the aforementioned `if` block only occurred for NATURAL_JOINs. However, the
+						 * introduction of views invalidates this assumption since view queries (effectively
+						 * subqueries) are stored as part of a CREATE VIEW statement and later retrieved
+						 * whenever this view is later used in a query. In this latter case, the original
+						 * parse tree for the view subquery will be retrieved and reused.
+						 *
+						 * Due to the abuse of duplicate_of_column during the initial parsing of the view
+						 * subquery, that field will be non-NULL whenever the view subquery is subsequently
+						 * used, causing this `else` block for NATURAL_JOINs to be erroneously entered.
+						 *
+						 * So, we can simply take no action as there is no NATURAL_JOIN in that case and the
+						 * relevant parse tree modifications were done as part of the original parsing of
+						 * the view subquery during CREATE VIEW processing.
+						 */
 					} else {
 						assert(FALSE);
 					}
 				}
-				// fprintf(stderr, "QS: POST:\tcur_join: %p\tcur_join->type: %d\n", cur_join, cur_join->type);
-				// fprintf(stderr, "QS: POST:\tcla_primary: %p\n\n", cla_primary);
 				cla_cur = cla_cur->next;
 			} while (cla_start != cla_cur);
 			if (common_column_seen) {
