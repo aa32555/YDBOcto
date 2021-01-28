@@ -802,6 +802,7 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 			CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, null_query_lock);
 		}
 		release_query_lock = FALSE; /* Set variable to FALSE so we do not try releasing same lock later */
+		fprintf(stderr, "END CREATE VIEW\n");
 		break;
 	case begin_STATEMENT:
 	case commit_STATEMENT:

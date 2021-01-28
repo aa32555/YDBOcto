@@ -247,6 +247,7 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, ParseContext *parse_
 	SqlJoin *		start_join, *cur_join;
 	SqlSetOperation *	set_operation;
 	SqlTableAlias *		table_alias;
+	SqlView *		view;
 	SqlUnaryOperation *	unary = NULL;
 	SqlValue *		value = NULL;
 	SqlValueType		child_type1, child_type2;
@@ -596,6 +597,11 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, ParseContext *parse_
 	case create_table_STATEMENT:
 		// Do nothing; we got here through a table_alias
 		break;
+	case create_view_STATEMENT:
+		UNPACK_SQL_STATEMENT(view, v, create_view);
+		result |= populate_data_type(view->table, type, parse_context);
+		// result |= populate_data_type_column_list_alias(view->table, type, FALSE, parse_context);
+		break;
 	case table_value_STATEMENT:
 		/* For a table constructed using the VALUES clause, go through each value specified and determine
 		 * its type. Verify all rows have same type for each column.
@@ -831,6 +837,7 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, ParseContext *parse_
 		assert((BOOLEAN_NOT != unary->operation) || (NUL_VALUE == *type) || IS_LITERAL_PARAMETER(*type));
 		break;
 	default:
+		fprintf(stderr, "Type: %d\n",v->type);
 		assert(FALSE);
 		ERROR(ERR_UNKNOWN_KEYWORD_STATE, "");
 		result = 1;

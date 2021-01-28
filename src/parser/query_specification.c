@@ -61,6 +61,7 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 	tablejoin_num = 1;
 	comp_result = 0;
 	cla_alias = NULL;
+	fprintf(stderr, "START: cla_alias: %p\n", cla_alias);
 	asterisk_table_name_len = ((NULL == asterisk_table_name) ? 0 : strlen(asterisk_table_name) - 2);
 	do {
 		sql_stmt = cur_join->value;
@@ -92,6 +93,9 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 				SqlColumnListAlias *cla_new;
 
 				cla_primary = ((NULL == asterisk_table_name) ? cla_cur->duplicate_of_column : NULL);
+				fprintf(stderr, "1: asterisk_table_name: %p\n", asterisk_table_name);
+				fprintf(stderr, "1: cla_primary: %p\n", cla_primary);
+				fprintf(stderr, "1: cla_cur->duplicate_of_column: %p\n", cla_cur->duplicate_of_column);
 				if (NULL == cla_primary) {
 					SqlColumnList *cur;
 
@@ -104,10 +108,13 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 					PACK_SQL_STATEMENT(cur->value, column_alias, column_alias);
 					PACK_SQL_STATEMENT(cla_new->column_list, cur, column_list);
 					dqinit(cla_new);
-					if (NULL == cla_alias)
+					if (NULL == cla_alias) {
 						cla_alias = cla_new;
-					else
+						fprintf(stderr, "2: cla_alias: %p\n", cla_alias);
+					} else {
 						dqappend(cla_alias, cla_new);
+						fprintf(stderr, "2A: cla_alias: %p\tcla_new: %p\n", cla_alias, cla_new);
+					}
 					/* Maintain pointer from table column list alias to select column list alias.
 					 * We overload/abuse the "duplicate_of_column" field for this purpose.
 					 * This is used by the "else" block below.
@@ -157,6 +164,9 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 						 * relevant parse tree modifications were done as part of the original parsing of
 						 * the view subquery during CREATE VIEW processing.
 						 */
+						fprintf(stderr, "3: cla_primary: %p\n", cla_primary);
+						fprintf(stderr, "3: cla_alias: %p\n", cla_alias);
+						fprintf(stderr, "3: cla_cur->duplicate_of_column: %p\n", cla_cur->duplicate_of_column);
 					} else {
 						assert(FALSE);
 					}
@@ -194,6 +204,7 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 								 */
 								cla_alias = NULL;
 							}
+							fprintf(stderr, "4: cla_alias: %p\n", cla_alias);
 						}
 						dqdel(cla_cur); /* Remove "cla_cur" from its current position */
 						/* Now move "cla_cur" to the tail of the "cla_common" doubly linked list */
@@ -215,6 +226,7 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 				} else {
 					cla_alias = cla_common;
 				}
+				fprintf(stderr, "5: cla_alias: %p\n", cla_alias);
 			}
 		}
 		if (NULL != asterisk_table_name) {
@@ -250,6 +262,7 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 			t_cla_alias = t_cla_alias->next;
 		} while (t_cla_alias != cla_alias);
 	}
+	fprintf(stderr, "cla_alias: %p\n", cla_alias);
 	return cla_alias;
 }
 
@@ -280,12 +293,14 @@ SqlStatement *query_specification(OptionalKeyword set_quantifier, SqlStatement *
 	select->select_list = select_list;
 	cla_cur = cla_head = select_list->v.column_list_alias;
 	asterisk_list = NULL;
+	fprintf(stderr, "START QSPEC\n");
 	/* Go through the select column list (`select n1.id,*,n2.id ...`) to find/process ASTERISK */
 	do {
 		if (NULL == cla_cur->column_list) {
 			/* Came across an ASTERISK in the select column list */
 			if (NULL == asterisk_list)
 				asterisk_list = process_asterisk(select, NULL, select_list->loc);
+			assert(NULL != asterisk_list);
 			if (cla_cur->next == cla_cur) {
 				/* cla_cur is the only member of select column list (`select * from ..`) */
 				select_list->v.column_list_alias = asterisk_list;
