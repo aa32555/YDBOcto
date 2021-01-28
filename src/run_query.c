@@ -777,8 +777,8 @@ int run_query(callback_fnptr_t callback, void *parms, boolean_t send_row_descrip
 			/* Store the text representation of the CREATE VIEW statement:
 			 *	^%ydboctoocto(OCTOLIT_VIEWS,schema_name,view_name,OCTOLIT_TEXT)
 			 */
-			YDB_STRING_TO_BUFFER(OCTOLIT_TEXT, &view_name_buffers[4]);
-			status = ydb_set_s(&octo_global, 4, view_name_buffers, &view_create_buffer);
+			YDB_STRING_TO_BUFFER(OCTOLIT_TEXT, &view_name_buffers[3]);
+			status = ydb_set_s(&octo_global, 3, view_name_buffers, &view_create_buffer);
 			CLEANUP_AND_RETURN_IF_NOT_YDB_OK(status, memory_chunks, buffer, spcfc_buffer, query_lock);
 			free(buffer);
 			/* Note: "view_create_buffer" (whose "buf_addr" points to "buffer") is also no longer unusable */
