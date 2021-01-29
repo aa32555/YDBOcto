@@ -2035,6 +2035,7 @@ view_definition
           && $column_name->v.value->type == COLUMN_REFERENCE);
         ($$)->v.create_view->view_name = $column_name;
         ($$)->v.create_view->table = $sql_select_statement;
+	fprintf(stderr, "PARSER: ($$)->v.create_view->table->v.table_alias: %d\n", ($$)->v.create_view->table->v.table_alias);
 
 	ret = ($$)->v.create_view->table;
 	start_char = ret->loc.first_column + old_input_index;

@@ -19,6 +19,9 @@ sql_select_statement
       SqlOptionalKeyword *select_words, *new_words;
       UNPACK_SQL_STATEMENT(table_alias, $$, table_alias);
       UNPACK_SQL_STATEMENT(select, table_alias->table, select);
+	fprintf(stderr, "PARSER: $query_specification->type: %d\n", $query_specification->type);
+	fprintf(stderr, "PARSER: select->select_list: %p\n", select->select_list);
+	fprintf(stderr, "PARSER: select->select_list->type: %d\n", select->select_list->type);
       UNPACK_SQL_STATEMENT(select_words, select->optional_words, keyword);
       UNPACK_SQL_STATEMENT(new_words, $optional_query_words, keyword);
       dqappend(select_words, new_words);
@@ -145,6 +148,10 @@ ordering_specification
 query_specification
   : SELECT set_quantifier select_list table_expression optional_order_by {
      SqlStatement *ret;
+
+	fprintf(stderr, "PARSER: $select_list: %p\n", $select_list);
+	fprintf(stderr, "PARSER: $select_list->type: %d\n", $select_list->type);
+	fprintf(stderr, "PARSER: $select_list->v.column_list_alias: %p\n", $select_list->v.column_list_alias);
 
       INVOKE_QUERY_SPECIFICATION(ret, (OptionalKeyword)$set_quantifier, $select_list, $table_expression,
       									$optional_order_by, plan_id);
@@ -284,7 +291,7 @@ from_clause
 			}
 		}
 		if (create_view_STATEMENT == ($$)->type) {
-			fprintf(stderr, "cmp_join: %p\ttype: %d\tcmp_join->value: %p\n", cmp_join, cmp_join->type, cmp_join->value);
+			// fprintf(stderr, "cmp_join: %p\ttype: %d\tcmp_join->value: %p\n", cmp_join, cmp_join->type, cmp_join->value);
 			// assert(FALSE);
 		}
 		stmt = drill_to_table_alias(cmp_join->value);

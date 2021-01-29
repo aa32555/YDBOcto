@@ -178,6 +178,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, long int out_le
 	case select_STATEMENT:
 		UNPACK_SQL_STATEMENT(select, stmt, select);
 		CALL_DECOMPRESS_HELPER(select->select_list, out, out_length);
+		fprintf(stderr, "D: select_list: %p\n", select->select_list);
 		CALL_DECOMPRESS_HELPER(select->table_list, out, out_length);
 		CALL_DECOMPRESS_HELPER(select->where_expression, out, out_length);
 		CALL_DECOMPRESS_HELPER(select->group_by_expression, out, out_length);

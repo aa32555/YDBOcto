@@ -62,6 +62,7 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 	comp_result = 0;
 	cla_alias = NULL;
 	fprintf(stderr, "START: cla_alias: %p\n", cla_alias);
+	fprintf(stderr, "START: select->select_list: %p\n", select->select_list);
 	asterisk_table_name_len = ((NULL == asterisk_table_name) ? 0 : strlen(asterisk_table_name) - 2);
 	do {
 		sql_stmt = cur_join->value;
@@ -93,9 +94,10 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 				SqlColumnListAlias *cla_new;
 
 				cla_primary = ((NULL == asterisk_table_name) ? cla_cur->duplicate_of_column : NULL);
-				fprintf(stderr, "1: asterisk_table_name: %p\n", asterisk_table_name);
-				fprintf(stderr, "1: cla_primary: %p\n", cla_primary);
-				fprintf(stderr, "1: cla_cur->duplicate_of_column: %p\n", cla_cur->duplicate_of_column);
+				// fprintf(stderr, "\nLOOP\n1: asterisk_table_name: %p\n", asterisk_table_name);
+				// fprintf(stderr, "1: cla_cur: %p\n", cla_cur);
+				// fprintf(stderr, "1: cla_primary: %p\n", cla_primary);
+				// fprintf(stderr, "1: cla_cur->duplicate_of_column: %p\nLOOP\n", cla_cur->duplicate_of_column);
 				if (NULL == cla_primary) {
 					SqlColumnList *cur;
 
@@ -110,10 +112,10 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 					dqinit(cla_new);
 					if (NULL == cla_alias) {
 						cla_alias = cla_new;
-						fprintf(stderr, "2: cla_alias: %p\n", cla_alias);
+						fprintf(stderr, "2A: cla_alias: %p\tcla_new: %p\n", cla_alias, cla_new);
 					} else {
 						dqappend(cla_alias, cla_new);
-						fprintf(stderr, "2A: cla_alias: %p\tcla_new: %p\n", cla_alias, cla_new);
+						fprintf(stderr, "2B: cla_alias: %p\tcla_new: %p\n", cla_alias, cla_new);
 					}
 					/* Maintain pointer from table column list alias to select column list alias.
 					 * We overload/abuse the "duplicate_of_column" field for this purpose.
@@ -164,9 +166,10 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 						 * relevant parse tree modifications were done as part of the original parsing of
 						 * the view subquery during CREATE VIEW processing.
 						 */
-						fprintf(stderr, "3: cla_primary: %p\n", cla_primary);
-						fprintf(stderr, "3: cla_alias: %p\n", cla_alias);
-						fprintf(stderr, "3: cla_cur->duplicate_of_column: %p\n", cla_cur->duplicate_of_column);
+						// cla_alias = select->select_list->v.column_list_alias;
+						// fprintf(stderr, "3: cla_primary: %p\n", cla_primary);
+						// fprintf(stderr, "3: cla_alias: %p\n", cla_alias);
+						// fprintf(stderr, "3: cla_cur->duplicate_of_column: %p\n", cla_cur->duplicate_of_column);
 					} else {
 						assert(FALSE);
 					}
@@ -262,7 +265,7 @@ SqlColumnListAlias *process_asterisk(SqlSelectStatement *select, char *asterisk_
 			t_cla_alias = t_cla_alias->next;
 		} while (t_cla_alias != cla_alias);
 	}
-	fprintf(stderr, "cla_alias: %p\n", cla_alias);
+	fprintf(stderr, "cla_alias: %p\n\n", cla_alias);
 	return cla_alias;
 }
 
@@ -288,12 +291,15 @@ SqlStatement *query_specification(OptionalKeyword set_quantifier, SqlStatement *
 	this_table_alias->table = table_expression;
 	this_table_alias->unique_id = (*plan_id)++;
 	assert(column_list_alias_STATEMENT == select_list->type);
+	fprintf(stderr, "QSPEC: PRE:  this_table_alias->column_list: %p\n", this_table_alias->column_list);
 	this_table_alias->column_list = select_list;
+	fprintf(stderr, "QSPEC: POST: this_table_alias->column_list: %p\n", this_table_alias->column_list);
 	UNPACK_SQL_STATEMENT(select, table_expression, select);
 	select->select_list = select_list;
 	cla_cur = cla_head = select_list->v.column_list_alias;
 	asterisk_list = NULL;
 	fprintf(stderr, "START QSPEC\n");
+	fprintf(stderr, "START QSPECT: select->select_list: %p\n", select->select_list);
 	/* Go through the select column list (`select n1.id,*,n2.id ...`) to find/process ASTERISK */
 	do {
 		if (NULL == cla_cur->column_list) {
@@ -304,6 +310,7 @@ SqlStatement *query_specification(OptionalKeyword set_quantifier, SqlStatement *
 			if (cla_cur->next == cla_cur) {
 				/* cla_cur is the only member of select column list (`select * from ..`) */
 				select_list->v.column_list_alias = asterisk_list;
+				fprintf(stderr, "QSPEC: select_list->v.column_list_alias: %p\n", select_list->v.column_list_alias);
 			} else {
 				SqlColumnListAlias *cla_alias;
 
@@ -313,6 +320,7 @@ SqlStatement *query_specification(OptionalKeyword set_quantifier, SqlStatement *
 				 * to ASTERISK in the position where it was seen in select column list.
 				 */
 				REPLACE_COLUMNLISTALIAS(cla_cur, cla_alias, cla_head, select_list);
+				fprintf(stderr, "QSPEC: cla_cur: %p\n", cla_cur);
 			}
 		} else {
 			SqlColumnList *inner_column_list;
