@@ -145,6 +145,14 @@ Text: Cannot DROP function 'xxx': no function defined with given name and parame
 
 Description/Action: This error indicates an attempt to drop a non-existent function. PSQL Error Code: 42883
 
++++++++++++++++++++++++++
+ERR_CANNOT_DROP_TABLE
++++++++++++++++++++++++++
+
+Text: Cannot DROP table 'xxx' as it does not exist
+
+Description/Action: This error indicates an attempt to drop a non-existent table. PSQL Error Code: 42P01
+
 ++++++++++++++++++++++++++++++
 ERR_CASE_BRANCH_TYPE_MISMATCH
 ++++++++++++++++++++++++++++++
@@ -737,6 +745,14 @@ Text: Processing message type xxx
 
 Description/Action: This debug message indicates that a PostgreSQL wire protocol message of a particular type is being processed. PSQL Error Code: 00000
 
+++++++++++++++++++++++++
+ERR_READWRITE_DISALLOWED
+++++++++++++++++++++++++
+
+Text: READWRITE keyword in CREATE TABLE is disallowed due to an incompatible keyword
+
+Description/Action: This error is generated when a CREATE TABLE command specifies the table type to be READWRITE but also specifies another keyword that is incompatible with READWRITE. A table level GLOBAL keyword is compatible if it specifies just an unsubscripted M global name followed by subscripts that only correspond to primary key columns (using the :code:`keys(...)` syntax). Otherwise it is considered incompatible. A column level PIECE keyword is compatible if it is specified for a non-key column and the piece number matches the number of this non-key column (starting from 1 from the leftmost non-key column in the CREATE TABLE command). Otherwise it is considered incompatible. A column level EXTRACT, GLOBAL, DELIM, START, STARTINCLUDE or END keyword is considered incompatible. PSQL Error Code: 42601
+
 ++++++++++++++++++++
 INFO_READ_MESSAGE
 ++++++++++++++++++++
@@ -856,6 +872,14 @@ INFO_TEXT_REPRESENTATION
 Text: xxx
 
 Description/Action: This message prints the text representation of a DDL specification. PSQL Error Code: 00000
+
++++++++++++++++++++
+ERR_TABLE_READONLY
++++++++++++++++++++
+
+Text: xxx not allowed on READONLY tables. Only allowed on READWRITE tables.
+
+Description/Action: Queries that modify tables (e.g. INSERT INTO, DELETE, ALTER etc.) are not allowed on tables that have been created as READONLY. They are only allowed on READWRITE tables. PSQL Error Code: 42601
 
 ++++++++++++++++++++++++++++++
 ERR_TABLE_UNKNOWN_COLUMN_NAME

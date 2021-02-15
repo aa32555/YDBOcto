@@ -162,6 +162,8 @@ extern void yyerror(YYLTYPE *llocp, yyscan_t scan, SqlStatement **out, int *plan
 %token PARTITION
 %token PIECE
 %token PRIMARY
+%token READONLY
+%token READWRITE
 %token RESTRICT
 %token RETURNS
 %token RIGHT
@@ -1237,10 +1239,10 @@ table_definition
           && $column_name->v.value->type == COLUMN_REFERENCE);
         ($$)->v.create_table->tableName = $column_name;
         ($$)->v.create_table->columns = $table_element_list;
+        assign_table_to_columns($$);
         if (create_table_defaults($$, $table_definition_tail)) {
           YYABORT;
         }
-        assign_table_to_columns($$);
       }
   ;
 
@@ -1310,6 +1312,18 @@ optional_keyword_element
 	($$)->v.keyword->keyword = OPTIONAL_NULLCHAR;
 	($$)->v.keyword->v = literal;
 	dqinit(($$)->v.keyword);
+  }
+  | READONLY {
+      SQL_STATEMENT($$, keyword_STATEMENT);
+      MALLOC_STATEMENT($$, keyword, SqlOptionalKeyword);
+      ($$)->v.keyword->keyword = OPTIONAL_READONLY;
+      dqinit(($$)->v.keyword);
+  }
+  | READWRITE {
+      SQL_STATEMENT($$, keyword_STATEMENT);
+      MALLOC_STATEMENT($$, keyword, SqlOptionalKeyword);
+      ($$)->v.keyword->keyword = OPTIONAL_READWRITE;
+      dqinit(($$)->v.keyword);
   }
   ;
 
