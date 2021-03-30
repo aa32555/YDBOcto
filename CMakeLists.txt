@@ -76,5 +76,6 @@ endif()
 # https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#cmake-language-variables for
 # more information.
 set(MEMORYCHECK_SUPPRESSIONS_FILE ${PROJECT_SOURCE_DIR}/tools/ci/ignored-valgrind-errors.supp CACHE STRING "")
+set(MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --trace-children-skip-by-arg=yottadb,mumps" CACHE STRING "")
 include(CTest)
 add_subdirectory(src)
