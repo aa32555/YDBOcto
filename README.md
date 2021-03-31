@@ -315,7 +315,7 @@ $ydb_dist/mupip load /tmp/YDBOcto-master/build/tests/fixtures/northwind.zwr
 $ydb_dist/plugin/bin/octo -f /tmp/YDBOcto-master/build/tests/fixtures/northwind.sql
 ```
 
-Once loaded, you can use [SELECT](https://docs.yottadb.com/Octo/grammar.html#select) queries to access the data.
+Once loaded, you can run `$ydb_dist/plugin/bin/octo` to start the Octo interactive shell and use [SELECT](https://docs.yottadb.com/Octo/grammar.html#select) queries to access the data.
 
 ## Additional Configuration
 
