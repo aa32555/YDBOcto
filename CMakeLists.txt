@@ -75,7 +75,7 @@ endif()
 # in `DartConfiguration.tcl` (similar to `export` in shell). See
 # https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#cmake-language-variables for
 # more information.
+# NOTE: this only traces the top-level process. Bats tests use the `run_octo_under_valgrind` wrapper instead.
 set(MEMORYCHECK_SUPPRESSIONS_FILE ${PROJECT_SOURCE_DIR}/tools/ci/ignored-valgrind-errors.supp CACHE STRING "")
-set(MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --trace-children-skip-by-arg=yottadb,mumps" CACHE STRING "")
 include(CTest)
 add_subdirectory(src)
