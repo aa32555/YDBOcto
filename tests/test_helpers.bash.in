@@ -72,9 +72,10 @@ init_test() {
 	# slowdown which should all hopefully go away with this env var set.
 	export ydb_recompile_newer_src=TRUE
 	# Below is needed to avoid wildcard expansion order (e.g. cat *.m used in various tests) changing based on LC_TYPE
-	# It is also needed to avoid sort order changing (and reference file issues) based on LC_CTYPE being "C" or "en_US.UTF8".
+	# It is also needed to avoid sort order changing (and reference file issues)
+	# based on LC_CTYPE being "C", "en_US.UTF8", or some other UTF type.
 	# Fixing LC_ALL to a particular value ensures caller environment does not affect test results.
-	export LC_ALL=en_US.UTF8
+	export LC_ALL=$(locale -a | grep -i "utf" | head -n 1)
 	# Avoid generating .pyc files during tests, which clutter up the source directory
 	# All the python scripts take a very small fraction of the test time,
 	# so this does not impact pipeline times in any significant way.
@@ -128,7 +129,7 @@ load_fixture() {
 	if [[ $fixture_name == *.zwr ]]; then
 		# Determine the chset (M or UTF-8) to use from the extract file. It will be either "UTF-8" or "".
 		chset=`grep "MUPIP EXTRACT" @PROJECT_SOURCE_DIR@/tests/fixtures/$fixture_name | awk '{print $4}'`
-		# Keep LC_ALL as en_US.UTF8 (set in "init_test()" function) for both M and UTF-8 mode. That should work just fine.
+		# Keep LC_ALL as some system UTF type (set in "init_test()" function) for both M and UTF-8 mode. That should work just fine.
 		ydb_chset=$chset $ydb_dist/mupip load @PROJECT_SOURCE_DIR@/tests/fixtures/$fixture_name
 	elif [[ $fixture_name == *.sql ]]; then
 		if [[ $2 == "subtest" ]]; then
@@ -802,7 +803,8 @@ run_query_in_octo_and_postgres_and_crosscheck() {
 }
 
 sort_LC_ALL_C() {
-	# We have noticed that setting LC_ALL to en_US.UTF8 (done by the test framework at start of each subtest in "init_test()")
+	# We have noticed that setting LC_ALL to at least some UTF types, such as en_US.UTF8
+	# (done by the test framework at start of each subtest in "init_test()"),
 	# results in different sort output (in rare cases in TQG04 subtest, and in all cases in the TRTE07 subtest). This is
 	# suspected to be a bug in older versions of sort (sort 8.22 and older which is the version of sort in Ubuntu 18.04
 	# and RHEL 7). sort 8.30 (version of sort in Ubuntu 20.04, CentOS 8 etc.) works fine in this case.
@@ -810,7 +812,7 @@ sort_LC_ALL_C() {
 	# just for the "sort" command.
 	export LC_ALL=C
 	sort
-	export LC_ALL=en_US.UTF8
+	export LC_ALL=$(locale -a | grep -i "utf" | head -n 1)
 }
 
 run_query_verify() {
@@ -918,3 +920,4 @@ run_query_generator() {
   queryfile+=".sql"
   run_query_in_octo_and_postgres_and_crosscheck_multiple_queries $databaseName $queryfile "trim_trailing_zeroes" $usejdbcoption $useextended
 }
+
