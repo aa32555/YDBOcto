@@ -23,6 +23,11 @@ case "$0" in
 	*) echo "Unknown name $0, use 'rocto' or 'octo'"
 esac
 
+# Valgrind slows down Octo quite a lot. Only run it once in a while.
+if [ $(( RANDOM % 4 )) != 0 ]; then
+	exec "$OCTO" "$@"
+fi
+
 # Setup log file
 short_commit="$($OCTO --version | grep "Git commit" | cut -d ' ' -f 3 | cut -c -5)"
 log_file="$(mktemp /tmp/valgrind/"$short_commit".XXXXX.log)"
