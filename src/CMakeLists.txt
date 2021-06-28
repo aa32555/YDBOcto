@@ -184,6 +184,7 @@ add_library(libocto OBJECT
   get_user_visible_type_string.c
   history.c
   hash_canonical_query.c
+  is_integer.c
   is_query_canceled.c
   is_stmt_table_asterisk.c
   load_pg_defaults.c

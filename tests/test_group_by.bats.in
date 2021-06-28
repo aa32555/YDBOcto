@@ -86,3 +86,6 @@ setup() {
 	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries customers TGB13.sql
 }
 
+@test "TGB14 : OCTO700 : validate GROUP BY using column number usage" {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TGB14.sql
+}
