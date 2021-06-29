@@ -350,12 +350,10 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 					/* Case (2) : If "*ret_cla" is NULL, check if this is a case of ORDER BY column-number.
 					 * If so, point "cur_cla" to corresponding cla from the SELECT column list.
 					 */
-					SqlColumnList *col_list;
-					boolean_t      is_postive_numeric_literal, is_negative_numeric_literal;
-					long int       retval;
+					boolean_t is_postive_numeric_literal, is_negative_numeric_literal;
+					long int  retval;
 
 					order_by_alias = FALSE;
-					UNPACK_SQL_STATEMENT(col_list, cur_cla->column_list, column_list);
 					boolean_t error_encountered = is_integer(cur_cla, &is_negative_numeric_literal,
 										 &is_postive_numeric_literal, &retval, &str);
 					if (is_postive_numeric_literal || is_negative_numeric_literal) {
