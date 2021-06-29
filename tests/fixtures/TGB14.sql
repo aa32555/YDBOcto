@@ -11,4 +11,4 @@
 #################################################################
 
 -- `1` in the group by refers to `id` in the select column list
-select id,firstname from names group by 1;
+-- select id,firstname from names group by 1;
