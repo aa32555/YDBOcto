@@ -91,6 +91,11 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		}
 		break;
 	case LP_COERCE_TYPE:
+		/* Check if already computed in GroupBy */
+		if (pplan->tablejoin_body_group_by_done && plan->extra_detail.lp_coerce_type.is_inner_expression && plan->extra_detail.lp_coerce_type.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		if (dot_count) {
 			TMPL(tmpl_print_expression, plan->v.lp_default.operand[0], pplan, dot_count, depth);
 			TMPL(tmpl_print_dots, dot_count);
@@ -353,6 +358,11 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 	case LP_BOOLEAN_REGEX_SENSITIVE_SIMILARTO:
 	case LP_BOOLEAN_REGEX_INSENSITIVE_LIKE:
 	case LP_BOOLEAN_REGEX_INSENSITIVE_SIMILARTO: {
+		/* Check if already computed in GroupBy */
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		int	regex_type, regex_flags;
 
 		if ((LP_BOOLEAN_REGEX_SENSITIVE_LIKE == plan_type) || (LP_BOOLEAN_REGEX_INSENSITIVE_LIKE == plan_type)) {
@@ -401,6 +411,7 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 	}
 	case LP_BOOLEAN_IN:
 	case LP_BOOLEAN_NOT_IN:
+
 		if ((LP_SELECT_QUERY == second_operand->type) || (LP_SET_OPERATION == second_operand->type)
 				|| (LP_TABLE_VALUE == second_operand->type)) {
 			/* This is IN or NOT IN used with a sub-query on the right hand side.
@@ -477,6 +488,11 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 			}
 			%{}){}%
 		} else {
+			/* Check if already computed in GroupBy */
+			if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+				TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+				return;
+			}
 			/* This is IN or NOT IN used with a list of values on the right hand side. */
 
 			LogicalPlan	*plan2, *value;
@@ -588,6 +604,11 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 	case LP_BOOLEAN_ALL_GREATER_THAN:
 	case LP_BOOLEAN_ALL_LESS_THAN_OR_EQUALS:
 	case LP_BOOLEAN_ALL_GREATER_THAN_OR_EQUALS:
+		/* Check if already computed in GroupBy */
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		if (dot_count) {
 			TMPL(tmpl_print_expression, first_operand, pplan, dot_count, depth);
 			TMPL(tmpl_print_dots, dot_count);
@@ -661,6 +682,11 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		}
 		break;
 	case LP_FORCE_NUM:
+		/* Check if already computed in GroupBy */
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		if (dot_count) {
 			TMPL(tmpl_print_expression, first_operand, pplan, dot_count, depth);
 			TMPL(tmpl_print_dots, dot_count);
@@ -676,6 +702,10 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		}
 		break;
 	case LP_NEGATIVE:
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		if (dot_count) {
 			TMPL(tmpl_print_expression, first_operand, pplan, dot_count, depth);
 			TMPL(tmpl_print_dots, dot_count);
@@ -687,6 +717,10 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		}
 		break;
 	case LP_BOOLEAN_NOT:
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		if (dot_count) {
 			TMPL(tmpl_print_expression, first_operand, pplan, dot_count, depth);
 			TMPL(tmpl_print_dots, dot_count);
@@ -717,6 +751,11 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		break;
 	case LP_BOOLEAN_IS_NULL:
 	case LP_BOOLEAN_IS_NOT_NULL:
+		// Check if already computed in GroupBy if so use the pre-computed results
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		if (IS_LP_COLUMN_ALIAS_OR_LP_DERIVED_COLUMN(first_operand)) {
 			/* Check if this is a TABLE_ASTERISK type column alias. If so, the NULL or NOT NULL check has to
 			 * work on a record type (not on a scalar column) and has different semantics.
@@ -785,6 +824,10 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		}
 		break;
 	case LP_COALESCE_CALL:
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		/* COALESCE(a, b, ...) -> $SELECT('$ZYISSQLNULL(a):a,'$ZYISSQLNULL(b):b,...,1:$ZYSQLNULL) */
 		/* first_operand is a LP_COLUMN_LIST, but we want to get the first column value */
 		cur_plan = first_operand->v.lp_default.operand[0];
@@ -838,6 +881,10 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		break;
 	case LP_GREATEST:
 	case LP_LEAST: {
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		boolean_t	use_string_comparison, is_null;
 		LogicalPlan	*next_plan;
 		char		*min_or_max;
@@ -910,6 +957,11 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		break;
 	}
 	case LP_NULL_IF:
+		/* Check if already computed in GroupBy */
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		/* NULLIF(a,b) -> $select(a=b:$ZYSQLNULL,1:a) */
 		coerce_to_numeric = !lp_is_operand_type_string(plan, NULL);
 		if (dot_count) {
@@ -957,6 +1009,11 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		}
 		break;
 	case LP_FUNCTION_CALL: {
+		/* Check if already computed in GroupBy */
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		int	numargs;	/* Number of arguments in the function call */
 
 		/* As noted in lp_generate_where.c, the first_operand here is the SQL function name and the second is the function
@@ -1113,6 +1170,11 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		}
 		break;
 	case LP_CASE:
+		/* Check if already computed in GroupBy */
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		GET_LP(cur_plan, plan, 0, LP_CASE_STATEMENT);
 		assert(cur_plan == first_operand);
 		cas_value = cur_plan->v.lp_default.operand[0];
@@ -1210,6 +1272,11 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		FATAL(ERR_UNKNOWN_KEYWORD_STATE, "");
 	}
 	if (m_operator) {
+		/* Check if already computed in GroupBy */
+		if (pplan->tablejoin_body_group_by_done && plan->v.lp_default.is_inner_expression && plan->v.lp_default.group_by_column_num) {
+			TMPL(tmpl_print_expression_group_by_computation, plan, dot_count);
+			return;
+		}
 		if (dot_count) {
 			/* Evaluate left hand side of binary/boolean operator */
 			TMPL(tmpl_print_expression, first_operand, pplan, dot_count, depth);

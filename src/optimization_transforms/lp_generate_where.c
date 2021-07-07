@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2022 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -51,6 +51,8 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *parent_stmt) {
 			ret->extra_detail.lp_coerce_type.coerce_type = value->coerced_type;
 			ret->extra_detail.lp_coerce_type.pre_coerce_type = value->pre_coerced_type;
 			LP_GENERATE_WHERE(value->v.coerce_target, stmt, ret->v.lp_default.operand[0], error_encountered);
+			ret->extra_detail.lp_coerce_type.is_inner_expression = value->group_by_fields.is_inner_expression;
+			ret->extra_detail.lp_coerce_type.group_by_column_num = value->group_by_fields.group_by_column_num;
 			break;
 		default:
 			MALLOC_LP_2ARGS(ret, LP_VALUE);
@@ -78,6 +80,8 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *parent_stmt) {
 			LP_GENERATE_WHERE(binary->operands[0], stmt, ret->v.lp_default.operand[0], error_encountered);
 			LP_GENERATE_WHERE(binary->operands[1], stmt, ret->v.lp_default.operand[1], error_encountered);
 		}
+		ret->v.lp_default.group_by_column_num = binary->group_by_fields.group_by_column_num;
+		ret->v.lp_default.is_inner_expression = binary->group_by_fields.is_inner_expression;
 		break;
 	case unary_STATEMENT:
 		UNPACK_SQL_STATEMENT(unary, stmt, unary);
@@ -85,6 +89,8 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *parent_stmt) {
 		type = unary->operation + LP_FORCE_NUM;
 		MALLOC_LP_2ARGS(ret, type);
 		LP_GENERATE_WHERE(unary->operand, stmt, ret->v.lp_default.operand[0], error_encountered);
+		ret->v.lp_default.group_by_column_num = unary->group_by_fields.group_by_column_num;
+		ret->v.lp_default.is_inner_expression = unary->group_by_fields.is_inner_expression;
 		break;
 	case array_STATEMENT:
 		UNPACK_SQL_STATEMENT(array, stmt, array);
@@ -107,6 +113,8 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *parent_stmt) {
 		MALLOC_LP_2ARGS(ret, LP_COALESCE_CALL);
 		/* Walk through the column list, converting each right side value as appropriate. */
 		error_encountered |= lp_generate_column_list(&ret->v.lp_default.operand[0], stmt, start_cl);
+		ret->v.lp_default.group_by_column_num = coalesce_call->group_by_fields.group_by_column_num;
+		ret->v.lp_default.is_inner_expression = coalesce_call->group_by_fields.is_inner_expression;
 		break;
 	case greatest_STATEMENT:
 		UNPACK_SQL_STATEMENT(greatest_call, stmt, greatest);
@@ -114,6 +122,8 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *parent_stmt) {
 		MALLOC_LP_2ARGS(ret, LP_GREATEST);
 		/* Walk through the column list, converting each right side value as appropriate. */
 		error_encountered |= lp_generate_column_list(&ret->v.lp_default.operand[0], stmt, start_cl);
+		ret->v.lp_default.group_by_column_num = greatest_call->group_by_fields.group_by_column_num;
+		ret->v.lp_default.is_inner_expression = greatest_call->group_by_fields.is_inner_expression;
 		break;
 	case least_STATEMENT:
 		UNPACK_SQL_STATEMENT(least_call, stmt, least);
@@ -121,12 +131,16 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *parent_stmt) {
 		MALLOC_LP_2ARGS(ret, LP_LEAST);
 		/* Walk through the column list, converting each right side value as appropriate. */
 		error_encountered |= lp_generate_column_list(&ret->v.lp_default.operand[0], stmt, start_cl);
+		ret->v.lp_default.group_by_column_num = least_call->group_by_fields.group_by_column_num;
+		ret->v.lp_default.is_inner_expression = least_call->group_by_fields.is_inner_expression;
 		break;
 	case null_if_STATEMENT:
 		UNPACK_SQL_STATEMENT(null_if, stmt, null_if);
 		MALLOC_LP_2ARGS(ret, LP_NULL_IF);
 		LP_GENERATE_WHERE(null_if->left, stmt, ret->v.lp_default.operand[0], error_encountered);
 		LP_GENERATE_WHERE(null_if->right, stmt, ret->v.lp_default.operand[1], error_encountered);
+		ret->v.lp_default.group_by_column_num = null_if->group_by_fields.group_by_column_num;
+		ret->v.lp_default.is_inner_expression = null_if->group_by_fields.is_inner_expression;
 		break;
 	case function_call_STATEMENT:
 		UNPACK_SQL_STATEMENT(function_call, stmt, function_call);
@@ -175,6 +189,8 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *parent_stmt) {
 		if (NULL != start_cl->value) {
 			error_encountered |= lp_generate_column_list(&cur_lp->v.lp_default.operand[1], stmt, start_cl);
 		}
+		ret->v.lp_default.group_by_column_num = function_call->group_by_fields.group_by_column_num;
+		ret->v.lp_default.is_inner_expression = function_call->group_by_fields.is_inner_expression;
 		break;
 	case aggregate_function_STATEMENT:
 		UNPACK_SQL_STATEMENT(aggregate_function, stmt, aggregate_function);
@@ -249,6 +265,8 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *parent_stmt) {
 				cur_lp = cur_lp->v.lp_default.operand[1];
 			}
 		} while (cur_branch != cas_branch);
+		ret->v.lp_default.group_by_column_num = cas->group_by_fields.group_by_column_num;
+		ret->v.lp_default.is_inner_expression = cas->group_by_fields.is_inner_expression;
 		break;
 	case set_operation_STATEMENT:
 	case table_alias_STATEMENT:

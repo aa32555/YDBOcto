@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2022 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -180,9 +180,14 @@ SqlColumnAlias *qualify_column_name(SqlValue *column_value, SqlJoin *tables, Sql
 									SQL_VALUE_STATEMENT(ret->column, TABLE_ASTERISK,
 											    column_value->v.string_literal);
 									ret->table_alias_stmt = matching_alias_stmt;
+									// Note down that the processing is not complete so that
+									// process_table_asterisk_cla() can identify and complete
+									// its processing
+									ret->is_table_asterisk_processing_done = FALSE;
 									cur_table_alias->table_asterisk_column_alias = ret;
 								} else {
 									ret = cur_table_alias->table_asterisk_column_alias;
+									ret->is_table_asterisk_processing_done = FALSE;
 								}
 								return ret;
 							}

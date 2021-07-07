@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2022 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -492,7 +492,7 @@ grouping_column_reference
 	ret = grouping_column_reference($derived_column_expression, NULL);
 	if (NULL == ret) {
 		/* GROUP BY specified using an expression. Issue error as this usage is not valid. */
-		ERROR(ERR_GROUP_BY_ONLY_COLUMN_NAME, "");
+		ERROR(ERR_GROUP_BY_INVALID_USAGE, "");
 		yyerror(NULL, NULL, &($derived_column_expression), NULL, NULL, NULL);
 		YYERROR;
 	}
@@ -505,7 +505,7 @@ grouping_column_reference
 	ret = grouping_column_reference($derived_column_expression, $collate_clause);
 	if (NULL == ret) {
 		/* GROUP BY specified using an expression. Issue error as this usage is not valid. */
-		ERROR(ERR_GROUP_BY_ONLY_COLUMN_NAME, "");
+		ERROR(ERR_GROUP_BY_INVALID_USAGE, "");
 		yyerror(NULL, NULL, &($derived_column_expression), NULL, NULL, NULL);
 		YYERROR;
 	}

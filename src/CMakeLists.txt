@@ -161,6 +161,7 @@ add_library(libocto OBJECT
   emit_create_function.c
   emit_sql_statement.c
   ensure_same_type.c
+  expression_switch_statement.c
   find_column.c
   find_column_alias_name.c
   find_table.c
@@ -176,6 +177,7 @@ add_library(libocto OBJECT
   get_full_path_of_generated_m_file.c
   get_full_path_of_generated_o_file.c
   get_function_name_and_parmtypes.c
+  get_group_by_column_number.c
   get_input.c
   get_key_columns.c
   get_keyword.c
@@ -448,6 +450,7 @@ set(template_files
   ${template_dir}/tmpl_print_dots.ctemplate
   ${template_dir}/tmpl_print_expression.ctemplate
   ${template_dir}/tmpl_print_expression_assignment.ctemplate
+  ${template_dir}/tmpl_print_expression_group_by_computation.ctemplate
   ${template_dir}/tmpl_rightjoin_key.ctemplate
   ${template_dir}/tmpl_set_duplication_check.ctemplate
   ${template_dir}/tmpl_tablejoin.ctemplate

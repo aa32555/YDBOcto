@@ -18,6 +18,10 @@
 #include "octo.h"
 #include "octo_types.h"
 
+#define IS_EXPRESSION_QUALIFICATION(TABLE_ALIAS)                             \
+	((SET_GROUP_BY_NUM_TO_EXPRESSION == TABLE_ALIAS->do_group_by_checks) \
+	 && ((0 == TABLE_ALIAS->aggregate_depth) || (AGGREGATE_DEPTH_HAVING_CLAUSE == TABLE_ALIAS->aggregate_depth)))
+
 #define ISSUE_GROUP_BY_OR_AGGREGATE_FUNCTION_ERROR(COLUMN_ALIAS_STMT)               \
 	{                                                                           \
 		SqlStatement *column_name;                                          \
@@ -30,6 +34,61 @@
 		yyerror(NULL, NULL, &COLUMN_ALIAS_STMT, NULL, NULL, NULL);          \
 	}
 
+#define RETURN_IF_GROUP_BY_EXPRESSION_FOUND(SQL_ELEM, DO_GROUP_BY_CHECKS_VALUE)                                          \
+	{                                                                                                                \
+		if ((DO_GROUP_BY_CHECKS_VALUE == DO_GROUP_BY_CHECKS) && SQL_ELEM->group_by_fields.group_by_column_num) { \
+			break;                                                                                           \
+		}                                                                                                        \
+	}
+
+#define SET_EXPRESSION(TABLE_ALIAS, FUNCTION_EXPRESSION_SET)                                                    \
+	{                                                                                                       \
+		if (AGGREGATE_DEPTH_GROUP_BY_CLAUSE == TABLE_ALIAS->aggregate_depth) {                          \
+			if (QualifyQuery_NONE == TABLE_ALIAS->qualify_query_stage) {                            \
+				TABLE_ALIAS->qualify_query_stage = QualifyQuery_GROUP_BY_EXPRESSION;            \
+				FUNCTION_EXPRESSION_SET                                                         \
+				    = TRUE; /*This helps use to determine if current block set the expression*/ \
+			}                                                                                       \
+		}                                                                                               \
+	}
+
+#define UNSET_EXPRESSION(TABLE_ALIAS, FUNCTION_EXPRESSION_SET)                          \
+	{                                                                               \
+		if (TRUE == FUNCTION_EXPRESSION_SET) {                                  \
+			/* The case block in the current execution had set this value*/ \
+			/* Reset it for further calls */                                \
+			TABLE_ALIAS->qualify_query_stage = QualifyQuery_NONE;           \
+		}                                                                       \
+	}
+#define SET_INNER_EXPRESSION(SQL_ELEM, TABLE_ALIAS, PTR_IS_INNER_QUERY_EXPRESSION)                        \
+	{                                                                                                 \
+		if ((PTR_IS_INNER_QUERY_EXPRESSION)                                                       \
+		    && ((AGGREGATE_DEPTH_GROUP_BY_CLAUSE == TABLE_ALIAS->aggregate_depth)                 \
+			|| (0 == TABLE_ALIAS->aggregate_depth))) {                                        \
+			SQL_ELEM->group_by_fields.is_inner_expression = *(PTR_IS_INNER_QUERY_EXPRESSION); \
+		}                                                                                         \
+	}
+
+#define SET_EXPRESSION_GROUP_BY_NUM(SQL_ELEM, ARGUMENT, STMT, TABLE_ALIAS)                                                   \
+	{                                                                                                                    \
+		if (IS_EXPRESSION_QUALIFICATION(TABLE_ALIAS)) {                                                              \
+			SQL_ELEM->group_by_fields.is_constant                                                                \
+			    = expression_switch_statement(CONST, ARGUMENT, NULL, NULL, NULL, TABLE_ALIAS);                   \
+			/* Set GROUP BY position if its not a constant */                                                    \
+			if (!SQL_ELEM->group_by_fields.is_constant) {                                                        \
+				boolean_t is_group_by_node_inner_expression = FALSE;                                         \
+				int	  column_number                                                                      \
+				    = get_group_by_column_number(TABLE_ALIAS, STMT, &is_group_by_node_inner_expression);     \
+				if (-1 != column_number) {                                                                   \
+					/* Matching GroupBy node is found note down the node number and if it belongs to the \
+					 * current query */                                                                  \
+					SQL_ELEM->group_by_fields.group_by_column_num = column_number;                       \
+					SQL_ELEM->group_by_fields.is_inner_expression = is_group_by_node_inner_expression;   \
+				}                                                                                            \
+			}                                                                                                    \
+		}                                                                                                            \
+	}
+
 /* Note: The code in "qualify_check_constraint.c" is modeled on the below so it is possible changes here might need to be
  *       made there too. And vice versa (i.e. changes to "qualify_statement.c" might need to be made here too).
  *       An automated tool "tools/ci/check_code_base_assertions.csh" alerts us (through the pre-commit script and/or
@@ -40,7 +99,8 @@
  *	0 if query is successfully qualified.
  *	1 if query had errors during qualification.
  */
-int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_alias_stmt, int depth, QualifyStatementParms *ret) {
+int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_alias_stmt, int depth, QualifyStatementParms *ret,
+		      boolean_t *is_inner_query_expression) {
 	SqlBinaryOperation *	binary;
 	SqlCaseBranchStatement *cas_branch, *cur_branch;
 	SqlCaseStatement *	cas;
@@ -60,8 +120,10 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 	SqlColumnListAlias **	ret_cla;
 	int			save_max_unique_id;
 	int			i;
+	boolean_t		function_expression_set = FALSE;
 
 	result = 0;
+	UNUSED(function_expression_set);
 	if (NULL == stmt)
 		return result;
 	if ((NULL != ret) && (NULL != ret->max_unique_id)) {
@@ -79,21 +141,49 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 		UNPACK_SQL_STATEMENT(new_column_alias, stmt, column_alias);
 		UNPACK_SQL_STATEMENT(column_table_alias, new_column_alias->table_alias_stmt, table_alias);
 		parent_table_alias = column_table_alias->parent_table_alias;
-		/* Assert that if we are doing GROUP BY related checks ("do_group_by_checks" is TRUE), then the
+		/* Assert that if we are doing GROUP BY related checks ("do_group_by_checks" is set to DO_GROUP_BY_CHECKS), then the
 		 * "aggregate_function_or_group_by_or_having_specified" field is also TRUE.
 		 */
-		assert(!parent_table_alias->do_group_by_checks
+		assert(!(DO_GROUP_BY_CHECKS == parent_table_alias->do_group_by_checks)
 		       || parent_table_alias->aggregate_function_or_group_by_or_having_specified);
-		if (parent_table_alias->do_group_by_checks && (0 == parent_table_alias->aggregate_depth)
+		/*
+		 * This block is used in two cases
+		 * 1. GroupBy is used and we need to validate column_alias usages
+		 * 3. In case GroupBy is not present but HAVING clause is present. We still want to generate an error on
+		 * column_alias usages as they are not grouped. To allow such condition check this case is used to perform the
+		 * necessary validation.
+		 */
+		// 1. Column Reference check
+		if ((DO_GROUP_BY_CHECKS == parent_table_alias->do_group_by_checks)
+		    && ((0 == parent_table_alias->aggregate_depth)
+			|| (AGGREGATE_DEPTH_HAVING_CLAUSE == parent_table_alias->aggregate_depth))
 		    && !new_column_alias->group_by_column_number) {
-			/* 1) We are doing GROUP BY related validation of column references in the query (and because
-			 *    of the above assert implies that the query has GROUP BY or aggregate function usages) AND
+			/* 1) We are doing GROUP BY related validation of column references in the query
 			 * 2) The current column reference is not inside an aggregate function AND
 			 * 3) The current column reference is not in the GROUP BY clause.
 			 * Issue an error.
 			 */
 			ISSUE_GROUP_BY_OR_AGGREGATE_FUNCTION_ERROR(stmt);
 			result = 1;
+		}
+		/* The column alias is part of an expression. If the column alias belongs to outer query then we know that the
+		 * expression which holds it is also part of outer query. If the expression is present in GROUP BY then by storing
+		 * this information we allow physical plan generation to decide whether to refer to grouped data at current query
+		 * level or fetch the value from outer query. Without this information we will have to either trace through the
+		 * expression again to find out whether the column and thus the expression belongs to the present query or not. This
+		 * is avoided by storing `inner_query_expression` value at the expression level whose GROUP BY column number will be
+		 * matched.
+		 * Also, GROUP BY condition is required to make sure column_alias seen in column number replacement in GROUP BY
+		 * clause gets checked to see if its part of this query or not.
+		 */
+		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		if (IS_EXPRESSION_QUALIFICATION(table_alias) || (AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth)) {
+			// Indicate to the caller whether the current column reference belongs to this query or outer query
+			if (parent_table_alias == table_alias) {
+				*is_inner_query_expression = TRUE;
+			} else {
+				*is_inner_query_expression = FALSE;
+			}
 		}
 		break;
 	case value_STATEMENT:
@@ -153,17 +243,25 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 							       & parent_table_alias
 								     ->aggregate_function_or_group_by_or_having_specified);
 						} else if (AGGREGATE_DEPTH_GROUP_BY_CLAUSE == aggregate_depth) {
-							/* Update `group_by_column_count` and `group_by_column_number` */
-							new_column_alias->group_by_column_number
-							    = ++parent_table_alias->group_by_column_count;
-						} else if (AGGREGATE_DEPTH_HAVING_CLAUSE == aggregate_depth) {
-							if (!new_column_alias->group_by_column_number) {
-								/* We are inside a HAVING clause while making a non-grouped
-								 * column reference outside of an aggregate function. Issue
-								 * error.
+							if (QualifyQuery_GROUP_BY_EXPRESSION != table_alias->qualify_query_stage) {
+								/* Update `group_by_column_count` and `group_by_column_number` */
+								new_column_alias->group_by_column_number
+								    = ++parent_table_alias->group_by_column_count;
+							} else {
+								/* This column alias is part of an expression in GroupBy.
+								 * Do not update group_by_column_number here as we want to
+								 * set GROUP BY column number to the root expression which holds
+								 * this column
 								 */
-								ISSUE_GROUP_BY_OR_AGGREGATE_FUNCTION_ERROR(stmt);
-								result = 1;
+							}
+						} else if (AGGREGATE_DEPTH_HAVING_CLAUSE == aggregate_depth) {
+							/* Indicate to the caller whether the current column reference belongs to
+							 * this query or outer query.
+							 */
+							if (parent_table_alias == table_alias) {
+								*is_inner_query_expression = TRUE;
+							} else {
+								*is_inner_query_expression = FALSE;
 							}
 						} else {
 							/* We are inside a WHERE or FROM/JOIN clause where  aggregate
@@ -173,6 +271,10 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 							assert((AGGREGATE_DEPTH_WHERE_CLAUSE == aggregate_depth)
 							       || (AGGREGATE_DEPTH_FROM_CLAUSE == aggregate_depth));
 						}
+					} else if (parent_table_alias != table_alias) {
+						// This helps to determine if the column_alias is referring to an outer query
+						assert(is_inner_query_expression);
+						*is_inner_query_expression = FALSE;
 					}
 				} else {
 					/* Return pointer type is SqlColumnListAlias (not SqlColumnAlias).
@@ -185,7 +287,8 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 			}
 			break;
 		case CALCULATED_VALUE:
-			result |= qualify_statement(value->v.calculated, tables, table_alias_stmt, depth + 1, ret);
+			result |= qualify_statement(value->v.calculated, tables, table_alias_stmt, depth + 1, ret,
+						    is_inner_query_expression);
 			break;
 		case FUNCTION_NAME:
 			/* Cannot validate the function using a "find_function()" call here (like we did "find_table()" for
@@ -195,10 +298,18 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 			 */
 			break;
 		case COERCE_TYPE:
-			result |= qualify_statement(value->v.coerce_target, tables, table_alias_stmt, depth + 1, ret);
+			UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+			RETURN_IF_GROUP_BY_EXPRESSION_FOUND(value, table_alias->do_group_by_checks);
+			SET_EXPRESSION(table_alias, function_expression_set);
+			result |= qualify_statement(value->v.coerce_target, tables, table_alias_stmt, depth + 1, ret,
+						    is_inner_query_expression);
 			if (result) {
 				yyerror(NULL, NULL, &stmt, NULL, NULL, NULL);
+				break;
 			}
+			SET_INNER_EXPRESSION(value, table_alias, is_inner_query_expression);
+			SET_EXPRESSION_GROUP_BY_NUM(value, value->v.coerce_target, stmt, table_alias);
+			UNSET_EXPRESSION(table_alias, function_expression_set);
 			break;
 		case BOOLEAN_VALUE:
 		case NUMERIC_LITERAL:
@@ -219,41 +330,162 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 			 */
 		}
 		break;
-	case binary_STATEMENT:
+	case binary_STATEMENT:;
+		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		SET_EXPRESSION(table_alias, function_expression_set);
 		UNPACK_SQL_STATEMENT(binary, stmt, binary);
+		RETURN_IF_GROUP_BY_EXPRESSION_FOUND(binary, table_alias->do_group_by_checks);
+		boolean_t constant_expression[2] = {FALSE, FALSE};
+		boolean_t tmp_is_inner_expression[2] = {TRUE, TRUE};
 		for (i = 0; i < 2; i++) {
-			result |= qualify_statement(binary->operands[i], tables, table_alias_stmt, depth + 1, ret);
+			result |= qualify_statement(binary->operands[i], tables, table_alias_stmt, depth + 1, ret,
+						    &tmp_is_inner_expression[i]);
+			if (IS_EXPRESSION_QUALIFICATION(table_alias)) {
+				// We are performing a group by check and we need to know if the operand is a constant or not
+				// to determine if we want to find this expression in GROUP BY or not
+				constant_expression[i]
+				    = expression_switch_statement(CONST, binary->operands[i], NULL, NULL, NULL, table_alias);
+			}
 		}
+		if (is_inner_query_expression) {
+			if ((TRUE == tmp_is_inner_expression[0]) && (TRUE == tmp_is_inner_expression[1])) {
+				*is_inner_query_expression = TRUE;
+			} else {
+				*is_inner_query_expression = FALSE;
+			}
+			if ((AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth)
+			    || ((0 == table_alias->aggregate_depth)
+				|| (AGGREGATE_DEPTH_HAVING_CLAUSE == table_alias->aggregate_depth))) {
+				binary->group_by_fields.is_inner_expression = *is_inner_query_expression;
+			}
+		}
+		if (IS_EXPRESSION_QUALIFICATION(table_alias)) {
+			if ((TRUE == constant_expression[0]) && (TRUE == constant_expression[1])) {
+				binary->group_by_fields.is_constant = TRUE;
+			} else {
+				binary->group_by_fields.is_constant = FALSE;
+			}
+			if (!binary->group_by_fields.is_constant) {
+				// This expression is not a constant so try to get its GROUP BY location
+				boolean_t is_group_by_node_inner_expression = FALSE;
+				int	  column_number
+				    = get_group_by_column_number(table_alias, stmt, &is_group_by_node_inner_expression);
+				if (-1 != column_number) {
+					/* Matching GROUP BY node is found note down its location and whether it belongs to the
+					 * current query.
+					 */
+					binary->group_by_fields.group_by_column_num = column_number;
+					binary->group_by_fields.is_inner_expression = is_group_by_node_inner_expression;
+				}
+			}
+		}
+		UNSET_EXPRESSION(table_alias, function_expression_set);
 		break;
-	case unary_STATEMENT:
+	case unary_STATEMENT:;
+		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		SET_EXPRESSION(table_alias, function_expression_set);
 		UNPACK_SQL_STATEMENT(unary, stmt, unary);
-		result |= qualify_statement(unary->operand, tables, table_alias_stmt, depth + 1, ret);
+		RETURN_IF_GROUP_BY_EXPRESSION_FOUND(unary, table_alias->do_group_by_checks);
+		result |= qualify_statement(unary->operand, tables, table_alias_stmt, depth + 1, ret, is_inner_query_expression);
+		SET_INNER_EXPRESSION(unary, table_alias, is_inner_query_expression);
+		SET_EXPRESSION_GROUP_BY_NUM(unary, unary->operand, stmt, table_alias);
+		UNSET_EXPRESSION(table_alias, function_expression_set);
 		break;
 	case array_STATEMENT:
 		UNPACK_SQL_STATEMENT(array, stmt, array);
-		result |= qualify_statement(array->argument, tables, table_alias_stmt, depth + 1, ret);
+		result |= qualify_statement(array->argument, tables, table_alias_stmt, depth + 1, ret, is_inner_query_expression);
 		break;
-	case function_call_STATEMENT:
+	case function_call_STATEMENT:;
+		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		SET_EXPRESSION(table_alias, function_expression_set);
 		UNPACK_SQL_STATEMENT(fc, stmt, function_call);
-		result |= qualify_statement(fc->function_name, tables, table_alias_stmt, depth + 1, ret);
-		result |= qualify_statement(fc->parameters, tables, table_alias_stmt, depth + 1, ret);
+		RETURN_IF_GROUP_BY_EXPRESSION_FOUND(fc, table_alias->do_group_by_checks);
+		result |= qualify_statement(fc->function_name, tables, table_alias_stmt, depth + 1, ret, NULL);
+		result |= qualify_statement(fc->parameters, tables, table_alias_stmt, depth + 1, ret, is_inner_query_expression);
+		SET_INNER_EXPRESSION(fc, table_alias, is_inner_query_expression);
+		SET_EXPRESSION_GROUP_BY_NUM(fc, fc->parameters, stmt, table_alias);
+		UNSET_EXPRESSION(table_alias, function_expression_set);
 		break;
-	case coalesce_STATEMENT:
+	case coalesce_STATEMENT:;
+		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		SET_EXPRESSION(table_alias, function_expression_set);
 		UNPACK_SQL_STATEMENT(coalesce_call, stmt, coalesce);
-		result |= qualify_statement(coalesce_call->arguments, tables, table_alias_stmt, depth + 1, ret);
+		RETURN_IF_GROUP_BY_EXPRESSION_FOUND(coalesce_call, table_alias->do_group_by_checks);
+		result |= qualify_statement(coalesce_call->arguments, tables, table_alias_stmt, depth + 1, ret,
+					    is_inner_query_expression);
+		SET_INNER_EXPRESSION(coalesce_call, table_alias, is_inner_query_expression);
+		SET_EXPRESSION_GROUP_BY_NUM(coalesce_call, coalesce_call->arguments, stmt, table_alias);
+		UNSET_EXPRESSION(table_alias, function_expression_set);
 		break;
 	case greatest_STATEMENT:
+		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		SET_EXPRESSION(table_alias, function_expression_set);
 		UNPACK_SQL_STATEMENT(greatest_call, stmt, greatest);
-		result |= qualify_statement(greatest_call->arguments, tables, table_alias_stmt, depth + 1, ret);
+		RETURN_IF_GROUP_BY_EXPRESSION_FOUND(greatest_call, table_alias->do_group_by_checks);
+		result |= qualify_statement(greatest_call->arguments, tables, table_alias_stmt, depth + 1, ret,
+					    is_inner_query_expression);
+		SET_INNER_EXPRESSION(greatest_call, table_alias, is_inner_query_expression);
+		SET_EXPRESSION_GROUP_BY_NUM(greatest_call, greatest_call->arguments, stmt, table_alias);
+		UNSET_EXPRESSION(table_alias, function_expression_set);
 		break;
 	case least_STATEMENT:
+		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		SET_EXPRESSION(table_alias, function_expression_set);
 		UNPACK_SQL_STATEMENT(least_call, stmt, least);
-		result |= qualify_statement(least_call->arguments, tables, table_alias_stmt, depth + 1, ret);
+		RETURN_IF_GROUP_BY_EXPRESSION_FOUND(least_call, table_alias->do_group_by_checks);
+		result |= qualify_statement(least_call->arguments, tables, table_alias_stmt, depth + 1, ret,
+					    is_inner_query_expression);
+		SET_INNER_EXPRESSION(least_call, table_alias, is_inner_query_expression);
+		SET_EXPRESSION_GROUP_BY_NUM(least_call, least_call->arguments, stmt, table_alias);
+		UNSET_EXPRESSION(table_alias, function_expression_set);
 		break;
-	case null_if_STATEMENT:
+	case null_if_STATEMENT:;
+		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		SET_EXPRESSION(table_alias, function_expression_set);
+		boolean_t is_null_if_inner_query_expression[2] = {TRUE, TRUE};
+		boolean_t null_if_constant_expression[2] = {FALSE, FALSE};
 		UNPACK_SQL_STATEMENT(null_if, stmt, null_if);
-		result |= qualify_statement(null_if->left, tables, table_alias_stmt, depth + 1, ret);
-		result |= qualify_statement(null_if->right, tables, table_alias_stmt, depth + 1, ret);
+		RETURN_IF_GROUP_BY_EXPRESSION_FOUND(null_if, table_alias->do_group_by_checks);
+		result |= qualify_statement(null_if->left, tables, table_alias_stmt, depth + 1, ret,
+					    &is_null_if_inner_query_expression[0]);
+		result |= qualify_statement(null_if->right, tables, table_alias_stmt, depth + 1, ret,
+					    &is_null_if_inner_query_expression[1]);
+		if (is_inner_query_expression) {
+			if ((TRUE == is_null_if_inner_query_expression[0]) && (TRUE == is_null_if_inner_query_expression[1])) {
+				*is_inner_query_expression = TRUE;
+			} else {
+				*is_inner_query_expression = FALSE;
+			}
+			if (IS_EXPRESSION_QUALIFICATION(table_alias)
+			    || (AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth)) {
+				null_if->group_by_fields.is_inner_expression = *is_inner_query_expression;
+			}
+		}
+		if (IS_EXPRESSION_QUALIFICATION(table_alias)) {
+			null_if_constant_expression[0]
+			    = expression_switch_statement(CONST, null_if->left, NULL, NULL, NULL, table_alias);
+			null_if_constant_expression[1]
+			    = expression_switch_statement(CONST, null_if->right, NULL, NULL, NULL, table_alias);
+			if ((TRUE == null_if_constant_expression[0]) && (TRUE == null_if_constant_expression[1])) {
+				null_if->group_by_fields.is_constant = TRUE;
+			} else {
+				null_if->group_by_fields.is_constant = FALSE;
+			}
+			if (!null_if->group_by_fields.is_constant) {
+				// This expression is not a constant so try to get its GROUP BY location
+				boolean_t is_group_by_node_inner_expression = FALSE;
+				int	  column_number
+				    = get_group_by_column_number(table_alias, stmt, &is_group_by_node_inner_expression);
+				if (-1 != column_number) {
+					/* Matching GROUP BY node is found note down its location and whether it belongs to the
+					 * current query.
+					 */
+					null_if->group_by_fields.group_by_column_num = column_number;
+					null_if->group_by_fields.is_inner_expression = is_group_by_node_inner_expression;
+				}
+			}
+		}
+		UNSET_EXPRESSION(table_alias, function_expression_set);
 		break;
 	case aggregate_function_STATEMENT:;
 		SqlAggregateFunction *af;
@@ -263,8 +495,22 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
 		depth_adjusted = FALSE;
 		if (table_alias->aggregate_depth) {
+			if (AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth) {
+				/* We can reach this block if an aggregate function from select list is referenced
+				 * using column number. Ex: select count(n1.*) from names group by 1;
+				 * We only get to know of this usage during group by check second pass so we need this
+				 * check. GROUP BY specified using an aggregate function. Issue error as this usage is not
+				 * valid.
+				 */
+				ERROR(ERR_GROUP_BY_INVALID_USAGE, "");
+				yyerror(NULL, NULL, &af->parameter, NULL, NULL, NULL);
+				result = 1;
+				break;
+			}
 			if (table_alias->do_group_by_checks) {
-				/* This is the second pass. Any appropriate error has already been issued so skip this. */
+				/* This is the second pass. Any appropriate error other than the one in IF block
+				 * has already been issued so skip this.
+				 */
 				break;
 			}
 			if (0 < table_alias->aggregate_depth) {
@@ -276,8 +522,11 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 				 *       case as the parser for GROUP BY would have issued an error if ever GROUP BY is
 				 *       used without just a plain column name.
 				 */
-				assert(AGGREGATE_DEPTH_GROUP_BY_CLAUSE != table_alias->aggregate_depth);
-				if (AGGREGATE_DEPTH_WHERE_CLAUSE == table_alias->aggregate_depth) {
+				if (AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth) {
+					/* GROUP BY specified using an aggregate function. Issue error as this usage is not valid.
+					 */
+					ERROR(ERR_GROUP_BY_INVALID_USAGE, "");
+				} else if (AGGREGATE_DEPTH_WHERE_CLAUSE == table_alias->aggregate_depth) {
 					/* Aggregate functions are not allowed inside a WHERE clause */
 					ERROR(ERR_AGGREGATE_FUNCTION_WHERE, "");
 					result = 1;
@@ -306,7 +555,8 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 			assert(!table_alias->do_group_by_checks || table_alias->aggregate_function_or_group_by_or_having_specified);
 			table_alias->aggregate_function_or_group_by_or_having_specified |= AGGREGATE_FUNCTION_SPECIFIED;
 			table_alias->aggregate_depth++;
-			result |= qualify_statement(af->parameter, tables, table_alias_stmt, depth + 1, ret);
+			result |= qualify_statement(af->parameter, tables, table_alias_stmt, depth + 1, ret,
+						    is_inner_query_expression);
 			if (0 == result) {
 				UNPACK_SQL_STATEMENT(cur_cl, af->parameter, column_list);
 				assert((AGGREGATE_COUNT_ASTERISK == af->type) || (NULL != cur_cl->value));
@@ -326,35 +576,158 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 		}
 		break;
 	case cas_STATEMENT:
+		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		SET_EXPRESSION(table_alias, function_expression_set);
+		boolean_t cas_if_inner_query_expression[3] = {TRUE, TRUE, TRUE};
+		boolean_t cas_constant_expression[3] = {FALSE, FALSE, FALSE};
 		UNPACK_SQL_STATEMENT(cas, stmt, cas);
-		result |= qualify_statement(cas->value, tables, table_alias_stmt, depth + 1, ret);
-		result |= qualify_statement(cas->branches, tables, table_alias_stmt, depth + 1, ret);
-		result |= qualify_statement(cas->optional_else, tables, table_alias_stmt, depth + 1, ret);
+		RETURN_IF_GROUP_BY_EXPRESSION_FOUND(cas, table_alias->do_group_by_checks);
+		result
+		    |= qualify_statement(cas->value, tables, table_alias_stmt, depth + 1, ret, &cas_if_inner_query_expression[0]);
+		result |= qualify_statement(cas->branches, tables, table_alias_stmt, depth + 1, ret,
+					    &cas_if_inner_query_expression[1]);
+		result |= qualify_statement(cas->optional_else, tables, table_alias_stmt, depth + 1, ret,
+					    &cas_if_inner_query_expression[2]);
+		if (is_inner_query_expression) {
+			if ((TRUE == cas_if_inner_query_expression[0]) && (TRUE == cas_if_inner_query_expression[1])
+			    && (TRUE == cas_if_inner_query_expression[2])) {
+				*is_inner_query_expression = TRUE;
+			} else {
+				*is_inner_query_expression = FALSE;
+			}
+			if ((AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth)
+			    || ((0 == table_alias->aggregate_depth)
+				|| (AGGREGATE_DEPTH_HAVING_CLAUSE == table_alias->aggregate_depth))) {
+				cas->group_by_fields.is_inner_expression = *is_inner_query_expression;
+			}
+		}
+		if (IS_EXPRESSION_QUALIFICATION(table_alias)) {
+			cas_constant_expression[0] = expression_switch_statement(CONST, cas->value, NULL, NULL, NULL, table_alias);
+			cas_constant_expression[1]
+			    = expression_switch_statement(CONST, cas->branches, NULL, NULL, NULL, table_alias);
+			cas_constant_expression[2]
+			    = expression_switch_statement(CONST, cas->optional_else, NULL, NULL, NULL, table_alias);
+			if ((TRUE == cas_constant_expression[0]) && (TRUE == cas_constant_expression[1])
+			    && (TRUE == cas_constant_expression[2])) {
+				cas->group_by_fields.is_constant = TRUE;
+			} else {
+				cas->group_by_fields.is_constant = FALSE;
+			}
+			if (!cas->group_by_fields.is_constant) {
+				// This expression is not a constant so try to get its GROUP BY location
+				boolean_t is_group_by_node_inner_expression = FALSE;
+				int	  column_number
+				    = get_group_by_column_number(table_alias, stmt, &is_group_by_node_inner_expression);
+				if (-1 != column_number) {
+					/* Matching GROUP BY node is found note down its location and whether it belongs to the
+					 * current query.
+					 */
+					cas->group_by_fields.group_by_column_num = column_number;
+					cas->group_by_fields.is_inner_expression = is_group_by_node_inner_expression;
+				}
+			}
+		}
+		UNSET_EXPRESSION(table_alias, function_expression_set);
 		break;
-	case cas_branch_STATEMENT:
+	case cas_branch_STATEMENT:;
+		/* cas_branch need to check its various branches and set `is_inner_expression` and `is_const`
+		 * This will allow caller to determine similar parameters of the cas_STATEMENT holding cas_branch_STATEMENT
+		 * `*is_inner_query_expression` also need to be set
+		 */
+		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		SET_EXPRESSION(table_alias, function_expression_set)
+		boolean_t cas_branch_if_inner_query_expression[2];
+		if (is_inner_query_expression) {
+			*is_inner_query_expression = TRUE;
+		}
 		UNPACK_SQL_STATEMENT(cas_branch, stmt, cas_branch);
+		RETURN_IF_GROUP_BY_EXPRESSION_FOUND(cas_branch, table_alias->do_group_by_checks);
 		cur_branch = cas_branch;
+		cas_branch->group_by_fields.is_constant = TRUE;
 		do {
-			result |= qualify_statement(cur_branch->condition, tables, table_alias_stmt, depth + 1, ret);
-			result |= qualify_statement(cur_branch->value, tables, table_alias_stmt, depth + 1, ret);
+			cas_branch_if_inner_query_expression[0] = TRUE;
+			cas_branch_if_inner_query_expression[1] = TRUE;
+			result |= qualify_statement(cur_branch->condition, tables, table_alias_stmt, depth + 1, ret,
+						    &cas_branch_if_inner_query_expression[0]);
+			result |= qualify_statement(cur_branch->value, tables, table_alias_stmt, depth + 1, ret,
+						    &cas_branch_if_inner_query_expression[1]);
+			if (is_inner_query_expression) {
+				// if `*is_inner_query_expression` is not already set to FALSE perform the rest of the computation
+				if (*is_inner_query_expression) {
+					// Check if the current branch nodes belong to the current query or not
+					if ((TRUE == cas_branch_if_inner_query_expression[0])
+					    && (TRUE == cas_branch_if_inner_query_expression[1])) {
+						*is_inner_query_expression = TRUE;
+					} else {
+						/* One of the branches has nodes which are not belonging to current query
+						 * set `is_inner_query_expression` to FALSE.
+						 * This if statement is never entered after this execution.
+						 */
+						*is_inner_query_expression = FALSE;
+					}
+				}
+			}
+			if (IS_EXPRESSION_QUALIFICATION(table_alias)) {
+				boolean_t cas_branch_constant_expression[2] = {FALSE, FALSE};
+				cas_branch_constant_expression[0]
+				    = expression_switch_statement(CONST, cur_branch->condition, NULL, NULL, NULL, table_alias);
+				cas_branch_constant_expression[1]
+				    = expression_switch_statement(CONST, cur_branch->value, NULL, NULL, NULL, table_alias);
+				if ((TRUE == cas_branch_constant_expression[0]) && (TRUE == cas_branch_constant_expression[1])) {
+					cas_branch->group_by_fields.is_constant = TRUE;
+				} else {
+					cas_branch->group_by_fields.is_constant = FALSE;
+				}
+			}
 			cur_branch = cur_branch->next;
 		} while (cur_branch != cas_branch);
+		if (is_inner_query_expression) {
+			if ((AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth)
+			    || ((0 == table_alias->aggregate_depth)
+				|| (AGGREGATE_DEPTH_HAVING_CLAUSE == table_alias->aggregate_depth))) {
+				cas_branch->group_by_fields.is_inner_expression = *is_inner_query_expression;
+			}
+		}
+		UNSET_EXPRESSION(table_alias, function_expression_set);
 		break;
-	case column_list_STATEMENT:
-		// This is a result of a value-list
+	case column_list_STATEMENT:;
+		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		boolean_t prev_is_inner_query_expression = TRUE;
 		UNPACK_SQL_STATEMENT(start_cl, stmt, column_list);
 		cur_cl = start_cl;
 		do {
-			result |= qualify_statement(cur_cl->value, tables, table_alias_stmt, depth + 1, ret);
+			result |= qualify_statement(cur_cl->value, tables, table_alias_stmt, depth + 1, ret,
+						    is_inner_query_expression);
+			if (is_inner_query_expression) {
+				if ((TRUE == prev_is_inner_query_expression) && (TRUE == *is_inner_query_expression)) {
+					/* In first iteration and iterations till first condition is true, the second one will be
+					 * the decider of branch Once FALSE is set to prev_is_inner_query_expression this branch is
+					 * never executed.
+					 */
+				} else {
+					prev_is_inner_query_expression = FALSE;
+				}
+			}
 			cur_cl = cur_cl->next;
 		} while (cur_cl != start_cl);
+		if (is_inner_query_expression)
+			*is_inner_query_expression = prev_is_inner_query_expression;
 		break;
 	case table_alias_STATEMENT:
 	case set_operation_STATEMENT:
 		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
+		if (AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth) {
+			ERROR(ERR_GROUP_BY_SUB_QUERY, "");
+			yyerror(NULL, NULL, &stmt, NULL, NULL, NULL);
+			result = 1;
+			break;
+		}
+		if ((0 == table_alias->aggregate_depth) || (AGGREGATE_DEPTH_HAVING_CLAUSE == table_alias->aggregate_depth)) {
+			*is_inner_query_expression = TRUE;
+		}
 		result |= qualify_query(stmt, tables, table_alias, ret);
 		break;
-	case column_list_alias_STATEMENT:
+	case column_list_alias_STATEMENT:;
 		UNPACK_SQL_STATEMENT(start_cla, stmt, column_list_alias);
 		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);
 		cur_cla = start_cla;
@@ -362,7 +735,8 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 			ret_cla = ((NULL == ret) ? NULL : ret->ret_cla);
 			assert(depth || (NULL == ret_cla)
 			       || (NULL == *ret_cla)); /* assert that caller has initialized "*ret_cla" */
-			result |= qualify_statement(cur_cla->column_list, tables, table_alias_stmt, depth + 1, ret);
+			result |= qualify_statement(cur_cla->column_list, tables, table_alias_stmt, depth + 1, ret,
+						    is_inner_query_expression);
 			if (0 == result) {
 				UNPACK_SQL_STATEMENT(cur_cl, cur_cla->column_list, column_list);
 				if (column_alias_STATEMENT == cur_cl->value->type) {
@@ -373,7 +747,9 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 					}
 				}
 			}
-			if ((NULL != ret_cla) && (0 == depth)) {
+			/* Check if its an OrderBy or GroupBy invocation */
+			if (((NULL != ret_cla) || (AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth)) && (0 == depth)
+			    && (!table_alias->do_group_by_checks)) {
 				SqlColumnListAlias *qualified_cla;
 				int		    column_number;
 				char *		    str;
@@ -384,7 +760,7 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 				 * (i.e. not a cla corresponding to an inner evaluation in the ORDER BY expression).
 				 * There are 3 cases to handle.
 				 */
-				if (NULL != *ret_cla) {
+				if ((NULL != ret_cla) && (NULL != *ret_cla)) {
 					/* Case (1) : If "*ret_cla" is non-NULL, it is a case of ORDER BY using an alias name */
 
 					order_by_alias = TRUE;
@@ -397,7 +773,7 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 					qualified_cla = *ret_cla;
 					*ret_cla = NULL; /* initialize for next call to "qualify_statement" */
 				} else {
-					/* Case (2) : If "*ret_cla" is NULL, check if this is a case of ORDER BY column-number.
+					/* Case (2) : Check if this is a case of column-number usage.
 					 * If so, point "cur_cla" to corresponding cla from the SELECT column list.
 					 */
 					SqlColumnList *col_list;
@@ -476,8 +852,14 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 								qualified_cla = NULL;
 							}
 							if (NULL == qualified_cla) {
-								ERROR(ERR_ORDER_BY_POSITION_INVALID,
-								      is_negative_numeric_literal ? "-" : "", str);
+								if (AGGREGATE_DEPTH_GROUP_BY_CLAUSE
+								    == table_alias->aggregate_depth) {
+									ERROR(ERR_GROUP_BY_POSITION_INVALID,
+									      is_negative_numeric_literal ? "-" : "", str);
+								} else {
+									ERROR(ERR_ORDER_BY_POSITION_INVALID,
+									      is_negative_numeric_literal ? "-" : "", str);
+								}
 								yyerror(NULL, NULL, &cur_cla->column_list, NULL, NULL, NULL);
 								error_encountered = 1;
 							}
@@ -492,7 +874,7 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 				}
 				/* Actual repointing to SELECT column list cla happens here (above code set things up for here) */
 				if (NULL != qualified_cla) {
-					/* Case (2) : Case of ORDER BY column-number */
+					/* Case (2) : Case of column-number */
 					cur_cla->column_list = qualified_cla->column_list;
 					assert(NULL == cur_cla->alias);
 					/* Note: It is not necessary to copy " qualified_cla->alias" into "cur_cla->alias" */
@@ -514,27 +896,159 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 						cur_cla->tbl_and_col_id.column_number = column_number;
 					}
 					assert(cur_cla->tbl_and_col_id.column_number);
-				} else {
-					/* Case (3) : Case of ORDER BY column expression */
-					SqlSelectStatement *select;
-					SqlOptionalKeyword *keywords, *keyword;
+					if (AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth) {
+						// call qualify_statement again so that GROUP BY is validated
+						result |= qualify_statement(cur_cla->column_list, tables, table_alias_stmt,
+									    depth + 1, ret, is_inner_query_expression);
 
-					/* Check if SELECT DISTINCT was specified */
-					UNPACK_SQL_STATEMENT(select, table_alias->table, select);
-					UNPACK_SQL_STATEMENT(keywords, select->optional_words, keyword);
-					keyword = get_keyword_from_keywords(keywords, OPTIONAL_DISTINCT);
-					if (NULL != keyword) {
-						/* SELECT DISTINCT was specified. Check if the ORDER BY column expression matches
-						 * some column specification in the SELECT column list. If so that is good.
-						 * If not issue an error (see YDBOcto#461 for details).
-						 */
-						if (!match_column_list_alias_in_select_column_list(cur_cla, select->select_list)) {
-							ERROR(ERR_ORDER_BY_SELECT_DISTINCT, "");
-							yyerror(NULL, NULL, &cur_cla->column_list, NULL, NULL, NULL);
-							result = 1;
-							break;
+						SqlColumnAlias *new_column_alias = NULL;
+						SqlStatement *	tmp_stmt = cur_cla->column_list->v.column_list->value;
+						column_table_alias = NULL;
+						if (value_STATEMENT == tmp_stmt->type) {
+							SqlValue *inner_value;
+							UNPACK_SQL_STATEMENT(inner_value, tmp_stmt, value);
+							if (COERCE_TYPE == inner_value->type) {
+								if (column_alias_STATEMENT == inner_value->v.coerce_target->type) {
+									new_column_alias
+									    = inner_value->v.coerce_target->v.column_alias;
+									UNPACK_SQL_STATEMENT(column_table_alias,
+											     new_column_alias->table_alias_stmt,
+											     table_alias);
+								}
+							}
+						} else if (tmp_stmt->type == column_alias_STATEMENT) {
+							new_column_alias
+							    = cur_cla->column_list->v.column_list->value->v.column_alias;
+							UNPACK_SQL_STATEMENT(column_table_alias, new_column_alias->table_alias_stmt,
+									     table_alias);
+						} else if (table_alias_STATEMENT == tmp_stmt->type) {
+							UNPACK_SQL_STATEMENT(column_table_alias, tmp_stmt, table_alias);
+						}
+						if (column_table_alias) {
+							parent_table_alias = column_table_alias->parent_table_alias;
+							if (parent_table_alias == table_alias) {
+								if (0 < parent_table_alias->aggregate_depth) {
+									parent_table_alias
+									    ->aggregate_function_or_group_by_or_having_specified
+									    |= GROUP_BY_SPECIFIED;
+								} else if (AGGREGATE_DEPTH_GROUP_BY_CLAUSE
+									   == parent_table_alias->aggregate_depth) {
+									SqlValue *value;
+									if ((NULL != new_column_alias)
+									    && ((NULL != new_column_alias->column)
+										&& (value_STATEMENT
+										    == new_column_alias->column->type))) {
+										UNPACK_SQL_STATEMENT(
+										    value, new_column_alias->column, value);
+									} else {
+										value = NULL;
+									}
+									/* `group_by_column_count` and `group_by_column_number` in
+									 * case of TABLE_ASTERISK is updated by
+									 * `process_table_asterisk_cla()` invocation so no need to
+									 * do it here.
+									 */
+									if (tmp_stmt->type == table_alias_STATEMENT) {
+										++parent_table_alias->group_by_column_count;
+									} else if ((NULL == value)
+										   || (TABLE_ASTERISK != value->type)) {
+										new_column_alias->group_by_column_number
+										    = ++parent_table_alias->group_by_column_count;
+									}
+								}
+							}
+						} else {
+							/* Case of the column_list_alias node not being either a table_alias or
+							 * column_alias We are sure that this node belongs to the present query So
+							 * go ahead and update the current table_alias
+							 */
+							/* Ex: select 1+1 from names group by 1;
+							 * an expression is replacing 1
+							 * An expression can be constant or one with a column
+							 * If column is involved then based on whether it belongs to
+							 * inner query or not needs to be used to update
+							 * `table_alias->group_by_column_count`
+							 */
+							if (0 < table_alias->aggregate_depth)
+								table_alias->aggregate_function_or_group_by_or_having_specified
+								    |= GROUP_BY_SPECIFIED;
+							SqlStatement *tmp = cur_cla->column_list->v.column_list->value;
+							if ((tmp->type == value_STATEMENT)
+							    && (tmp->v.value->type != CALCULATED_VALUE))
+								table_alias->group_by_column_count++;
+							else {
+
+								table_alias->group_by_column_count++;
+							}
 						}
 					}
+				} else {
+					if (AGGREGATE_DEPTH_GROUP_BY_CLAUSE != table_alias->aggregate_depth) {
+
+						/* Case (3) : Case of ORDER BY column expression */
+						SqlSelectStatement *select;
+						SqlOptionalKeyword *keywords, *keyword;
+
+						/* Check if SELECT DISTINCT was specified */
+						UNPACK_SQL_STATEMENT(select, table_alias->table, select);
+						UNPACK_SQL_STATEMENT(keywords, select->optional_words, keyword);
+						keyword = get_keyword_from_keywords(keywords, OPTIONAL_DISTINCT);
+						if (NULL != keyword) {
+							/* SELECT DISTINCT was specified. Check if the ORDER BY column expression
+							 * matches some column specification in the SELECT column list. If so that
+							 * is good. If not issue an error (see YDBOcto#461 for details).
+							 */
+							if (!match_column_list_alias_in_select_column_list(cur_cla,
+													   select->select_list)) {
+								ERROR(ERR_ORDER_BY_SELECT_DISTINCT, "");
+								yyerror(NULL, NULL, &cur_cla->column_list, NULL, NULL, NULL);
+								result = 1;
+								break;
+							}
+						}
+					} else {
+						assert(AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth);
+						UNPACK_SQL_STATEMENT(cur_cl, cur_cla->column_list, column_list);
+						/* Here we increment only when the element is not a column or a column which is in
+						 * the form of COERCE_TYPE i.e. used in cast operations Reason being
+						 * column_alias_STATEMENTs increment table_alias group_by_column_count in the
+						 * value_STATEMENT case itself during its qualification from COLUMN_REFERENCE to
+						 * SqlColumnAlias.
+						 */
+						if (column_alias_STATEMENT != cur_cl->value->type) {
+							table_alias->group_by_column_count++;
+						}
+					}
+				}
+			}
+			/* Hash the entire GroupBy node. Here we will be hashing expressions which have been directly used.
+			 * and also expression which has been placed in GroupBY because of replacement of column numbers.
+			 * The hashing is needed as we compare the entire node hash with substructure nodes in expressions of select
+			 * list. Note: we will need to set is_inner_expression here because whenever a column number is replaced
+			 * with the actual expression we don't again qualify that expression as it is already qualified in select
+			 * list and hence we do not go through the code path which initializes is_inner_expression which would have
+			 * been done if the expression was directly used in GroupBy.
+			 */
+			UNPACK_SQL_STATEMENT(cur_cl, cur_cla->column_list, column_list);
+			if ((AGGREGATE_DEPTH_GROUP_BY_CLAUSE == table_alias->aggregate_depth)
+			    && (!table_alias->do_group_by_checks)) {
+				hash128_state_t state;
+				int		status;
+				status = HASH_LITERAL_VALUES;
+				HASH128_STATE_INIT(state, 0);
+				assert(is_inner_query_expression);
+				// hash and set the hashing result and is_inner_query_expression value to the sql element fields
+				expression_switch_statement(COL_LIST_ALIAS, cur_cl->value, &state, &status,
+							    is_inner_query_expression, table_alias);
+			}
+			if ((QualifyQuery_ORDER_BY == table_alias->qualify_query_stage)
+			    && (column_alias_STATEMENT == cur_cl->value->type)) {
+				UNPACK_SQL_STATEMENT(new_column_alias, cur_cl->value, column_alias);
+				if (is_stmt_table_asterisk(new_column_alias->column)) {
+					/* At this point if we are in ORDER BY we need to make sure the expanded TABLE_ASTERISK list
+					 * is not processed again.
+					 */
+					cur_cla = new_column_alias->last_table_asterisk_node;
 				}
 			}
 			cur_cla = cur_cla->next;

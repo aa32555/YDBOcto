@@ -290,7 +290,7 @@
  * The "test-auto-upgrade" pipeline job (that automatically runs) will alert us if it detects the need for the bump.
  * And that is considered good enough for now (i.e. no manual review of code necessary to detect the need for a bump).
  */
-#define FMT_BINARY_DEFINITION 10
+#define FMT_BINARY_DEFINITION 11
 
 /* The below macro needs to be manually bumped if at least one of the following changes.
  *	1) Generated physical plan (_ydboctoP*.m) file name OR contents
@@ -299,7 +299,10 @@
  * The "test-auto-upgrade" pipeline job (that automatically runs) will alert us if it detects the need for the bump.
  * And that is considered good enough for now (i.e. no manual review of code necessary to detect the need for a bump).
  */
-#define FMT_PLAN_DEFINITION 13
+#define FMT_PLAN_DEFINITION 14
+
+/* Used by `hash_canonical_query()` */
+#define HASH_LITERAL_VALUES -1
 
 // Below are a few utility macros that are similar to those defined in sr_port/gtm_common_defs.h.
 // But we do not use those as that is outside the control of Octo's source code repository
@@ -470,12 +473,12 @@
 		ydb_mmrhash_128_ingest(STATE, (void *)&lclInt, sizeof(lclInt));                  \
 	}
 
-#define INVOKE_HASH_CANONICAL_QUERY(STATE, RESULT, STATUS)     \
-	{                                                      \
-		STATUS = 0;                                    \
-		HASH128_STATE_INIT(STATE, 0);                  \
-		hash_canonical_query_cycle++;                  \
-		hash_canonical_query(&STATE, RESULT, &STATUS); \
+#define INVOKE_HASH_CANONICAL_QUERY(STATE, RESULT, STATUS)            \
+	{                                                             \
+		STATUS = 0;                                           \
+		HASH128_STATE_INIT(STATE, 0);                         \
+		hash_canonical_query_cycle++;                         \
+		hash_canonical_query(&STATE, RESULT, &STATUS, FALSE); \
 	}
 
 #define LOG_LOCAL_ONLY(SEVERITY, ERROR, ...)                          \
@@ -834,7 +837,8 @@ SqlColumnAlias *qualify_column_name(SqlValue *column_value, SqlJoin *tables, Sql
 int		qualify_check_constraint(SqlStatement *stmt, SqlTable *table, SqlValueType *type);
 int		qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlTableAlias *parent_table_alias,
 			      QualifyStatementParms *ret);
-int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_alias_stmt, int depth, QualifyStatementParms *ret);
+int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_alias_stmt, int depth, QualifyStatementParms *ret,
+		      boolean_t *is_inner_query_expression);
 
 SqlColumnListAlias *match_column_in_table(SqlTableAlias *table, char *column_name, int column_name_len, boolean_t *ambiguous,
 					  boolean_t issue_error);
@@ -861,9 +865,14 @@ char *	      get_set_operation_string(SqlSetOperationType type);
 char *	      get_user_visible_type_string(SqlValueType type);
 SqlStatement *get_display_relation_query_stmt(ParseContext *parse_context);
 
+// Expression support functions
+int	  get_group_by_column_number(SqlTableAlias *table_alias, SqlStatement *hash_to_match, boolean_t *is_inner_expression);
+boolean_t expression_switch_statement(ExpressionSwitchCallLoc call_loc, SqlStatement *stmt, hash128_state_t *state, int *status,
+				      boolean_t *is_inner_query_expression, SqlTableAlias *table_alias);
+
 /* Hashing support functions */
 int  generate_routine_name(hash128_state_t *state, char *routine_name, int routine_len, FileType file_type);
-void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *status);
+void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *status, boolean_t is_qs_call);
 void ydb_hash_to_string(ydb_uint16 *hash, char *buffer, const unsigned int buf_len);
 
 SqlOptionalKeyword *add_optional_piece_keyword_to_sql_column(int column_number);
