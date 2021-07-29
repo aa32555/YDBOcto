@@ -19,7 +19,7 @@
  * Responsible to form the table_alias_STATEMENT holding all passed arguments.
  */
 SqlStatement *query_specification(OptionalKeyword set_quantifier, SqlStatement *select_list, SqlStatement *table_expression,
-				  SqlStatement *sort_specification_list, int *plan_id) {
+				  int *plan_id) {
 	SqlStatement *	    ret, *quantifier;
 	SqlTableAlias *	    this_table_alias;
 	SqlSelectStatement *select;
@@ -41,6 +41,5 @@ SqlStatement *query_specification(OptionalKeyword set_quantifier, SqlStatement *
 	quantifier->v.keyword->v = NULL;
 	dqinit(quantifier->v.keyword);
 	select->optional_words = quantifier;
-	select->order_by_expression = sort_specification_list;
 	return ret;
 }

@@ -52,6 +52,7 @@ optional_query_words
   | COMMA optional_query_words { $$ = $COMMA; }
   ;
 
+//TODO merge this element with optional_order_by, unless there are query_expression sub-symbols for which LIMIT doesn't make sense (don't think so)
 optional_query_word_element
   : LIMIT literal_value {
       assert(value_STATEMENT == ($literal_value)->type);
@@ -141,12 +142,12 @@ ordering_specification
    }
   ;
 
+//TODO move optional_order_by handling to query_expression() processing function
 query_specification
   : SELECT set_quantifier select_list table_expression optional_order_by {
      SqlStatement *ret;
 
-      INVOKE_QUERY_SPECIFICATION(ret, (OptionalKeyword)$set_quantifier, $select_list, $table_expression,
-      									$optional_order_by, plan_id);
+      INVOKE_QUERY_SPECIFICATION(ret, (OptionalKeyword)$set_quantifier, $select_list, $table_expression, plan_id);
       $$ = ret;
     }
   | SELECT set_quantifier select_list {
@@ -187,7 +188,7 @@ query_specification
       alias->unique_id = *plan_id;
       (*plan_id)++;
       select->table_list = join_statement;
-      INVOKE_QUERY_SPECIFICATION(ret, (OptionalKeyword)$set_quantifier, select_list, t_stmt, NULL, plan_id);
+      INVOKE_QUERY_SPECIFICATION(ret, (OptionalKeyword)$set_quantifier, select_list, t_stmt, plan_id);
       $$ = ret;
     }
   ;
