@@ -744,11 +744,13 @@ boolean_t	    match_column_list_alias_in_select_column_list(SqlColumnListAlias *
 SqlOptionalKeyword *get_keyword(SqlColumn *column, enum OptionalKeyword keyword);
 SqlOptionalKeyword *get_keyword_from_keywords(SqlOptionalKeyword *start_keyword, enum OptionalKeyword keyword);
 int		    get_key_columns(SqlTable *table, SqlColumn **key_columns);
-int  generate_key_name(char **buffer, int *buffer_size, int target_key_num, SqlTable *table, SqlColumn **key_columns);
-int  get_row_count_from_plan_name(char *plan_name, ydb_long_t cursorId);
-int  print_temporary_table(SqlStatement *, ydb_long_t cursorId, void *parms, char *plan_name, PSQL_MessageTypeT msg_type);
-void print_result_row(ydb_buffer_t *row);
-int  get_mval_len(unsigned char *buff, int *data_len);
+int	  generate_key_name(char **buffer, int *buffer_size, int target_key_num, SqlTable *table, SqlColumn **key_columns);
+int	  get_row_count_from_plan_name(char *plan_name, ydb_long_t cursorId);
+int	  print_temporary_table(SqlStatement *, ydb_long_t cursorId, void *parms, char *plan_name, PSQL_MessageTypeT msg_type);
+void	  print_result_row(ydb_buffer_t *row);
+int	  get_mval_len(unsigned char *buff, int *data_len);
+boolean_t is_integer(SqlColumnListAlias *cur_cla, boolean_t *ret_is_negative_numeric_literal,
+		     boolean_t *ret_is_postive_numeric_literal, long int *retval, char **ret_str);
 
 /**
  * Parses query, and calls the callback if it is a select statement. Otherwise, the query is a data altering
