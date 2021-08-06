@@ -42,6 +42,7 @@ PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *opt
 	plan_options = *options;
 	// If this is a union plan, construct physical plans for the two children
 	if (LP_SET_OPERATION == plan->type) {
+		PhysicalPlan *next;
 		GET_LP(set_option, plan, 0, LP_SET_OPTION);
 		GET_LP(set_plans, plan, 1, LP_PLANS);
 		out = generate_physical_plan(set_plans->v.lp_default.operand[1], &plan_options);
@@ -55,8 +56,7 @@ PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *opt
 		       || (LP_SET_INTERSECT == set_oper_type) || (LP_SET_INTERSECT_ALL == set_oper_type));
 		is_set_dnf = (LP_SET_DNF == set_oper_type);
 		if (is_set_dnf) {
-			PhysicalPlan *next, *tmp;
-
+			PhysicalPlan *tmp;
 			tmp = out;
 			if (LP_SET_OPERATION == set_plans->v.lp_default.operand[1]->type) {
 				/* Need to get the left most DNF sibling of out */
@@ -86,6 +86,14 @@ PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *opt
 			out_oper = out->set_oper_list;
 			input_id2 = (NULL == out_oper) ? out->outputKey->unique_id : out_oper->output_id;
 			set_oper->set_oper_type = set_oper_type;
+			set_oper->lp_set_operation = plan;
+
+			/* Connect the LP_SET_OPERATION logical plan to the "set_oper" and corresponding physical plan fields
+			 * for later use in "tmpl_invoke_deferred_plan_setoper()".
+			 */
+			plan->extra_detail.lp_set_operation.set_oper = set_oper;
+			plan->extra_detail.lp_set_operation.physical_plan = out;
+
 			set_oper->input_id1 = input_id1;
 			set_oper->input_id2 = input_id2;
 			GET_LP(set_output, set_option, 1, LP_OUTPUT);
@@ -98,6 +106,77 @@ PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *opt
 				next_oper->prev = set_oper;
 			}
 			out->set_oper_list = set_oper;
+			/* Initializes "is_deferred_plan" field in LP_SET_OPERATION logical plan for later use in
+			 * deferred plan generation.
+			 */
+			boolean_t is_deferred_plan = FALSE;
+			int	  i;
+			assert(FALSE == plan->extra_detail.lp_set_operation.is_deferred_plan_valid);
+			for (i = 0; i < 2; i++) {
+				LogicalPlan *set_operand;
+				set_operand = set_plans->v.lp_default.operand[i];
+				if (LP_SET_OPERATION != set_operand->type) {
+					PhysicalPlan *tmp_pplan;
+					assert((LP_SELECT_QUERY == set_operand->type) || (LP_SET_OPERATION == set_operand->type)
+					       || (LP_TABLE_VALUE == set_operand->type));
+					tmp_pplan = set_operand->extra_detail.lp_select_query.physical_plan;
+					if (tmp_pplan->is_deferred_plan) {
+						is_deferred_plan = TRUE;
+					}
+				} else {
+					LogicalPlan *tmp_set_option;
+					GET_LP(tmp_set_option, set_operand, 0, LP_SET_OPTION);
+
+					LPActionType tmp_set_oper_type;
+					tmp_set_oper_type = tmp_set_option->v.lp_default.operand[0]->type;
+					if (LP_SET_DNF == tmp_set_oper_type) {
+						/* In case of a DNF expanded plan, we can obtain the deferred plan status
+						 * from any of the DNF sibling plans. Choose the first.
+						 */
+						LogicalPlan *tmp_plan;
+						tmp_plan = lp_drill_to_insert(set_operand);
+						assert((LP_SELECT_QUERY == tmp_plan->type) || (LP_TABLE_VALUE == tmp_plan->type));
+
+						PhysicalPlan *tmp_pplan;
+						tmp_pplan = tmp_plan->extra_detail.lp_select_query.physical_plan;
+						if (tmp_pplan->is_deferred_plan) {
+							is_deferred_plan = TRUE;
+						}
+					} else {
+						assert(TRUE == set_operand->extra_detail.lp_set_operation.is_deferred_plan_valid);
+						if (set_operand->extra_detail.lp_set_operation.is_deferred_plan) {
+							is_deferred_plan = TRUE;
+						}
+					}
+				}
+			}
+			plan->extra_detail.lp_set_operation.is_deferred_plan = is_deferred_plan;
+			plan->extra_detail.lp_set_operation.is_deferred_plan_valid = TRUE;
+		} else {
+			/* Check if "prev" is a deferred plan and "next" is not. If so fix "next" and all of its right
+			 * DNF siblings to be a deferred plan. Similarly, check if "next" is a deferred plan and "prev"
+			 * is not. If so, fix "prev" and its left DNF siblings to be a deferred plan. This way all DNF
+			 * sibling plans get treated the same way (all of them are either deferred or all of them are not
+			 * deferred) and work correctly even if it is not optimal (see YDBOcto#727).
+			 */
+			assert(next == prev->dnf_next);
+			assert(prev == next->dnf_prev);
+			if (prev->is_deferred_plan && !next->is_deferred_plan) {
+				PhysicalPlan *tmp;
+				tmp = next;
+				do {
+					tmp->is_deferred_plan = TRUE;
+					tmp = tmp->dnf_next;
+				} while (NULL != tmp);
+			} else if (!prev->is_deferred_plan && next->is_deferred_plan) {
+				PhysicalPlan *tmp;
+				tmp = prev;
+				do {
+					tmp->is_deferred_plan = TRUE;
+					tmp = tmp->dnf_prev;
+				} while (NULL != tmp);
+			}
+			assert(NULL == plan->extra_detail.lp_set_operation.set_oper); /* should be NULL for LP_SET_DNF case */
 		}
 		return out;
 	} else if (LP_INSERT_INTO == plan->type) {
@@ -105,7 +184,7 @@ PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *opt
 		LogicalPlan * lp_insert_into_options;
 
 		/* Generate a separate physical plan for destination table of the INSERT INTO */
-		dst = allocate_physical_plan(plan, NULL, &plan_options, options);
+		dst = allocate_physical_plan(plan, &plan_options, options);
 		/* And then generate a separate physical plan for source table/query of the INSERT INTO */
 		GET_LP(lp_insert_into_options, plan, 1, LP_INSERT_INTO_OPTIONS);
 		src = generate_physical_plan(lp_insert_into_options->v.lp_default.operand[1], &plan_options);
@@ -122,12 +201,11 @@ PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *opt
 	 *	"select * from names where EXISTS (select * from names) and (id < 3)"
 	 *		OR
 	 *	"select * from names where EXISTS (select * from names) and (id > 4)"
-	 * The sub-query corresponding to "EXISTS (select * from names)" would generate 2 physical plans but point to
-	 * the same logical plan.
-	 *
-	 * We have to generate the physical plan though as that is how we ensure the corresponding M code gets called twice.
-	 * So we cannot easily avoid the physical plan duplication. But we note the fact that this is a duplicate that way we
-	 * skip code generation for duplicate plans and ensure the M code that gets emitted does not have duplicate code.
+	 * The sub-query corresponding to "EXISTS (select * from names)" shows up twice and so "generate_physical_plan()"
+	 * would be invoked twice for the same logical plan. But we generate a physical plan only once. We do this by noting
+	 * down the physical plan in the logical plan the first time around and skipping physical plan generation during
+	 * the second call. There is some reordering of physical plans that is needed (see "dependent_plans_end" usage in
+	 * the "else" block below) to ensure plans that are being relied upon are emitted ahead of plans that rely on them.
 	 */
 	pp_from_lp = plan->extra_detail.lp_select_query.physical_plan;
 	if (NULL == pp_from_lp) {
@@ -145,23 +223,36 @@ PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *opt
 		}
 		/* else: LP_TABLE_VALUE should not have aggregate function usages so no need to handle it. */
 	} else {
-		/* "lp_verify_structure()" would have been already called in a prior call to "generate_physical_plan" for a
-		 * different physical plan that points to the same logical plan. This logical plan already has had any GROUP BY
-		 * stuff filled in. In that case, should not do "lp_verify_structure" again as GROUP BY related information has
-		 * already been filled in and a second invocation would create a linked list with a cycle (e.g. see YDBOcto#456).
-		 *
-		 * But check if this is a cross-reference plan. If so we do not want to create a duplicate (one enough per query).
+		/* We already generated a physical plan for this logical plan. A lot of other unrelated physical plans might
+		 * have been generated since then. We need to move that prior physical plan along with any plans that the prior
+		 * plan depends on to the start of the physical plan linked list that way these dependent physical plans get
+		 * emitted BEFORE any other depending physical plans that rely on them (would have been generated by caller
+		 * of this function).
 		 */
-		if (pp_from_lp->is_cross_reference_key) {
-			return pp_from_lp;
+		PhysicalPlan *end_pplan;
+		end_pplan = pp_from_lp->dependent_plans_end;
+		assert(NULL != end_pplan);
+
+		PhysicalPlan *first_pplan;
+		first_pplan = *plan_options.last_plan;
+		assert(NULL != first_pplan);
+		assert(first_pplan != end_pplan);
+#ifndef NDEBUG
+		PhysicalPlan *tmp_pplan;
+		tmp_pplan = end_pplan;
+		for (; tmp_pplan != pp_from_lp; tmp_pplan = tmp_pplan->next) {
+			;
 		}
+#endif
+		end_pplan->prev->next = pp_from_lp->next;
+		pp_from_lp->next->prev = end_pplan->prev;
+		end_pplan->prev = NULL;
+		pp_from_lp->next = first_pplan;
+		first_pplan->prev = pp_from_lp;
+		*plan_options.last_plan = end_pplan;
+		return pp_from_lp;
 	}
-	out = allocate_physical_plan(plan, pp_from_lp, &plan_options, options);
-	/* Note: The below logic is executed multiple times in case multiple physical plans point to the same logical plan.
-	 * One might be tempted to think there is no need to execute it. But it is necessary because the below logic could create
-	 * other physical plans (through calls to "generate_physical_plan" and/or "sub_query_check_and_generate_physical_plan".
-	 * Skipping the logic would mean fewer number of physical plans than needed would be created which is incorrect.
-	 */
+	out = allocate_physical_plan(plan, &plan_options, options);
 	root_table_alias = plan->extra_detail.lp_select_query.root_table_alias;
 	/* Note: root_table_alias can be NULL for xref plans (which do not correspond to any actual user-specified query) */
 	out->aggregate_function_or_group_by_specified
@@ -250,15 +341,13 @@ PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *opt
 		 * (deferred and/or non-deferred) for them and add them as prev records in physical plan.
 		 */
 		where = lp_get_select_where(plan);
-		out->where = sub_query_check_and_generate_physical_plan(&plan_options, where, NULL);
 		/* Note: If where->v.lp_default.operand[1] is non-NULL, this is the alternate list that
 		 * "lp_optimize_where_multi_equals_ands_helper()" built that needs to be checked too for deferred plans which
 		 * would have been missed out in case the keys for those had been fixed to keys from parent queries (see
 		 * comment above "lp_get_select_where()" function call in "lp_optimize_where_multi_equals_ands_helper()").
-		 * One would be tempted to discard that alternate list now that its purpose is served above. But it is possible
-		 * the same logical plan is pointed to by multiple physical plans in which case it is still needed. As we have
-		 * no easy way of knowing that here, we continue to keep "where->v.lp_default.opreand[1]" set to a non-NULL value.
+		 * The below call takes care of that too.
 		 */
+		out->where = sub_query_check_and_generate_physical_plan(&plan_options, where, NULL);
 		/* See if there are any sub-queries in the SELECT column list. If so, generate separate physical plans
 		 * (deferred and/or non-deferred) for them and add them as prev records in physical plan.
 		 */
@@ -320,6 +409,16 @@ PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *opt
 		} while (NULL != lp_row_value);
 	}
 	out->stash_columns_in_keys = options->stash_columns_in_keys;
+
+	/* Note down the physical plan "out" and all its dependent plans (going back using "->prev" in linked list up to
+	 * "first_pplan") as it will be used to avoid duplicate physical plan processing. We note down the end of the linked
+	 * list (in the "prev" direction) by setting "dependent_plans_end" field to that.
+	 */
+	PhysicalPlan *first_pplan;
+	first_pplan = *plan_options.last_plan;
+	assert(NULL != first_pplan);
+	assert(NULL == first_pplan->prev);
+	out->dependent_plans_end = first_pplan;
 	return out;
 }
 
@@ -424,29 +523,7 @@ LogicalPlan *sub_query_check_and_generate_physical_plan(PhysicalPlanOptions *opt
 			}
 			if (set_deferred_plan) {
 				do {
-					PhysicalPlan *parent;
-
-					set_deferred_plan = TRUE; /* for next iteration */
-					parent = child_plan->deferred_parent_plan;
-					if (NULL != parent) {
-						/* We already have set `deferred_parent_plan`. Check if the new deferred parent
-						 * is a parent of the already set value. If so do not touch what was set.
-						 * Else update it to reflect the newly computed deferred parent.
-						 */
-						for (; parent != cur;) {
-							parent = parent->parent_plan;
-							if (NULL == parent) {
-								/* The pre existing parent is a closer ancestor than the newly
-								 * computed parent so do not modify what was already set.
-								 */
-								set_deferred_plan = FALSE;
-								break;
-							}
-						}
-					}
-					if (set_deferred_plan) {
-						child_plan->deferred_parent_plan = cur;
-					}
+					child_plan->is_deferred_plan = TRUE;
 					child_plan = child_plan->parent_plan;
 				} while (child_plan != cur);
 			}

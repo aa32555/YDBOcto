@@ -31,6 +31,7 @@ typedef enum PPSetOperation { PP_NOT_SET, PP_UNION_SET, PP_EXCEPT_SET, PP_INTERS
 
 typedef struct SetOperType {
 	LPActionType	    set_oper_type;
+	LogicalPlan *	    lp_set_operation; /* used for deferred plan determination and corresponding M code generation */
 	int		    input_id1;
 	int		    input_id2;
 	int		    output_id;
@@ -41,41 +42,30 @@ typedef struct SetOperType {
 typedef struct PhysicalPlan {
 	char *		     plan_name, *filename, *trigger_name;
 	struct PhysicalPlan *prev, *next;
-	// These represent the keys we used to do the iteration
-	SqlKey *	    iterKeys[MAX_KEY_COUNT];
-	SqlKey *	    outputKey;
-	LogicalPlan *	    where;	       /* WHERE clause */
-	LogicalPlan *	    tablejoin;	       /* FROM clause */
-	LogicalPlan *	    aggregate_options; /* GROUP BY and HAVING */
-	SqlOptionalKeyword *keywords;	       /* DISTINCT etc. */
-	LogicalPlan *	    order_by;	       /* ORDER BY clause */
-	LogicalPlan *	    projection;
-	unsigned int	    total_iter_keys;
-	// If set to 1, this plan should emit the columns as subscripts of the key,
-	//  rather than using a row id
-	boolean_t stash_columns_in_keys;
-	// If true, this plan outputs a cross reference key, and should be treated thusly
-	boolean_t is_cross_reference_key;
-
-	// If true, maintain a column-wise index of known types
-	boolean_t maintain_columnwise_index;
-	// If true, only add the value to the output key if it doesn't already exist in
-	//  the columnwise index; requires the columnwise index
-	boolean_t distinct_values;
-
-	/* If non-NULL, this plan should not be emitted in order but waited until after all required
-	 * plans have been emitted first. This is important when the plan will not run in-order,
-	 * but will be called as a subquery which can't be extracted due to a parent reference.
-	 * This field points to a parent/ancestor physical plan that will need to generate a call to
-	 * this plan as part of going through every result row of that parent/ancestor physical plan.
-	 */
-	struct PhysicalPlan *deferred_parent_plan;
-	// Points to the parent plan of this plan; we need this so we can resolve
-	//   references to parent queries and mark intermediate plans as deferred
-	struct PhysicalPlan *parent_plan;
-	// If true, we should emit code to ensure only one value gets inserted to the output key
-	// for a given set of keys
-	boolean_t  emit_duplication_check;
+	SqlKey *	     iterKeys[MAX_KEY_COUNT]; /* These represent the keys we used to do the iteration */
+	SqlKey *	     outputKey;
+	LogicalPlan *	     where;		/* WHERE clause */
+	LogicalPlan *	     tablejoin;		/* FROM clause */
+	LogicalPlan *	     aggregate_options; /* GROUP BY and HAVING */
+	SqlOptionalKeyword * keywords;		/* DISTINCT etc. */
+	LogicalPlan *	     order_by;		/* ORDER BY clause */
+	LogicalPlan *	     projection;
+	unsigned int	     total_iter_keys;
+	boolean_t	     stash_columns_in_keys; /* If set to 1, this plan should emit the columns
+						     * as subscripts of the key, rather than using a row id
+						     */
+	boolean_t is_cross_reference_key;	/* If true, this plan outputs a cross reference key, and should be treated thusly */
+	boolean_t maintain_columnwise_index;	/* If true, maintain a column-wise index of known types */
+	boolean_t distinct_values;		/* If true, only add the value to the output key if it doesn't already exist in
+						 *  the columnwise index; requires the columnwise index.
+						 */
+	struct PhysicalPlan *parent_plan;	/* Points to the parent plan of this plan; we need this so we can resolve
+						 * references to parent queries and mark intermediate plans as deferred.
+						 */
+	boolean_t is_deferred_plan;		/* TRUE if this physical plan is a deferred plan */
+	boolean_t emit_duplication_check;	/* If true, we should emit code to ensure only one value gets inserted to
+						 * the output key for a given set of keys.
+						 */
 	boolean_t *treat_key_as_null;		/* Set to TRUE for a short period when generating M code for
 						 * the case where a left table row did not match any right
 						 * table row in an OUTER JOIN (LEFT/RIGHT/FULL). If TRUE, any
@@ -92,17 +82,20 @@ typedef struct PhysicalPlan {
 	LogicalPlan *	     lp_select_query;	  /* The owning LP_SELECT_QUERY or LP_TABLE_VALUE or LP_INSERT_INTO
 						   * logical plan corresponding to this physical plan.
 						   */
+	struct PhysicalPlan *dependent_plans_end; /* Points to the last physical plan that was added to the linked list of
+						   * physical plans as part of the "generate_physical_plan()" that first
+						   * generated this "PhysicalPlan" structure. The linked list starting from
+						   * the current "PhysicalPlan" structure going back the "prev" links until
+						   * "dependent_plans_end" form a list of physical plans that need to be moved
+						   * ahead in case we encounter the need for this physical plan again during
+						   * "generate_physical_plan()". Moving these plans avoids the need for us to
+						   * generate multiple physical plans for the same logical plan i.e. allowing us
+						   * to have a 1-1 mapping between physical and logical plans.
+						   */
 } PhysicalPlan;
 
 /* Below macro returns TRUE if GROUP BY or HAVING have been specified and/or Aggregate functions have been used in plan */
 #define IS_GROUP_BY_PLAN(PLAN) (PLAN->aggregate_function_or_group_by_specified)
-
-/* The below macros take into account that multiple physical plans can correspond to the same logical plan in which case
- * the physical plan name would have only been filled in one of those duplicates (the one whose logical plan points
- * back to this physical plan).
- */
-#define PRIMARY_PHYSICAL_PLAN(PLAN) PLAN->lp_select_query->extra_detail.lp_select_query.physical_plan
-#define PHYSICAL_PLAN_NAME(PLAN)    PRIMARY_PHYSICAL_PLAN(PLAN)->plan_name
 
 #define IS_INSERT_INTO_PHYSICAL_PLAN(PPLAN) ((NULL != PPLAN->lp_select_query) && (LP_INSERT_INTO == PPLAN->lp_select_query->type))
 #define HYPHEN_LINE			    "---------------------------------------------------------"
@@ -124,8 +117,7 @@ typedef struct PhysicalPlanOptions {
 PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *options);
 
 /* Allocate and initialize (a few fields) a physical plan. Returns the allocated physical plan. */
-PhysicalPlan *allocate_physical_plan(LogicalPlan *plan, PhysicalPlan *pplan_from_lp, PhysicalPlanOptions *plan_options,
-				     PhysicalPlanOptions *orig_plan_options);
+PhysicalPlan *allocate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *plan_options, PhysicalPlanOptions *orig_plan_options);
 
 // Outputs physical plans to temporary files located in config.plan_src_dir
 //  Names are like ppplanXXXX, where XXXX is a unique number
@@ -135,6 +127,7 @@ int emit_physical_plan(PhysicalPlan *pplan, char *plan_filename);
 // Returns true if the key is a version of this column
 int key_equals_column(SqlKey *key, SqlColumn *column);
 
+char *	      get_setoper_mlabref(SetOperType *set_oper, PhysicalPlan *pplan);
 PhysicalPlan *get_physical_plan_from_unique_id(PhysicalPlan *pplan, int unique_id);
 PhysicalPlan *emit_sql_statement(SqlStatement *stmt, char *plan_filename);
 int emit_physical_or_xref_plan(char *plan_filename, SqlStatement *stmt, char *tableName, char *columnName, PhysicalPlan *xref_plan);

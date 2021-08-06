@@ -43,11 +43,9 @@ UNIONALL(inputId1,inputId2,outputId)
 	; Merge key corresponding to inputId1 into outputId
 	SET zmax1=$GET(%ydboctocursor(cursorId,"keys",inputId1,"",""),0)
 	FOR z1=1:1:zmax1 SET %ydboctocursor(cursorId,"keys",outputId,"","",z1)=%ydboctocursor(cursorId,"keys",inputId1,"","",z1)
-	KILL %ydboctocursor(cursorId,"keys",inputId1,"","")
 	; Merge key corresponding to inputId2 into outputId
 	SET zmax2=$GET(%ydboctocursor(cursorId,"keys",inputId2,"",""),0)
 	FOR z2=1:1:zmax2 SET %ydboctocursor(cursorId,"keys",outputId,"","",zmax1+z2)=%ydboctocursor(cursorId,"keys",inputId2,"","",z2)
-	KILL %ydboctocursor(cursorId,"keys",inputId2,"","")
 	; Set # of records in output table before returning
 	SET %ydboctocursor(cursorId,"keys",outputId,"","")=zmax1+zmax2
 	QUIT
@@ -66,7 +64,6 @@ UNION(inputId1,inputId2,outputId)
 	. . QUIT:$DATA(index(val))
 	. . SET %ydboctocursor(cursorId,"keys",outputId,"","",$INCREMENT(z2))=val
 	. . SET index(val)=""
-	. KILL %ydboctocursor(cursorId,"keys",id,"","")
 	; Set # of records in output table before returning
 	SET:$DATA(z2) %ydboctocursor(cursorId,"keys",outputId,"","")=z2
 	QUIT
@@ -87,7 +84,6 @@ INTERSECTALL(inputId1,inputId2,outputId)
 	. . ELSE  IF +$GET(index(val)) DO
 	. . . IF $INCREMENT(index(val),-1)
 	. . . SET %ydboctocursor(cursorId,"keys",outputId,"","",$INCREMENT(z2))=val
-	. KILL %ydboctocursor(cursorId,"keys",id,"","")
 	; Set # of records in output table before returning
 	SET:$DATA(z2) %ydboctocursor(cursorId,"keys",outputId,"","")=z2
 	QUIT
@@ -107,7 +103,6 @@ INTERSECT(inputId1,inputId2,outputId)
 	. . ELSE  IF $DATA(index(val)) DO
 	. . . KILL index(val)
 	. . . SET %ydboctocursor(cursorId,"keys",outputId,"","",$INCREMENT(z2))=val
-	. KILL %ydboctocursor(cursorId,"keys",id,"","")
 	; Set # of records in output table before returning
 	SET:$DATA(z2) %ydboctocursor(cursorId,"keys",outputId,"","")=z2
 	QUIT
@@ -127,7 +122,6 @@ EXCEPTALL(inputId1,inputId2,outputId)
 	. . . IF $INCREMENT(index(val))
 	. . ELSE  IF +$GET(index(val)) DO
 	. . . IF $INCREMENT(index(val),-1)
-	. KILL %ydboctocursor(cursorId,"keys",id,"","")
 	SET subs=""
 	FOR  SET subs=$ORDER(index(subs)) QUIT:subs=""  DO
 	. FOR z=1:1:index(subs) DO
@@ -149,7 +143,6 @@ EXCEPT(inputId1,inputId2,outputId)
 	. . SET val=%ydboctocursor(cursorId,"keys",id,"","",z)
 	. . IF (id=inputId1) SET index(val)=""
 	. . ELSE  KILL index(val)
-	. KILL %ydboctocursor(cursorId,"keys",id,"","")
 	SET subs=""
 	FOR  SET subs=$ORDER(index(subs)) QUIT:subs=""  DO
 	. SET %ydboctocursor(cursorId,"keys",outputId,"","",$INCREMENT(z2))=subs
@@ -180,7 +173,6 @@ columnkeyUNIONALL(inputId1,inputId2,outputId)
 	. FOR  DO:$DATA(%ydboctocursor(cursorId,"keys",id,"","",subs))  SET subs=$ORDER(%ydboctocursor(cursorId,"keys",id,"","",subs)) QUIT:subs=""
 	. . SET val=%ydboctocursor(cursorId,"keys",id,"","",subs)
 	. . IF $INCREMENT(%ydboctocursor(cursorId,"keys",outputId,"","",subs),val)
-	. KILL %ydboctocursor(cursorId,"keys",id,"","")
 	QUIT
 
 columnkeyUNION(inputId1,inputId2,outputId)
@@ -198,7 +190,6 @@ columnkeyUNION(inputId1,inputId2,outputId)
 	. SET subs=""
 	. FOR  DO:$DATA(%ydboctocursor(cursorId,"keys",id,"","",subs))  SET subs=$ORDER(%ydboctocursor(cursorId,"keys",id,"","",subs)) QUIT:subs=""
 	. . SET %ydboctocursor(cursorId,"keys",outputId,"","",subs)=1
-	. KILL %ydboctocursor(cursorId,"keys",id,"","")
 	QUIT
 
 columnkeyINTERSECTALL(inputId1,inputId2,outputId)
@@ -223,7 +214,6 @@ columnkeyINTERSECTALL(inputId1,inputId2,outputId)
 	. . . SET val2=+$GET(index(subs))
 	. . . SET:(val>val2) val=val2
 	. . . SET %ydboctocursor(cursorId,"keys",outputId,"","",subs)=val
-	. KILL %ydboctocursor(cursorId,"keys",id,"","")
 	QUIT
 
 columnkeyINTERSECT(inputId1,inputId2,outputId)
@@ -245,7 +235,6 @@ columnkeyINTERSECT(inputId1,inputId2,outputId)
 	. . . SET index(subs)=1
 	. . ELSE  IF $GET(index(subs)) DO
 	. . . SET %ydboctocursor(cursorId,"keys",outputId,"","",subs)=1
-	. KILL %ydboctocursor(cursorId,"keys",id,"","")
 	QUIT
 
 columnkeyEXCEPTALL(inputId1,inputId2,outputId)
@@ -270,7 +259,6 @@ columnkeyEXCEPTALL(inputId1,inputId2,outputId)
 	. . . SET val2=+$GET(index(subs))
 	. . . SET:(val>val2) val=val2
 	. . . IF $INCREMENT(index(subs),-val)
-	. KILL %ydboctocursor(cursorId,"keys",id,"","")
 	SET subs=""
 	FOR  DO:$DATA(index(subs))  SET subs=$ORDER(index(subs)) QUIT:subs=""
 	. SET val=+$GET(index(subs))
@@ -297,13 +285,12 @@ columnkeyEXCEPT(inputId1,inputId2,outputId)
 	. . . SET index(subs)=1
 	. . ELSE  IF $GET(index(subs)) DO
 	. . . KILL index(subs)
-	. KILL %ydboctocursor(cursorId,"keys",id,"","")
 	SET subs=""
 	FOR  DO:$DATA(index(subs))  SET subs=$ORDER(index(subs)) QUIT:subs=""
 	. SET %ydboctocursor(cursorId,"keys",outputId,"","",subs)=1
 	QUIT
 
-GetScalarOrArray(keyId,toArray)
+GetScalarOrArray(keyId,toArray,planName)
 	; Helper M function for processing scalar values and single-row arrays. The toArray parameter indicates whether or not to
 	; produce a scalar value or compose an array based on the provided output key # (keyId). In either case, the return is a
 	; single value. In the array case, this return value is a string in PostgreSQL array format, i.e. {elem1,elem2,...}. In the
@@ -316,6 +303,11 @@ GetScalarOrArray(keyId,toArray)
 	; This routine is used by generated plans where a sub-query is used in place of a scalar value (e.g. arithmetic expression
 	; etc.). Assumes "%ydboctocursor" and "cursorId" are appropriately set by caller.
 	NEW firstsub,secondsub,morethanonesub,curvalue,result
+	; The variable planName points to the physical plan entryref that needs to be invoked first (in case it is a deferred plan)
+	;   in order to generate the output key rows. Example value is "octoPlan2^%ydboctoPrTrjCuwSxj7urDaUaUSh1G"). The
+	;   resulting output key rows are used to obtain the return value of this function call.
+	;   It is "" in case the plan is not a deferred plan. And in this case, no physical plan entryref needs to be invoked.
+	IF $$InvokeOctoPlan(planName)
 	; Check if there are no rows in subquery output. If so we should return NULL per SQL standard.
 	QUIT:(1>=$DATA(%ydboctocursor(cursorId,"keys",keyId,"",""))) $ZYSQLNULL
 	SET firstsub=$SELECT($DATA(%ydboctocursor(cursorId,"keys",keyId,"","","")):"",1:$ORDER(%ydboctocursor(cursorId,"keys",keyId,"","","")))
@@ -343,37 +335,43 @@ GetScalarOrArray(keyId,toArray)
 	. ZMESSAGE:morethanonesub %ydboctoerror("SUBQUERYMULTIPLEROWS")
 	QUIT result ; Return scalar in only column and only row of keyId
 
-EXISTS(keyId)
+EXISTS(keyId,planName)
 	; Helper M function that given an output key # (keyId) checks if the output key has at least one row
 	; If so returns 1 and if not returns 0. Implements the EXISTS operator in SQL.
 	; Assumes "%ydboctocursor" and "cursorId" are appropriately set by caller.
+	; See comment about "planName" variable in "GetScalarOrArray" entryref section.
 	;
+	IF $$InvokeOctoPlan(planName)
 	QUIT (1<$DATA(%ydboctocursor(cursorId,"keys",keyId,"","")))
 
-ANY(inputValue,keyId,compOp,isString)
+ANY(inputValue,keyId,compOp,isString,planName)
 	; Helper M function that implements the ANY/SOME operator in SQL.
 	; Given an output key # (keyId) checks if the output key has at least one row with a value that satisfies the
-	; compOp property (which can be any one of "<",">","<=",">=","=","'=") against the input value (inputValue).
+	;   compOp property (which can be any one of "<",">","<=",">=","=","'=") against the input value (inputValue).
 	; If so returns 1 and if not returns 0.
 	; Assumes "%ydboctocursor" and "cursorId" are appropriately set by caller.
 	; NOTE: The below implementation returns $ZYSQLNULL in case none of the $$Compare calls returns TRUE and at
-	; least one of the return is NULL (in accordance with SQL rules for NULL).
+	;   least one of the return is NULL (in accordance with SQL rules for NULL).
+	; See comment about "planName" variable in "GetScalarOrArray" entryref section.
 	;
+	IF $$InvokeOctoPlan(planName)
 	NEW ret,sub
 	SET sub="",ret=0
 	FOR  DO:$DATA(%ydboctocursor(cursorId,"keys",keyId,"","",sub))  SET sub=$ORDER(%ydboctocursor(cursorId,"keys",keyId,"","",sub)) QUIT:ret!(""=sub)
 	. SET ret=$$Compare(inputValue,compOp,sub,isString)
 	QUIT ret
 
-ALL(inputValue,keyId,compOp,isString)
+ALL(inputValue,keyId,compOp,isString,planName)
 	; Helper M function that implements the ALL operator in SQL.
 	; Given an output key # (keyId) checks if the output key has ALL rows with a value that satisfies the
-	; compOp property (which can be any one of "<",">","<=",">=","=","'=") against the input value (inputValue).
+	;   compOp property (which can be any one of "<",">","<=",">=","=","'=") against the input value (inputValue).
 	; If so returns 1 and if not returns 0.
 	; Assumes "%ydboctocursor" and "cursorId" are appropriately set by caller.
 	; NOTE: The below implementation returns $ZYSQLNULL in case none of the $$Compare calls returns FALSE and at
-	; least one of the return is NULL (in accordance with SQL rules for NULL).
+	;   least one of the return is NULL (in accordance with SQL rules for NULL).
+	; See comment about "planName" variable in "GetScalarOrArray" entryref section.
 	;
+	IF $$InvokeOctoPlan(planName)
 	NEW ret,sub
 	SET sub="",ret=1
 	FOR  DO:$DATA(%ydboctocursor(cursorId,"keys",keyId,"","",sub))  SET sub=$ORDER(%ydboctocursor(cursorId,"keys",keyId,"","",sub)) QUIT:'ret!(""=sub)
@@ -926,3 +924,45 @@ SizeCheckVARCHAR(string,size)
 	ZMESSAGE %ydboctoerror("VARCHARTOOLONG")
 	QUIT
 
+InvokeOctoPlan(planName)
+	; Given a comma-separated list of plan names in "planName" (e.g. "octoPlan2,octoPlan3") this function invokes each of
+	;   those plans and finally returns a value of 0. This is needed in cases where we want to invoke the plan (using
+	;   "DO octoPlan2" etc.) but cannot do so because we are in the middle of an expression evaluation. Making it a
+	;   function that returns a value of 0 allows us to use this function as the first choice of a $SELECT function call
+	;   which always gets evaluated before processing the rest of the $SELECT function call (where the real processing
+	;   happens based on the results of the execution of the input plan name).
+	; Additionally a plan name can also contain a space-separated list of parameters corresponding to a SET operation.
+	;   For example, a plan name in "planName" could be the string "SET 1 2 3 UNION". In this case, we are guaranteed
+	;   the first word in the space-separated list is the string "SET" (see "tmpl_invoke_deferred_setoper.ctemplate"
+	;   for the "InvokeDeferredPlan_EXISTS" case).
+	; So the logic is to first extract each plan name using $PIECE() and the delimiter ",".
+	;   And in the result check if the first space separated word is "SET". If so, it is a SET operation related invocation.
+	;   Do SET related processing. If not, it is a direct octo plan invocation request. So do that instead.
+	; Assumes "routine" and "cursorId" are appropriately set by caller.
+	; Example values for routine is "%ydboctoP0sGaZQ410YcOGHn8750h9E" and "cursorId" is some integer like "10".
+	NEW entryref,i,pieces
+	SET pieces=$ZLENGTH(planName,",")
+	; Since we will always have a trailing comma at the end, ignore the last empty piece. Hence the use of "pieces-1" below.
+	FOR i=1:1:pieces-1 DO
+	. SET entryref=$ZPIECE(planName,",",i)
+	. IF "SET"=$ZPIECE(entryref," ",1) DO
+	. . ; This is a SET operation type of request
+	. . NEW inputId1,inputId2,outputId,mlabref
+	. . SET inputId1=$ZPIECE(entryref," ",2)
+	. . SET inputId2=$ZPIECE(entryref," ",3)
+	. . SET outputId=$ZPIECE(entryref," ",4)
+	. . SET mlabref=$ZPIECE(entryref," ",5)
+	. . DO @mlabref@(inputId1,inputId2,outputId)
+	. ELSE  DO
+	. . ; This is an octo plan invocation type of request
+	. . SET entryref=entryref_"^"_routine	; note: "routine" is a variable set in "src/aux/_ydboctoselect.m"
+	. . DO @entryref@(cursorId)
+	QUIT 0
+
+InvokeSetOper(inputId1,inputId2,outputId,mlabref)
+	; Just like "InvokeOctoPlan" entryref above helps invoke generated plan entryrefs, "InvokeSetOper" does it for SET
+	; operations where the outputs of two operands of the SET operation (pointed to by "inputId1" and "inputId2") need
+	; to be merged into the output table (pointed to by "outputId"). The entryref that implements the SET operation type
+	; is pointed to by "mlabref".
+	DO @mlabref@(inputId1,inputId2,outputId)
+	QUIT 0
