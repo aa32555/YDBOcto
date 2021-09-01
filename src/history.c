@@ -272,7 +272,7 @@ void set_readline_file(void) {
 	// Final answer!
 	if (readline_actualfile[0] == '\0') {
 		config->octo_history = NULL;
-		free(readline_actualfile);
+		// free(readline_actualfile);
 	} else {
 		config->octo_history = readline_actualfile;
 		INFO(INFO_READLINE_NOTIFY_HIST_LOCATION, readline_actualfile);

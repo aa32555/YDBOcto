@@ -4,6 +4,7 @@ errors.c:warning: va_arg() is called on an uninitialized va_list [clang-analyzer
 find_function.c:warning: Array subscript is undefined [clang-analyzer-core.uninitialized.ArraySubscript]
 handle_bind.c:warning: Dereference of undefined pointer value [clang-analyzer-core.NullDereference]
 handle_bind.c:warning: The right operand of '==' is a garbage value [clang-analyzer-core.UndefinedBinaryOperatorResult]
+history.c:warning: Potential leak of memory pointed to by 'readline_actualfile' [clang-analyzer-unix.Malloc]
 make_buffers.c:warning: va_arg() is called on an uninitialized va_list [clang-analyzer-valist.Uninitialized]
 make_error_response.c:warning: va_arg() is called on an uninitialized va_list [clang-analyzer-valist.Uninitialized]
 make_error_response.c:warning: va_arg() is called on an uninitialized va_list [clang-analyzer-valist.Uninitialized]

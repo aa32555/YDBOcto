@@ -81,15 +81,6 @@ else
   ctestCommand="ctest"
 fi
 
-if [[ "test-auto-upgrade" != $jobname ]]; then
-  # Enable valgrind when running tests. This has less than a 30 second slowdown out of a 35 minute build.
-  ctestCommand="$ctestCommand -T memcheck"
-  use_valgrind=1
-else
-  use_valgrind=0
-fi
-echo " -> ctestCommand = $ctestCommand"
-
 echo "# Install the YottaDB POSIX plugin"
 pushd $start_dir
 ./tools/ci/install_posix.sh $cmakeCommand
@@ -307,6 +298,28 @@ echo "# Configure the build system for Octo"
 ${cmakeCommand} -G "$generator" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=${ydb_dist}/plugin -DCMAKE_BUILD_TYPE=$build_type -DFULL_TEST_SUITE=$full_test -DDISABLE_INSTALL=$disable_install ..
 compile_octo
 
+if [[ "test-auto-upgrade" != $jobname ]]; then
+  # Enable valgrind when running tests. This has less than a 30 second slowdown out of a 35 minute build.
+  # NOTE: this only traces the top-level process; BATS tests use run_octo_under_valgrind instead.
+  # NOTE: this has to be run after `compile_octo` to make sure the binaries exist
+  echo "# Run Octo under valgrind"
+  ctestCommand="$ctestCommand -T memcheck"
+  # Used for storing temporary valgrind logs
+  mkdir /tmp/valgrind
+  # Used for storing valgrind logs of leaks
+  mkdir valgrind-leaks
+  VALGRIND_LEAK_DIR="$(realpath valgrind-leaks)"
+  export VALGRIND_LEAK_DIR
+  for bin in octo rocto; do
+    mv src/$bin src/$bin.real
+    cp ../tools/ci/run_octo_under_valgrind.sh src/$bin
+  done
+  use_valgrind=1
+else
+  use_valgrind=0
+fi
+echo " -> ctestCommand = $ctestCommand"
+
 # If this is the "test-auto-upgrade" job, skip steps that are covered by other jobs (e.g. "make-ubuntu" etc.)
 if [[ "test-auto-upgrade" != $jobname ]]; then
 	echo "# Check for unexpected warnings and error/exit if unexpected errors are found"
@@ -397,6 +410,9 @@ if [[ "test-auto-upgrade" != $jobname ]]; then
 		cp ../src/aux/octo.conf.default $tarball_name/plugin/octo/octo.conf
 		echo "# Copy Octo binaries and libraries for later access by [octo]install.sh"
 		cp src/octo src/rocto $tarball_name/plugin/octo/bin
+		if [ $use_valgrind = 1 ]; then
+			cp src/octo.real src/rocto.real $tarball_name/plugin/octo/bin
+		fi
 		cp src/_ydbocto.so $tarball_name/plugin/o
 		cp src/utf8/_ydbocto.so $tarball_name/plugin/o/utf8
 		echo "# Copy .dbg files for debugging RelWithDebInfo builds"
@@ -504,7 +520,14 @@ PSQL
 
 	# If we ran valgrind, ctest puts the logs in a different file for some reason.
 	if [ $use_valgrind = 1 ]; then
+		# Leaks found through `ctest -T memcheck`
 		mv Testing/Temporary/LastDynamicAnalysis* Testing/Temporary/LastTest.log
+		# Leaks found through `run_octo_under_valgrind.sh`
+		if [ 0 != $(find "$VALGRIND_LEAK_DIR" -type f | wc -l) ]; then
+			echo "ERROR : Octo leaked memory or accessed unitialized bytes"
+			cat "$VALGRIND_LEAK_DIR"/*
+			exit_status=1
+		fi
 	fi
 
 	# Re-enable "set -e" now that ctest is done.
