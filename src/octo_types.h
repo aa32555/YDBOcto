@@ -586,9 +586,9 @@ typedef struct SqlSelectStatement {
 } SqlSelectStatement;
 
 typedef struct SqlQueryExpression {
-	// several possible types
+	// `type` field value of table_alias_STATEMENT or set_operation_STATEMENT
 	struct SqlStatement *simple_query_expression;
-	// SqlValue (?)
+	// SqlValue (?), `type` field value of `column_list_alias_STATEMENT`?
 	struct SqlStatement *order_by_expression;
 } SqlQueryExpression;
 
