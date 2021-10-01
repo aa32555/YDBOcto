@@ -458,11 +458,11 @@ typedef enum RegexType {
 	REGEX_TILDE,
 } RegexType;
 
-#define INVOKE_QUERY_SPECIFICATION(Q_SPEC, SET_QT, SELECT_LIST, TABLE_EXPR, SORT_SPEC_LIST, PLAN_ID)    \
-	{                                                                                               \
-		Q_SPEC = query_specification(SET_QT, SELECT_LIST, TABLE_EXPR, SORT_SPEC_LIST, PLAN_ID); \
-		if (NULL == Q_SPEC)                                                                     \
-			YYABORT;                                                                        \
+#define INVOKE_QUERY_SPECIFICATION(Q_SPEC, SET_QT, SELECT_LIST, TABLE_EXPR, PLAN_ID)    \
+	{                                                                               \
+		Q_SPEC = query_specification(SET_QT, SELECT_LIST, TABLE_EXPR, PLAN_ID); \
+		if (NULL == Q_SPEC)                                                     \
+			YYABORT;                                                        \
 	}
 
 #define INVOKE_REGEX_SPECIFICATION(STMT, OP0, OP1, IS_REGEX_LIKE_OR_SIMILAR, IS_SENSITIVE, IS_NOT, PARSE_CONTEXT)            \

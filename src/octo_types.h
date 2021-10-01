@@ -155,6 +155,7 @@ typedef enum SqlStatementType {
 	no_data_STATEMENT,
 	delim_char_list_STATEMENT,
 	index_STATEMENT,
+	query_expression_STATEMENT,
 	data_type_struct_STATEMENT,
 	join_type_STATEMENT,
 	discard_all_STATEMENT,
@@ -582,11 +583,16 @@ typedef struct SqlSelectStatement {
 	struct SqlStatement *group_by_expression;
 	// SqlValue (?)
 	struct SqlStatement *having_expression;
-	// SqlValue (?)
-	struct SqlStatement *order_by_expression;
 	// SqlOptionalKeyword
 	struct SqlStatement *optional_words;
 } SqlSelectStatement;
+
+typedef struct SqlQueryExpression {
+	// `type` field value of table_alias_STATEMENT or set_operation_STATEMENT
+	struct SqlStatement *simple_query_expression;
+	// SqlValue (?), `type` field value of `column_list_alias_STATEMENT`?
+	struct SqlStatement *order_by_expression;
+} SqlQueryExpression;
 
 typedef struct SqlInsertStatement {
 	SqlTableAlias *dst_table_alias;		   /* SqlTableAlias. Note that all we need here is the destination "SqlTable"
@@ -854,6 +860,7 @@ typedef struct SqlStatement {
 		struct SqlNoDataStatement *	  no_data;
 		struct SqlDelimiterCharacterList *delim_char_list;
 		struct SqlIndex *		  index;
+		struct SqlQueryExpression *	  query_expression;
 		struct SqlDataTypeStruct	  data_type_struct;
 		enum SqlJoinType		  join_type;
 		/* Below SqlStatementType types do not have any parameters so they do not have corresponding members here.

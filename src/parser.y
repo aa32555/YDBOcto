@@ -1078,23 +1078,29 @@ subquery
   ;
 
 query_expression
+  : simple_query_expression optional_order_by {
+	$$ = query_expression($simple_query_expression, $optional_order_by);
+  }
+  ;
+
+simple_query_expression
   : non_join_query_expression { $$ = $non_join_query_expression; }
   | joined_table { $$ = $joined_table; }
   ;
 
 non_join_query_expression
   : non_join_query_term { $$ = $non_join_query_term; }
-  | query_expression UNION query_term non_join_query_expression_tail_tail {
-        $$ = set_operation(SET_UNION, $query_expression, $query_term);
+  | simple_query_expression UNION query_term non_join_query_expression_tail_tail {
+        $$ = set_operation(SET_UNION, $simple_query_expression, $query_term);
     }
-  | query_expression UNION ALL query_term non_join_query_expression_tail_tail {
-        $$ = set_operation(SET_UNION_ALL, $query_expression, $query_term);
+  | simple_query_expression UNION ALL query_term non_join_query_expression_tail_tail {
+        $$ = set_operation(SET_UNION_ALL, $simple_query_expression, $query_term);
     }
-  | query_expression EXCEPT query_term non_join_query_expression_tail_tail {
-        $$ = set_operation(SET_EXCEPT, $query_expression, $query_term);
+  | simple_query_expression EXCEPT query_term non_join_query_expression_tail_tail {
+        $$ = set_operation(SET_EXCEPT, $simple_query_expression, $query_term);
     }
-  | query_expression EXCEPT ALL query_term non_join_query_expression_tail_tail {
-        $$ = set_operation(SET_EXCEPT_ALL, $query_expression, $query_term);
+  | simple_query_expression EXCEPT ALL query_term non_join_query_expression_tail_tail {
+        $$ = set_operation(SET_EXCEPT_ALL, $simple_query_expression, $query_term);
     }
   ;
 
