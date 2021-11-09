@@ -122,6 +122,32 @@ init_test() {
 	export PYTHONDONTWRITEBYTECODE=1
 	# Set env var to maintain list of common schemas to create across different database emulations, e.g. Postgres and MySQL
 	export schema_list="names names1col nameslastname customers pastas easynames northwind $(echo sqllogic{1,2,3,4,5}) boolean nullnames nullcharnames composite "
+
+	# Valgrind Integration:
+	# If we are going to use Valgrind uncondtionally, add the valgrind
+	# folder (containing the wrapper executables for octo and rocto) to the
+	# path
+
+	# Note BATS_TEST_NAME should technically not need to be
+	# exported, but on Arch Linux, it was not exported to the valgrind
+	# wrapper script where it it used.
+	if [[ @USE_VALGRIND_MEMCHECK@ == "ON" ]]; then
+		export PATH="@PROJECT_BINARY_DIR@/valgrind_wrappers:$PATH"
+		export BATS_TEST_NAME
+	fi
+
+	# If we are going to use Valgrind randomly, run it 1/20 times
+	if [[ @USE_VALGRIND_MEMCHECK_RANDOM@ == "ON" ]]; then
+		# $(( )) is numeric context
+		# Random Number from 0 to 99
+		random_number=$(( $RANDOM % 100 ))
+		echo "Random Number: $random_number" > random_number_for_valgrind.notice
+		if (( $random_number < @USE_VALGRIND_MEMCHECK_RANDOM_PERCENTAGE@ )); then
+			touch running_valgrind.notice
+			export PATH="@PROJECT_BINARY_DIR@/valgrind_wrappers:$PATH"
+			export BATS_TEST_NAME
+		fi
+	fi
 }
 
 init_tls() {

@@ -9,7 +9,6 @@
 #	the license, please stop and do not read further.	#
 #								#
 #################################################################
-
 macro(ADD_UNIT_TEST_WITH_OPTIONS TEST_NAME TEST_FILE WRAP_FUNCTION)
   set(test_link_flags "")
   foreach(func ${WRAP_FUNCTION})
@@ -36,8 +35,26 @@ macro(ADD_UNIT_TEST_WITH_OPTIONS TEST_NAME TEST_FILE WRAP_FUNCTION)
       ydbtls
     )
   endif()
-  add_test(${TEST_NAME} ${TEST_NAME})
+
+  set(_cmp "FALSE")
+  if(${USE_VALGRIND_MEMCHECK_RANDOM})
+	  # Generate a number 2 digits long. This will be from 00 to 99.
+	  string(RANDOM LENGTH 2 ALPHABET "0123456789" _random)
+	  # Compare to Percentage. If we are at 2%, 0 and 1 will both be okay.
+	  string(COMPARE LESS ${_random} ${USE_VALGRIND_MEMCHECK_RANDOM_PERCENTAGE} _cmp)
+  endif()
+  if(${USE_VALGRIND_MEMCHECK} OR ${_cmp})
+	  add_test(NAME ${TEST_NAME}
+		  COMMAND ${valgrind} --tool=memcheck --log-file=${PROJECT_BINARY_DIR}/valgrind_logs/${TEST_NAME}-valgrind-memcheck.log --suppressions=${PROJECT_SOURCE_DIR}/tools/ci/ignored-valgrind-errors.supp --leak-check=full --track-origins=yes ${PROJECT_BINARY_DIR}/src/${TEST_NAME})
+  else()
+	  add_test(${TEST_NAME} ${TEST_NAME})
+  endif()
 endmacro(ADD_UNIT_TEST_WITH_OPTIONS)
+
+# Create directory for Valgrind output for CMocka tests if needed
+if(${USE_VALGRIND_MEMCHECK} OR ${USE_VALGRIND_MEMCHECK_RANDOM})
+	file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/valgrind_logs/")
+endif()
 
 if("${FULL_TEST_SUITE}" MATCHES "ON")
 	ADD_UNIT_TEST_WITH_OPTIONS(test_read_bind src/rocto/test_read_bind "")

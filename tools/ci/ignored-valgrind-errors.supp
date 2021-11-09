@@ -14,14 +14,6 @@
 
 # These are leaks that should be ignored, because they are not necessarily bugs.
 {
-  YDB_uninit_mem
-  Memcheck:Cond
-  ...
-  obj:*/libyottadb.so
-  obj:*/libyottadb.so
-  ...
-}
-{
   YDB_leaks
   Memcheck:Leak
   ...

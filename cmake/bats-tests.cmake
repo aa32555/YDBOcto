@@ -43,10 +43,27 @@ macro(ADD_BATS_TEST_WITH_TIME TEST_NAME)
 endmacro(ADD_BATS_TEST_WITH_TIME)
 
 # Copy over the setup script
-configure_file (
+configure_file(
   "${PROJECT_SOURCE_DIR}/tests/test_helpers.bash.in"
   "${PROJECT_BINARY_DIR}/bats_tests/test_helpers.bash"
+  @ONLY
 )
+
+# Copy over BATS Valgrind wrappers if Valgrind integration is enabled
+if(${USE_VALGRIND_MEMCHECK} OR ${USE_VALGRIND_MEMCHECK_RANDOM})
+	configure_file(
+	  "${PROJECT_SOURCE_DIR}/tests/valgrind_wrappers/octo.sh.in"
+	  "${PROJECT_BINARY_DIR}/valgrind_wrappers/octo"
+	  # Our file has a real @, so this protects it
+	  @ONLY
+	  )
+	configure_file(
+	  "${PROJECT_SOURCE_DIR}/tests/valgrind_wrappers/rocto.sh.in"
+	  "${PROJECT_BINARY_DIR}/valgrind_wrappers/rocto"
+	  # Our file has a real @, so this protects it
+	  @ONLY
+	  )
+endif()
 
 # Core tests to always run
 ADD_BATS_TEST(test_basic_parsing)
@@ -124,7 +141,9 @@ if("${FULL_TEST_SUITE}")
 	ADD_BATS_TEST(test_memory_usage)
 	ADD_BATS_TEST(test_large_queries)
 	ADD_BATS_TEST(test_regex_type_expressions)
-	ADD_BATS_TEST(test_query_generator)
+	if(NOT (${USE_VALGRIND_MEMCHECK} OR ${USE_VALGRIND_MEMCHECK_RANDOM}))
+		ADD_BATS_TEST(test_query_generator)
+	endif()
 	ADD_BATS_TEST(test_group_by)
 	ADD_BATS_TEST(test_boolean_type)
 	ADD_BATS_TEST(test_null_keyword)

@@ -29,6 +29,8 @@ before_script:
 
 .make:
   stage: build
+  # Default timeout
+  timeout: 60m
   artifacts:
     paths:
       - build/
@@ -102,6 +104,33 @@ make-rocky:
     - .make
     - .rocky
   script: ./tools/ci/build.sh "make-rocky" "none"
+
+memcheck-ubuntu:
+  image: yottadb/yottadb-base:latest-master
+  # Timeout max for shared runners on Gitlab is 3h
+  timeout: 3h
+  # Run valgrind job only if this is a scheduled pipeline or if we are on a valgrind branch
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_COMMIT_BRANCH =~ /valgrind/'
+  extends:
+    - .make
+    - .ubuntu
+  script:
+    - ./tools/ci/build.sh "make-ubuntu" "random-memcheck"
+
+memcheck-rocky:
+  image: yottadb/yottadb-rocky-base:latest-master
+  # Timeout max for shared runners on Gitlab is 3h
+  timeout: 3h
+  # Run valgrind job only if this is a scheduled pipeline or if we are on a valgrind branch
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_COMMIT_BRANCH =~ /valgrind/'
+  extends:
+    - .make
+    - .rocky
+  script: ./tools/ci/build.sh "make-rocky" "random-memcheck"
 
 make-tls-ubuntu:
   image: yottadb/yottadb-base:latest-master

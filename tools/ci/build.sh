@@ -15,8 +15,9 @@
 set -v
 set -x
 
-jobname=$1	# could be "make-rocky", "make-ubuntu", "make-tls-rocky", "make-tls-rocky" or "test-auto-upgrade"
-subtaskname=$2 # Could be "force" or "none" in case jobname is "test-auto-upgrade"
+jobname=$1      # Could be "make-rocky", "make-ubuntu", "make-tls-rocky", "make-tls-rocky" or "test-auto-upgrade"
+subtaskname=$2  # Could be "force" or "none" in case jobname is "test-auto-upgrade"
+                # Could be "random-memcheck" for "make-rocky", "make-ubuntu", "make-tls-rocky", "make-tls-rocky"
 autoupgrade_old_commit=$3 # Git hash
 autoupgrade_test_to_troubleshoot=$4 # specific CMake test name to troubleshoot
 
@@ -86,20 +87,6 @@ else
 	generator=Ninja
 	build_tool=ninja
 fi
-
-# For now, cannot run valgrind on bats with Rocky Linux; only Ubuntu
-# See this issue opened by @shabiel: https://github.com/bats-core/bats-core/issues/494
-# However, we are restructuring the test as part of https://gitlab.com/YottaDB/DBMS/YDBOcto/-/issues/205,
-# and therefore, we can enable the test on Rocky Linux again once we do that.
-if [ "test-auto-upgrade" != $jobname ] && $is_ubuntu; then
-  # Enable valgrind when running tests. This has less than a 30 second slowdown out of a 35 minute build.
-  ctestCommand="ctest -T memcheck"
-  use_valgrind=1
-else
-  ctestCommand="ctest"
-  use_valgrind=0
-fi
-echo " -> ctestCommand = $ctestCommand"
 
 echo "# Install the YottaDB POSIX plugin"
 pushd $start_dir
@@ -224,6 +211,17 @@ if [[ "test-auto-upgrade" != $jobname ]]; then
 	else
 		disable_install="OFF"
 	fi
+
+	if [ "random-memcheck" = $subtaskname ]; then
+	  # Enable valgrind when running tests. This is EXTREMELY slow (10
+	  # times slow down). It doesn't support installed directory, therefore
+	  # set disable_install to ON. Also, run on the full test suite always.
+	  random_memcheck="ON"
+	  disable_install="ON"
+	  full_test="ON"
+	else
+	  random_memcheck="OFF"
+	fi
 else
 	# Always run the full test suite in case of "test-auto-upgrade" job.
 	# That will give us maximum coverage for auto-upgrade testing.
@@ -231,9 +229,12 @@ else
 	# Disable installs for "test-auto-upgrade" as we need to run tests with 2 Octo builds and so need to keep those
 	# two builds in separate subdirectories and cannot install both into $ydb_dist.
 	disable_install="ON"
+	# Don't run any valgrind on upgrade jobs.
+	random_memcheck="OFF"
 fi
 echo " -> full_test = $full_test"
 echo " -> disable_install = $disable_install"
+echo " -> random_memcheck = $random_memcheck"
 
 if [[ ("test-auto-upgrade" == $jobname) && ("force" != $subtaskname) ]]; then
 	# Note that a lot of code is duplicated in the "debug" portion below
@@ -369,7 +370,7 @@ trap cleanup_before_exit EXIT
 
 echo "# Configure the build system for Octo"
 
-cmake -G "$generator" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=${ydb_dist}/plugin -DCMAKE_BUILD_TYPE=$build_type -DFULL_TEST_SUITE=$full_test -DDISABLE_INSTALL=$disable_install ..
+cmake -G "$generator" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_INSTALL_PREFIX=${ydb_dist}/plugin -DCMAKE_BUILD_TYPE=$build_type -DFULL_TEST_SUITE=$full_test -DDISABLE_INSTALL=$disable_install -DUSE_VALGRIND_MEMCHECK_RANDOM=$random_memcheck ..
 compile_octo
 
 # If this is the "test-auto-upgrade" job, skip steps that are covered by other jobs (e.g. "make-ubuntu" etc.)
@@ -560,14 +561,20 @@ PSQL
 	# We do not want any failures in "ctest" to exit the script (need to do some cleanup so the artifacts
 	# are not that huge etc.). So disable the "set -e" setting temporarily for this step.
 	set +e
-	${ctestCommand} -j $(grep -c ^processor /proc/cpuinfo)
-	exit_status=$?
-	echo " -> exit_status from ${ctestCommand} = $exit_status"
-
-	# If we ran valgrind, ctest puts the logs in a different file for some reason.
-	if [ $use_valgrind = 1 ]; then
-		mv Testing/Temporary/LastDynamicAnalysis* Testing/Temporary/LastTest.log
+	if [ "random-memcheck" = $subtaskname ]; then
+		ctest --timeout=6000 -j $(grep -c ^processor /proc/cpuinfo)
+		# For finding out which tests actually ran valgrind
+		# We delete the BATS folders later, so we won't know.
+		find . -name '*-valgrind-memcheck*.log' > valgrind_runs.list
+		valgrind_helpers/valgrind_error_report.sh > valgrind_reports_with_errors.list
+		if [ -s valgrind_reports_with_errors.list ]; then
+			exit_status=99
+		fi
+	else
+		ctest -j $(grep -c ^processor /proc/cpuinfo)
+		exit_status=$?
 	fi
+	echo " -> exit_status from ctest = $exit_status"
 
 	# This block and much under it is duplicated in tools/ci/vistatest.sh
 	# Re-enable "set -e" now that ctest is done.
@@ -617,9 +624,19 @@ PSQL
 				exit 1
 			elif [[ $passed -eq 1 ]]; then
 				echo "PASSED  : $tstdir : $subtest" >> ../summary_bats_dirs.txt
-				echo $tstdir >> ../passed_bats_dirs.txt
+				# If we find that Valgrind said there is a memory leak, don't delete the directory (by
+				# putting in passed_bats_dirs.txt), and note it in summary_bats_dirs.txt
+				if compgen -G ./*valgrind-memcheck*.log && grep -f ../../tests/fixtures/valgrind_error_patterns.grep ./*valgrind-memcheck*.log; then
+					echo "MEMLEAK : $tstdir" >> ../summary_bats_dirs.txt
+				else
+					echo $tstdir >> ../passed_bats_dirs.txt
+				fi
 			elif [[ $failed -eq 1 ]]; then
 				echo "FAILED  : $tstdir : $subtest" >> ../summary_bats_dirs.txt
+				# If we find that Valgrind said there is a memory leak, note it.
+				if compgen -G ./*valgrind-memcheck*.log && grep -f ../../tests/fixtures/valgrind_error_patterns.grep ./*valgrind-memcheck*.log; then
+					echo "MEMLEAK : $tstdir" >> ../summary_bats_dirs.txt
+				fi
 			else
 				# It has to be a timed out test. It is also possible some passed/failed subtests show up here
 				# in case "$subtest" matched multiple lines. If so, treat that as a timedout directory for now.
@@ -1125,15 +1142,24 @@ set +v
 
 if [[ 0 != "$exit_status" ]]; then
 	if [[ "test-auto-upgrade" != "$jobname" ]]; then
-		echo "# ----------------------------------------------------------"
-		echo "# List of failed tests/subtests and their output directories"
-		echo "# ----------------------------------------------------------"
-		if ! [[ -s Testing/Temporary/LastTest.log ]]; then
-			echo "# Detected script failure prior to BATS test execution. Please review script output to determine source."
+		if [ "random-memcheck" = $subtaskname ]; then
+			if [ -s valgrind_reports_with_errors.list ]; then
+				echo "# -----------------------------------------------"
+				echo "# List of tests where valgrind found memory leaks"
+				echo "# -----------------------------------------------"
+				cat valgrind_reports_with_errors.list
+			fi
 		else
-			grep -A 32 -E "not ok|Test: " Testing/Temporary/LastTest.log | grep -E "not ok|# Temporary|Test: " | grep -C 1 "not ok" | sed "s/^not/  &/;s/^#/  &/"
-		fi
+			echo "# ----------------------------------------------------------"
+			echo "# List of failed tests/subtests and their output directories"
+			echo "# ----------------------------------------------------------"
+			if ! [[ -s Testing/Temporary/LastTest.log ]]; then
+				echo "# Detected script failure prior to BATS test execution. Please review script output to determine source."
+			else
+				grep -A 32 -E "not ok|Test: " Testing/Temporary/LastTest.log | grep -E "not ok|# Temporary|Test: " | grep -C 1 "not ok" | sed "s/^not/  &/;s/^#/  &/"
+			fi
 		echo "# -----------------------------"
+		fi
 	else
 		echo "# ----------------------------------------------------------"
 		echo "# List of errors (cat errors.log)"

@@ -589,6 +589,41 @@ target_link_libraries(pparser ${YOTTADB_LIBRARIES} ${Readline_LIBRARY} ${CONFIG_
 
 enable_testing()
 
+# If Valgrind isn't enabled, DELETE valgrind-related directories (from earlier runs)
+if(NOT (${USE_VALGRIND_MEMCHECK} OR ${USE_VALGRIND_MEMCHECK_RANDOM}))
+	file(REMOVE_RECURSE "${PROJECT_BINARY_DIR}/valgrind_wrappers/")
+	file(REMOVE_RECURSE "${PROJECT_BINARY_DIR}/valgrind_helpers/")
+	file(REMOVE_RECURSE "${PROJECT_BINARY_DIR}/valgrind_logs/")
+endif()
+
+# If Valgrind is enabled, find the program, create output directory and move error script over
+# Move octo/rocto interactive valgrind runners over as well
+if(${USE_VALGRIND_MEMCHECK} OR ${USE_VALGRIND_MEMCHECK_RANDOM})
+	find_program(valgrind valgrind)
+	if (NOT valgrind)
+		message(FATAL_ERROR "You asked for Valgrind, but Valgrind isn't installed")
+	endif()
+
+	configure_file(
+	  "${PROJECT_SOURCE_DIR}/tests/valgrind_helpers/valgrind_files.sh.in"
+	  "${PROJECT_BINARY_DIR}/valgrind_helpers/valgrind_files.sh"
+	  )
+	configure_file(
+	  "${PROJECT_SOURCE_DIR}/tests/valgrind_helpers/valgrind_error_report.sh.in"
+	  "${PROJECT_BINARY_DIR}/valgrind_helpers/valgrind_error_report.sh"
+	  )
+	configure_file(
+	  "${PROJECT_SOURCE_DIR}/tests/valgrind_helpers/octo.sh.in"
+	  "${PROJECT_BINARY_DIR}/valgrind_helpers/octo"
+	  @ONLY
+	  )
+	configure_file(
+	  "${PROJECT_SOURCE_DIR}/tests/valgrind_helpers/rocto.sh.in"
+	  "${PROJECT_BINARY_DIR}/valgrind_helpers/rocto"
+	  @ONLY
+	  )
+endif()
+
 if(CMOCKA_FOUND)
   include(${PROJECT_SOURCE_DIR}/cmake/cmocka-tests.cmake)
 endif()
