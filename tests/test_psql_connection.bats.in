@@ -487,6 +487,9 @@ OCTO
 }
 
 @test "TPC027 : OCTO739 : Test lots of client/psql connections to rocto work without EMFILE/ENO24 (Too many open files) error" {
+	if [[ @USE_VALGRIND_MEMCHECK@ == "ON" || @USE_VALGRIND_MEMCHECK_RANDOM@ == "ON" ]]; then
+		skip "Valgrind opens a lot of files, causing this test to fail"
+	fi
 	echo "# Restart rocto after limiting process to 16 max file descriptors" > output.txt
 	stop_rocto
 	ulimit -n 16

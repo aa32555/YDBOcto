@@ -717,6 +717,11 @@ verify_output() {
 	# Convert psql prompt to root for compatibility when running tests on systems with different PostgreSQL user permissions
 	# Specifically, some test machines do not run tests with full PostgreSQL user permissions and so receive a prompt with '>' instead of '#'
 	sed -i 's/=>/=#/' clean_output.txt
+	# Valgrind makes octo/rocto (in argv[0]) be SRCDIR/build/src/octo. Change back.
+	# This is for tests TH00{2,5,6,7}
+	if [[ @USE_VALGRIND_MEMCHECK@ == "ON" || @USE_VALGRIND_MEMCHECK_RANDOM@ == "ON" ]]; then
+		sed -i 's|SRCDIR/build/src/||' clean_output.txt
+	fi
 
 	# Selectively process output
 	for i in "$@"; do

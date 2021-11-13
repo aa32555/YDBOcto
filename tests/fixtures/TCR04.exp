@@ -74,6 +74,8 @@ expect -re ".*Cancel request sent\r\n"
 expect -re "ERROR:  canceling statement due to user request\r\nydb=. "
 
 puts "# Run another query to verify queries after a Ctrl-C of INSERT INTO work fine and canceled query left db in clean state"
+# This is a large timeout for valgrind, as it takes a long time to run the select count(*) query (about 4 minutes on my laptop with octo)
+set timeout 600
 send -- "select count(*) from names;\r"
 expect -re ".*ydb=. "
 send "\\q\r"
