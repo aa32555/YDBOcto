@@ -148,3 +148,32 @@
    fun:gtm_exit_handler
    ...
 }
+
+# This old bug report was closed by the pthreads author saying that there is no memory leak
+# https://sourceware.org/bugzilla/show_bug.cgi?id=3087
+# There is a lot of controversy and bad answers on the Internet, esp. those
+# advising that you need to detach from the thread, but none of that is
+# actually documented in any of the pthread man pages, making me think that
+# this is bad advice.
+# Confirmed here: https://stackoverflow.com/questions/68513951/pthread-create-appears-to-leak-memory
+{
+   pthreads_known_leak1
+   Memcheck:Leak
+   ...
+   fun:calloc
+   ...
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC*
+   fun:main
+}
+{
+   pthreads_known_leak2
+   Memcheck:Leak
+   ...
+   fun:calloc
+   ...
+   fun:_dl_allocate_tls
+   fun:pthread_create@@GLIBC*
+   fun:main
+}
