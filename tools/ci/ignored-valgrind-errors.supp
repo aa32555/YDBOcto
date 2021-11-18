@@ -189,3 +189,39 @@
    fun:pthread_create@@GLIBC*
    fun:main
 }
+
+# gtm_tls* calls leaks tracked at https://gitlab.com/YottaDB/Util/YDBEncrypt/-/issues/3
+{
+   gtm_tls_socket
+   Memcheck:Leak
+   ...
+   fun:gtm_tls_socket
+   fun:main
+}
+{
+   gtm_tls_init
+   Memcheck:Leak
+   ...
+   fun:gtm_tls_init
+   fun:main
+}
+{
+   gtm_tls_accept
+   Memcheck:Leak
+   ...
+   fun:gtm_tls_accept
+   fun:main
+}
+# I think these (libssl and libcrypto) are just side effects of the gtm_tls* calls leaking
+{
+   libssl_all
+   Memcheck:Leak
+   ...
+   obj:*/libssl.so.*
+}
+{
+   libcrypto_all
+   Memcheck:Leak
+   ...
+   obj:*/libcrypto.so.*
+}
