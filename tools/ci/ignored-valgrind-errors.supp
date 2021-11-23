@@ -30,7 +30,7 @@
   fun:main
 }
 # See https://gitlab.com/YottaDB/DBMS/YDBOcto/-/issues/615#note_434704262 for
-# what's going on here
+# what's going on here. malloc/calloc
 {
   pointers_stored_in_M
   Memcheck:Leak
@@ -41,7 +41,6 @@
   fun:populate_data_type
   ...
 }
-# Ditto to the one above, with calloc
 {
   pointers_stored_in_M
   Memcheck:Leak
@@ -51,6 +50,22 @@
   fun:function_call_data_type_check
   fun:populate_data_type
   ...
+}
+{
+   pointers_stored_in_M
+   Memcheck:Leak
+   fun:malloc
+   fun:alloc_chunk
+   fun:find_table
+   ...
+}
+{
+   pointers_stored_in_M
+   Memcheck:Leak
+   fun:calloc
+   fun:alloc_chunk
+   fun:find_table
+   ...
 }
 # `input_buffer_combined` lives throughout the lifetime of the program, so this isn't really a leak.
 # It's a pain to clean it up in each and every test runner, so just ignore the valgrind warning.
