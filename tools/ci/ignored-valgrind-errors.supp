@@ -267,3 +267,29 @@
    fun:op_gvname_fast
    ...
 }
+
+# This error happens on libreadline < v8 patch 1
+# Fixed here: http://git.savannah.gnu.org/cgit/readline.git/commit/?id=f585708e822e021e15e5bece1de482b63ba581df
+# Current happens on RHEL 8
+# Note the commented out object marker below. I tried various combinations to make it work, but it doesn't seem to.
+# Giving up for now.
+{
+   libreadline_leak
+   Memcheck:Cond
+   fun:read_history_range
+   fun:load_readline_history
+   ...
+#   obj:*/libreadline.so.7.0
+   fun:readline_setup
+   fun:main
+}
+{
+   libreadline_leak
+   Memcheck:Addr1
+   fun:read_history_range
+   fun:load_readline_history
+   ...
+#   obj:*/libreadline.so.7.0
+   fun:readline_setup
+   fun:main
+}
