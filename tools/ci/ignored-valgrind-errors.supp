@@ -302,3 +302,36 @@
    fun:jnl_sub_qio_start
    ...
 }
+# YDB uninitialized memory tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/811
+{
+   ydb811a
+   Memcheck:Value8
+   ...
+   fun:zshow_output
+   ...
+   fun:lvzwr_out
+   fun:lvzwr_var
+   ...
+}
+{
+   ydb811b
+   Memcheck:Param
+   write(buf)
+   ...
+   fun:write
+   ...
+   fun:iorm_write
+   fun:op_write
+   fun:zshow_output
+   ...
+}
+{
+   ydb811c
+   Memcheck:Value8
+   ...
+   fun:mval_write
+   ...
+   fun:lvzwr_out
+   fun:lvzwr_var
+   ...
+}
