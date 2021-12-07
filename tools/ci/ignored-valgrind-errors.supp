@@ -335,3 +335,44 @@
    fun:lvzwr_var
    ...
 }
+# YDB uninitialized memory tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/812
+{
+   ydb812a
+   Memcheck:Value8
+   ...
+   fun:gvcst_put2
+   fun:gvcst_put
+   ...
+   fun:ydb_set_s
+   ...
+}
+{
+   ydb812b
+   Memcheck:Value8
+   ...
+   fun:gvcst_put2
+   fun:gvcst_put
+   ...
+   fun:ydb_incr_s
+   ...
+}
+{
+   ydb812c
+   Memcheck:Cond
+   ...
+   fun:gvcst_put2
+   fun:gvcst_put
+   ...
+   fun:ydb_set_s
+   ...
+}
+{
+   ydb812d
+   Memcheck:Cond
+   ...
+   fun:gvcst_put2
+   fun:gvcst_put
+   ...
+   fun:ydb_incr_s
+   ...
+}
