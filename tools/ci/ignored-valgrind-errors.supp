@@ -293,3 +293,12 @@
    fun:readline_setup
    fun:main
 }
+# YDB uninitialized memory tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/810
+{
+   ydb810
+   Memcheck:Param
+   pwrite64(buf)
+   fun:pwrite
+   fun:jnl_sub_qio_start
+   ...
+}
