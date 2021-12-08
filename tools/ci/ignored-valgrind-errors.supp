@@ -376,3 +376,16 @@
    fun:ydb_incr_s
    ...
 }
+# YDB uninitialized memory tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/813
+{
+   ydb813
+   Memcheck:Param
+   pwrite64(buf)
+   ...
+   fun:pwrite
+   fun:dsk_write_nocache
+   fun:bml_init
+   fun:gdsfilext
+   fun:bm_getfree
+   ...
+}
