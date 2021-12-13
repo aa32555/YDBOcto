@@ -107,3 +107,44 @@
   fun:test_valid_input
   ...
 }
+# Tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/820
+{
+   ydb820a
+   Memcheck:Param
+   pwrite64(buf)
+   ...
+   fun:pwrite
+   fun:wcs_wtstart
+   ...
+}
+{
+   ydb820b
+   Memcheck:Param
+   pwrite64(count)
+   ...
+   fun:pwrite
+   fun:wcs_wtstart
+   ...
+}
+{
+   # This one is really rare, but maybe something the C compiler does, as it's the same line (704)
+   # in wcs_wtstart as above. Happened on TTA005.
+   ydb820c
+   Memcheck:Cond
+   fun:wcs_wtstart
+   fun:wcs_stale
+   fun:timer_handler
+   ...
+}
+{
+   # This one is really rare, but maybe something the C compiler does, as it's the same line (704)
+   # in wcs_wtstart as above. Happened on TTA005.
+   ydb820d
+   Memcheck:Cond
+   fun:wcs_wtstart
+   fun:wcs_flu
+   fun:gds_rundown
+   fun:gv_rundown
+   fun:gtm_exit_handler
+   ...
+}
