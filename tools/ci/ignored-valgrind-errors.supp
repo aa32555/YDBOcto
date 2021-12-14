@@ -389,3 +389,44 @@
    fun:bm_getfree
    ...
 }
+# YDB uninitialized memory tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/817
+# Note that YDB eats the stack at M runtime and then restores it after, so we can't put a stack signature here
+# Test TW10, TOJ0{2,3}, TS04, TCF018, TC023, TSD04 on YDB Debug build only
+{
+   ydb817a
+   Memcheck:Cond
+   fun:op_fnp1
+   ...
+}
+{
+   ydb817b
+   Memcheck:Cond
+   fun:op_fnzp1
+   ...
+}
+{
+   ydb817c
+   Memcheck:Value8
+   fun:op_fnp1
+   fun:op_fnpiece
+   ...
+}
+{
+   ydb817d
+   Memcheck:Value8
+   fun:op_fnzp1
+   fun:op_fnzpiece
+   ...
+}
+{
+   ydb817e
+   Memcheck:Value8
+   fun:op_fnp1
+   ...
+}
+{
+   ydb817f
+   Memcheck:Value8
+   fun:op_fnzp1
+   ...
+}
