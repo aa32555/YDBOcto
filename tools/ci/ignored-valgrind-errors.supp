@@ -37,6 +37,18 @@
   fun:malloc
   fun:alloc_chunk
   fun:find_function
+  fun:function_call_data_type_check
+  fun:populate_data_type
+  ...
+}
+# Ditto to the one above, with calloc
+{
+  pointers_stored_in_M
+  Memcheck:Leak
+  fun:calloc
+  fun:alloc_chunk
+  fun:find_function
+  fun:function_call_data_type_check
   fun:populate_data_type
   ...
 }
