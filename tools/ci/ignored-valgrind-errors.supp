@@ -225,3 +225,30 @@
    ...
    obj:*/libcrypto.so.*
 }
+# This is tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/801
+{
+   YDB801
+   Memcheck:Value8
+   fun:db_csh_get
+   fun:t_qread
+   fun:gvcst_search
+   fun:gvcst_get2
+   fun:gvcst_get
+   fun:op_gvget
+   fun:ydb_get_s
+   fun:find_table
+   fun:table_reference
+   fun:yyparse
+   fun:parse_line
+   fun:run_query
+}
+{
+   YDB801
+   Memcheck:Cond
+   ...
+   fun:gvcst_search
+   fun:gvcst_root_search
+   fun:op_gvname_common
+   fun:op_gvname_fast
+   ...
+}
