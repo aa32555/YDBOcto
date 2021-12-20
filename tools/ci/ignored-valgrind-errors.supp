@@ -22,14 +22,6 @@
   ...
 }
 {
-  YDB_PEEKBYNAME
-  Memcheck:Leak
-  ...
-  obj:*/libyottadb.so
-  obj:*/libyottadb.so
-  ...
-}
-{
   YDB_startup_leaks
   Memcheck:Leak
   ...
