@@ -430,3 +430,107 @@
    fun:op_fnzp1
    ...
 }
+# https://gitlab.com/YottaDB/DB/YDB/-/issues/824
+# TOJ01, TOJ02, TTA005
+{
+   ydb824a
+   Memcheck:Cond
+   ...
+   fun:gvcst_get2
+   fun:gvcst_get
+   fun:op_gvget
+   fun:ydb_get_s
+   ...
+}
+{
+   ydb824b
+   Memcheck:Cond
+   ...
+   fun:gvcst_order2
+   fun:gvcst_order
+   fun:op_gvorder
+   fun:ydb_subscript_next_s
+   ...
+}
+{
+   ydb824c
+   Memcheck:Value8
+   ...
+   fun:gvcst_get2
+   fun:gvcst_get
+   fun:op_gvget
+   fun:ydb_get_s
+   ...
+}
+{
+   ydb824d
+   Memcheck:Value8
+   ...
+   fun:gvcst_order2
+   fun:gvcst_order
+   fun:op_gvorder
+   fun:ydb_subscript_next_s
+   ...
+}
+# https://gitlab.com/YottaDB/DB/YDB/-/issues/826
+# TUT006, TDFT07. No other tests show this.
+{
+   ydb826
+   Memcheck:Cond
+   fun:tp_clean_up
+   fun:op_trollback
+   fun:goframes
+   fun:error_return
+}
+# https://gitlab.com/YottaDB/DB/YDB/-/issues/827
+# These errors show up randomly. This run has them at TSC12, TSS03, TPC020.
+{
+   ydb827
+   Memcheck:Addr1
+   fun:strncpy
+   fun:cli_get_sub_quals
+   fun:parse_arg
+   ...
+   fun:trigger_parse
+   ...
+}
+{
+   ydb827
+   Memcheck:Addr2
+   fun:strncpy
+   fun:cli_get_sub_quals
+   fun:parse_arg
+   ...
+   fun:trigger_parse
+   ...
+}
+{
+   ydb827
+   Memcheck:Addr4
+   fun:strncpy
+   fun:cli_get_sub_quals
+   fun:parse_arg
+   ...
+   fun:trigger_parse
+   ...
+}
+{
+   ydb827
+   Memcheck:Addr8
+   fun:strncpy
+   fun:cli_get_sub_quals
+   fun:parse_arg
+   ...
+   fun:trigger_parse
+   ...
+}
+{
+   ydb827
+   Memcheck:Cond
+   fun:strncpy
+   fun:cli_get_sub_quals
+   fun:parse_arg
+   ...
+   fun:trigger_parse
+   ...
+}
