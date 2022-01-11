@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2022 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -277,6 +277,7 @@ int qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlTable
 		SqlTableAlias *	    group_by_table_alias;
 		SqlColumnList *	    col_list;
 		int		    group_by_column_count;
+		boolean_t	    is_column_discarded = FALSE;
 
 		table_alias->aggregate_depth = AGGREGATE_DEPTH_GROUP_BY_CLAUSE;
 		assert(0 == table_alias->group_by_column_count);
@@ -311,6 +312,7 @@ int qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlTable
 						start_cla = cur_cla = next;
 						continue;
 					}
+					is_column_discarded = TRUE;
 				} else {
 					if (0 == group_by_column_count) {
 						group_by_expression->v.column_list_alias = cur_cla;
@@ -338,6 +340,13 @@ int qualify_query(SqlStatement *table_alias_stmt, SqlJoin *parent_join, SqlTable
 		/* The "|| result" case below is to account for query errors (e.g. "Unknown column" error, see comment above) */
 		assert((group_by_column_count == table_alias->group_by_column_count) || result);
 		if (!group_by_column_count) {
+			if (is_column_discarded) {
+				/* GroupBy is present but the column used is from outer query and as an optimization its removed.
+				 * This doesn't mean GroupBy doesn't exist. All the GroupBy related validations must still happen.
+				 * Set `aggregate_function_or_group_by_specified` so that GroupBy checks happen.
+				 */
+				table_alias->aggregate_function_or_group_by_specified = TRUE;
+			}
 			select->group_by_expression = NULL;
 		}
 	}
