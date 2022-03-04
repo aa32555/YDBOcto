@@ -1,7 +1,7 @@
 {}%
 /****************************************************************
  *								*
- * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2022 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -25,17 +25,17 @@
  *	in this function has to happen as one expression (i.e. cannot generate new M commands or start a new M line).
  */
 TEMPLATE(tmpl_column_reference, PhysicalPlan *pplan, SqlColumnAlias *column_alias, boolean_t is_trigger, int dot_count, int depth) {
-	SqlColumn		*column = NULL, *key_column;
+	SqlColumn		*column = NULL;
 	SqlTable		*table;
 	SqlValue		*value;
 	SqlTableAlias		*table_alias;
 	SqlOptionalKeyword	*keyword;
-	SqlKey			*key;
+	SqlKey			*key, *matching_key;
 	char			*table_name, *delim;
 	char			*piece = NULL, *source;
 	unsigned int		i;
 	boolean_t		is_extract, is_dollar_char;
-	PhysicalPlan		*cur_plan;
+	PhysicalPlan		*cur_plan, *matching_plan;
 	int			unique_id;
 
 	/* Note: The callers should pass a column, not a column list alias.
@@ -77,6 +77,7 @@ TEMPLATE(tmpl_column_reference, PhysicalPlan *pplan, SqlColumnAlias *column_alia
 	 * non-key column, we will mostly go through "tmpl_key" but can go through "tmpl_emit_source" in the case of the second
 	 * half of a RIGHT JOIN ("key->use_tmpl_emit_source_for_xref_key" would be TRUE in that case).
 	 */
+	matching_plan = get_physical_plan_and_key_for_unique_id(pplan, unique_id, &matching_key);
 	cur_plan = pplan;
 	do {
 		PhysicalPlan	*next_plan;
@@ -85,8 +86,7 @@ TEMPLATE(tmpl_column_reference, PhysicalPlan *pplan, SqlColumnAlias *column_alia
 		for (i = 0; i < cur_plan->total_iter_keys; i++) {
 			key = cur_plan->iterKeys[i];
 			if (key->unique_id == unique_id) {
-				key_column = key->column;
-				if (key_column == column) {
+				if (key->column == column) {
 					/* If using "tmpl_key" has been asked to be disabled (possible for xref key in second half
 					 * of RIGHT JOIN), continue generating column value (using "tmpl_emit_source") instead of
 					 * key value. In this case, we are guaranteed the column of interest is a non-key column
@@ -97,7 +97,20 @@ TEMPLATE(tmpl_column_reference, PhysicalPlan *pplan, SqlColumnAlias *column_alia
 						next_plan = NULL;	/* so we break out of outer "do" loop too */
 						break;
 					}
+					if (matching_plan != pplan) {
+						/* Key belongs to a parent query table. Depending on whether OUTER JOINs were in
+						 * use there or not, it is possible for this key column to be undefined at this
+						 * point (https://gitlab.com/YottaDB/DBMS/YDBOcto/-/issues/800#note_862163964).
+						 * Use NULL value in that case. Otherwise, generate the actual key.
+						 */
+						TMPL(tmpl_key_dollardata_check, key, FALSE);	/* FALSE to indicate this
+												 * is not a derived column.
+												 */
+					}
 					TMPL(tmpl_key, key);
+					if (matching_plan != pplan) {
+						%{}){}%	/* closing paren for "tmpl_key_dollardata_check" call above */
+					}
 					return;
 				}
 			}
@@ -132,6 +145,13 @@ TEMPLATE(tmpl_column_reference, PhysicalPlan *pplan, SqlColumnAlias *column_alia
 	/* Note: pplan->outputKey can be NULL in case of LP_UPDATE plan so account for that below with a "NULL != " check */
 	is_xref_plan = ((NULL != pplan->outputKey) && pplan->outputKey->is_cross_reference_key);
 	if (!is_trigger) {
+		if (matching_plan != pplan) {
+			/* Key belongs to a parent query table. Depending on whether OUTER JOINs were
+			 * in use there or not, it is possible for this key column to be undefined
+			 * at this point. So check that before using it. See #800 comment above for similar code.
+			 */
+			TMPL(tmpl_key_dollardata_check, matching_key, FALSE);	/* FALSE to indicate this is not a derived column */
+		}
 		if (!dot_count) {
 			if (!is_xref_plan) {
 				%{}$$piecevalue2colvalue^%%ydboctoplanhelpers({}%
@@ -141,6 +161,10 @@ TEMPLATE(tmpl_column_reference, PhysicalPlan *pplan, SqlColumnAlias *column_alia
 			 * so no need to convert from "" to $ZYSQLNULL.
 			 */
 		}
+		/* else: if "dot_count" is non-zero, we implement the "$$piecevalue2colvalue^%%ydboctoplanhelpers"
+		 * invocation a little later by inline M code as it is seen to be faster to avoid the function invocation.
+		 * In the "!dot_count" case it is not possible to avoid the function case so we stick to the function there.
+		 */
 	}
 
 	boolean_t	skipped_dollar_get;
@@ -177,12 +201,19 @@ TEMPLATE(tmpl_column_reference, PhysicalPlan *pplan, SqlColumnAlias *column_alia
 				}
 			}
 		}
-		if (dot_count) {
-			%{} SET:(""={{ PP_YDB_OCTO_EXPR }}) {{ PP_YDB_OCTO_EXPR  }}=$ZYSQLNULL{}%
-		} else {
+		if (!dot_count) {
 			if (!is_xref_plan) {
 				%{}){}%
 			}
+		}
+		if (matching_plan != pplan) {
+			%{}){}%	/* closing paren for "tmpl_key_dollardata_check" call above */
+		}
+		if (dot_count) {
+			/* Implement "piecevalue2colvalue^%ydboctoplanhelpers" call (already done for the "!dot_count" case)
+			 * using inline M code as it was seen (in cc515a49) to be faster than a function invocation.
+			 */
+			%{} SET:(""={{ PP_YDB_OCTO_EXPR }}) {{ PP_YDB_OCTO_EXPR  }}=$ZYSQLNULL{}%
 		}
 	} else {
 		if (NULL != delim) {
