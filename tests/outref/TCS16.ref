@@ -1,0 +1,156 @@
+
+-- TCS16 : OCTO463 : CASE does not issue a syntax error in WHEN conditions if all code paths lead to the same result
+
+-- The following cases cannot be cross-checked against PostgreSQL, since PostgreSQL will
+-- issue the following error for these queries:
+--   LINE 5: HAVING pastas.id = CASE
+--   HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+
+-- However, Octo and MySQL will accept these queries and return 0 rows. So test these separately
+-- by doing outref verification.
+-- TODO: When #288 is resolved and MySQL crosscheck functionality is incorporated, then these
+-- queries can be tested against MySQL instead of against an outref.
+
+-- NULL case
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
+	ELSE NULL
+END;
+
+-- NULL case, omitted ELSE
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
+	ELSE NULL
+END;
+
+-- Nested CASE statement, NULL case
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN CASE
+		WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL ELSE NULL
+	END
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
+	ELSE NULL
+END;
+
+-- NULL case, with case_value, omitted ELSE, NULL branches
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE NULL
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
+END;
+
+-- NULL case, without case_value, omitted ELSE, NULL branches
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
+END;
+
+-- NULL case, with case_value, but omitted ELSE, non-NULL branch
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE NULL
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2
+END;
+
+-- NULL case, without case_value, omitted ELSE, non-NULL branch
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2
+END;
+
+MIN|ID
+(0 rows)
+MIN|ID
+(0 rows)
+MIN|ID
+(0 rows)
+MIN|ID
+(0 rows)
+MIN|ID
+(0 rows)
+[ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column PASTANAME must appear in the GROUP BY clause or be used in an aggregate function
+Error with syntax near (line 6, column 25):
+
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE NULL
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	                       ^^^^^^^^^^^^^^^^
+[ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column PASTANAME must appear in the GROUP BY clause or be used in an aggregate function
+Error with syntax near (line 7, column 24):
+
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE NULL
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2
+	                      ^^^^^^^^^^^^^^^^
+[ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE NULL
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2
+END;
+[ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column PASTANAME must appear in the GROUP BY clause or be used in an aggregate function
+Error with syntax near (line 6, column 25):
+
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	                       ^^^^^^^^^^^^^^^^
+[ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column PASTANAME must appear in the GROUP BY clause or be used in an aggregate function
+Error with syntax near (line 7, column 24):
+
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2
+	                      ^^^^^^^^^^^^^^^^
+[ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2
+END;

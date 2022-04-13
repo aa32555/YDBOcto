@@ -255,6 +255,7 @@ add_library(libocto OBJECT
   parser/create_sql_column_list.c
   parser/data_type.c
   parser/delete_from_statement.c
+  parser/optimize_case_statement.c
   parser/update_statement.c
   parser/derived_column.c
   parser/derived_table.c

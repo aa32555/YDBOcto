@@ -1,0 +1,61 @@
+
+-- TERR035 : OCTO463 : Test of CASE statement errors
+
+-- Nested CASE statement with ELSE omitted
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN CASE
+		WHEN ( 'Orechiette' < pastas.pastaname ) THEN pastas.id
+	END
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN pastas.id
+	ELSE pastas.id
+END;
+
+-- Nested CASE statement, NULL case, ELSEs omitted
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN CASE
+		WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	END
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
+END;
+[ERROR] PATH:LINENUM DATE TIME : ERR_UNKNOWN_TABLE : Unknown table: PASTAS
+Error with syntax near (line 2, column 8):
+
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+       ^^^^^^
+[ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN CASE
+		WHEN ( 'Orechiette' < pastas.pastaname ) THEN pastas.id
+	END
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN pastas.id
+	ELSE pastas.id
+END;
+[ERROR] PATH:LINENUM DATE TIME : ERR_UNKNOWN_TABLE : Unknown table: PASTAS
+Error with syntax near (line 2, column 8):
+
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+       ^^^^^^
+[ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN CASE
+		WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	END
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
+END;
+

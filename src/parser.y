@@ -946,22 +946,10 @@ case_specification
 
 simple_case
   : CASE value_expression simple_when_clause optional_else_clause END {
-      SQL_STATEMENT($$, cas_STATEMENT);
-      MALLOC_STATEMENT($$, cas, SqlCaseStatement);
-      SqlCaseStatement *cas;
-      UNPACK_SQL_STATEMENT(cas, $$, cas);
-      cas->value = $value_expression;
-      cas->branches = $simple_when_clause;
-      cas->optional_else = $optional_else_clause;
+      $$ = optimize_case_statement($value_expression, $simple_when_clause, $optional_else_clause);
     }
   | CASE simple_when_clause optional_else_clause END {
-      SQL_STATEMENT($$, cas_STATEMENT);
-      MALLOC_STATEMENT($$, cas, SqlCaseStatement);
-      SqlCaseStatement *cas;
-      UNPACK_SQL_STATEMENT(cas, $$, cas);
-      cas->value = NULL;
-      cas->branches = $simple_when_clause;
-      cas->optional_else = $optional_else_clause;
+      $$ = optimize_case_statement(NULL, $simple_when_clause, $optional_else_clause);
     }
   ;
 
