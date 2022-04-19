@@ -236,6 +236,7 @@ PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *opt
 	 */
 	assert(NULL == plan->extra_detail.lp_select_query.first_aggregate);
 	plan_options.aggregate = &plan->extra_detail.lp_select_query.first_aggregate;
+	plan_options.current = plan;
 	/* Note: plan_options.table would have been set by caller if it is "emit_sql_statement" */
 	/* Note: plan_options.function would have been set by caller if it is "emit_sql_statement" */
 	if (FALSE == lp_verify_structure(plan, &plan_options)) {

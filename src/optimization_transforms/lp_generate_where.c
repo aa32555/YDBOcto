@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2022 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -210,6 +210,12 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *parent_stmt) {
 		assert((NULL == cur_cl->value) || (LP_AGGREGATE_FUNCTION_COUNT_ASTERISK != type));
 		if (NULL != cur_cl->value) {
 			error_encountered |= lp_generate_column_list(&ret->v.lp_default.operand[0], stmt, cur_cl);
+			if (cur_cl->value->type == column_alias_STATEMENT) {
+				ret->extra_detail.lp_aggregate_function.unique_id
+				    = cur_cl->value->v.column_alias->table_alias_stmt->v.table_alias->unique_id;
+			} else {
+				ret->extra_detail.lp_aggregate_function.unique_id = -1;
+			}
 		}
 		break;
 	case column_STATEMENT:

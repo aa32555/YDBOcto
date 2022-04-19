@@ -126,3 +126,11 @@ setup() {
 	load_fixture TGB19_errors.sql subtest novv
 	verify_output TGB19_errors output.txt
 }
+
+@test "TGB20: OCTO775 : Test grouped columns of outer query being referenced in inner query" {
+	load_fixture customers.sql
+	load_fixture customers.zwr
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries customers TGB20.sql
+	load_fixture TGB20_errors.sql subtest novv
+	verify_output TGB20_errors output.txt
+}

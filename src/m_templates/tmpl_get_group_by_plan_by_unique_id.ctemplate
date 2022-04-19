@@ -1,0 +1,47 @@
+{}%
+/****************************************************************
+ *								*
+ * Copyright (c) 2022 YottaDB LLC and/or its subsidiaries.	*
+ * All rights reserved.						*
+ *								*
+ *	This source code contains the intellectual property	*
+ *	of its copyright holder(s), and is made available	*
+ *	under a license.  If you do not know the terms of	*
+ *	the license, please stop and do not read further.	*
+ *								*
+ ****************************************************************/
+#include "logical_plan.h"
+#include "template_helpers.h"
+
+TEMPLATE(tmpl_get_group_by_plan_by_unique_id, PhysicalPlan *pplan, SqlColumnAlias *column_alias, int unique_id, boolean_t *done) {
+	if ((NULL != pplan) && (column_alias->group_by_column_number)) {
+		// The column belongs to parent pplan drop through to the code below to fetch the correct column
+		PhysicalPlan *cur_plan;
+		cur_plan = pplan;
+		do {
+			PhysicalPlan *next_plan;
+
+			next_plan = cur_plan->parent_plan;
+			for (unsigned int i = 0; i < cur_plan->total_iter_keys; i++) {
+				SqlKey	*key;
+				key = cur_plan->iterKeys[i];
+				if (key->unique_id == unique_id) {
+					if (cur_plan->tablejoin_body_group_by_done) {
+						assert(cur_plan->aggregate_function_or_group_by_or_having_specified);
+						%{}$$mval2str^%%ydboctoplanhelpers({}%
+						%{}$$mvalPiece^%%ydboctoplanhelpers({}%
+						%{}{{ "%ydboctogparent" }}({{ cur_plan->outputKey->unique_id|%d }}),{{ column_alias->group_by_column_number|%d }}{}%
+						%{}){}% // closing paren for mvalPiece call above
+						%{}){}% // closing paren for mval2str call above
+						*done = TRUE;
+						return;
+					} else {
+						break;
+					}
+				}
+			}
+			cur_plan = next_plan;
+		} while (NULL != cur_plan);
+	}
+}
+%{}

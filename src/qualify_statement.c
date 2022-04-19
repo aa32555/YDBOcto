@@ -132,26 +132,36 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 					}
 					parent_table_alias = column_table_alias->parent_table_alias;
 					if ((NULL != parent_table_alias) && (parent_table_alias->aggregate_depth)) {
-						if ((0 < table_alias->aggregate_depth)
-						    && (QualifyQuery_WHERE == parent_table_alias->qualify_query_stage)) {
-							/* `aggregate_function_STATEMENT` case itself throws error when current
-							 * table_alias is executing a WHERE clause. Because of that we are sure we
-							 * wont reach this block of code when `table_alias == parent_table_alias`.
+						if ((parent_table_alias != table_alias) && (0 < table_alias->aggregate_depth)) {
+							/* This is an aggregate of parent query table. Ensure that we do not set
+							 * `table_alias->aggregate_function_or_group_by_or_having_specified` to
+							 * AGGREGATE_FUNCTION_SPECIFIED. We want to only set it when the aggregated
+							 * column belongs to the current table_alias. By setting FALSE to
+							 * set_aggregate_function we ensure this doesn't happen when we return to
+							 * aggregate_function_STATEMENT case in qualify_statement() call. But set
+							 * the variable for parent_table_alias as this aggregation belongs to it.
 							 */
-							assert(table_alias != parent_table_alias);
-							/* Aggregate functions in a sub query is referencing outer query
-							 * column. Also, the sub query is inside WHERE clause of the outer
-							 * query. This usage is not allowed. Issue an ERROR.
-							 */
-							ERROR(ERR_AGGREGATE_FUNCTION_WHERE, "");
-							result = 1;
-							yyerror(NULL, NULL, &stmt, NULL, NULL, NULL);
+							table_alias->set_aggregate_function = FALSE;
+							parent_table_alias->aggregate_function_or_group_by_or_having_specified
+							    = AGGREGATE_FUNCTION_SPECIFIED;
+							if (QualifyQuery_WHERE == parent_table_alias->qualify_query_stage) {
+								/* `aggregate_function_STATEMENT` case itself throws error when
+								 * current table_alias is executing a WHERE clause. Because of that
+								 * we are sure we wont reach this block of code when `table_alias ==
+								 * parent_table_alias`. Aggregate functions in a sub query is
+								 * referencing outer query column. Also, the sub query is inside
+								 * WHERE clause of the outer query. This usage is not allowed. Issue
+								 * an ERROR.
+								 */
+								ERROR(ERR_AGGREGATE_FUNCTION_WHERE, "");
+								result = 1;
+								yyerror(NULL, NULL, &stmt, NULL, NULL, NULL);
+							}
+							break;
 						}
 						int aggregate_depth = parent_table_alias->aggregate_depth;
 						if (0 < aggregate_depth) {
-							assert(AGGREGATE_FUNCTION_SPECIFIED
-							       & parent_table_alias
-								     ->aggregate_function_or_group_by_or_having_specified);
+							assert(TRUE == parent_table_alias->set_aggregate_function);
 						} else if (AGGREGATE_DEPTH_GROUP_BY_CLAUSE == aggregate_depth) {
 							/* Update `group_by_column_count` and `group_by_column_number` */
 							new_column_alias->group_by_column_number
@@ -304,9 +314,20 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 		}
 		if (!result) {
 			assert(!table_alias->do_group_by_checks || table_alias->aggregate_function_or_group_by_or_having_specified);
-			table_alias->aggregate_function_or_group_by_or_having_specified |= AGGREGATE_FUNCTION_SPECIFIED;
+			table_alias->set_aggregate_function = TRUE;
 			table_alias->aggregate_depth++;
 			result |= qualify_statement(af->parameter, tables, table_alias_stmt, depth + 1, ret);
+			if (table_alias->set_aggregate_function) {
+				/* We need to set `aggregate_function_or_group_by_specified` here as usage of constants
+				 * also needs to be considered to set the flag not just columns. By doing it here we avoid
+				 * code to set the variable at all cases.
+				 * set_aggregate_function can be FALSE only in case where the paraemter has only columns which
+				 * belong to outer query. In such a case the `table_alias`s are updated at COLUMN_REFERENCE and
+				 * COLUMN_ALIAS cases.
+				 */
+				table_alias->aggregate_function_or_group_by_or_having_specified = TRUE;
+				table_alias->set_aggregate_function = FALSE;
+			}
 			if (0 == result) {
 				UNPACK_SQL_STATEMENT(cur_cl, af->parameter, column_list);
 				assert((AGGREGATE_COUNT_ASTERISK == af->type) || (NULL != cur_cl->value));

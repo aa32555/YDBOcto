@@ -74,6 +74,7 @@
 #define PP_XREF_COLUMN	       "xrefCol"
 #define PP_YDB_OCTO_EXPR       "%ydboctoexpr"
 #define PP_YDB_OCTO_G	       "%ydboctog"
+#define PP_YDB_OCTO_G_PARENT   "%ydboctogparent"
 #define PP_YDB_OCTO_I	       "%ydboctoi"
 #define PP_YDB_OCTO_IN	       "%ydboctoin"
 #define PP_YDB_OCTO_KEYCHNGD   "%ydboctokeychngd"
@@ -169,5 +170,6 @@ TEMPLATE(tmpl_populate_output_key, PhysicalPlan *pplan, int dot_count);
 TEMPLATE(tmpl_limit_check, SqlOptionalKeyword *limit_keyword, char *prefix, char *suffix);
 TEMPLATE(tmpl_where_or_having_or_on, LogicalPlan *plan, PhysicalPlan *pplan, int dot_count);
 TEMPLATE(tmpl_xref_key_columns, int num_key_cols);
+TEMPLATE(tmpl_get_group_by_plan_by_unique_id, PhysicalPlan *pplan, SqlColumnAlias *column_alias, int unique_id, boolean_t *done);
 
 #endif

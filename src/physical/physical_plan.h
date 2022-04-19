@@ -115,6 +115,9 @@ typedef struct PhysicalPlanOptions {
 					  */
 	LogicalPlan **function;		 /* Helps maintain a linked list of LP_FUNCTION_CALL plans across entire query */
 	LogicalPlan **table;		 /* Helps maintain a linked list of LP_TABLE plans across entire query */
+	LogicalPlan * current;
+	LogicalPlan * select_query;
+
 } PhysicalPlanOptions;
 
 PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *options);
