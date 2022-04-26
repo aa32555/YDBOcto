@@ -864,4 +864,5 @@ SELECT n1.* FROM names n1 GROUP BY 1 HAVING n1.lastname!='Zero' ORDER BY n1.firs
 SELECT n1.* FROM names n1 GROUP BY 1 HAVING n1.lastname!='Zero' ORDER BY n1.*; --Octo issues an error cause of https://gitlab.com/YottaDB/DBMS/YDBOcto/-/issues/675 -- Postgres Works fine
 SELECT n1.* FROM names n1 GROUP BY n1.* HAVING n1.lastname!='Zero' ORDER BY n1.firstname; -- Postgres ERROR saying n1.id in SELECT list not in GroupBy
 SELECT n1.* FROM names n1 GROUP BY n1.* HAVING n1.lastname!='Zero' ORDER BY n1.*; -- Postgres ERROR saying n1.id in SELECT list not in GroupBy
+select 1 from names n1 group by n1.* order by n1.*, n1.firstname; -- Both Octo and Postgres issue error saying `n1.firstname` is not in GroupBy
 

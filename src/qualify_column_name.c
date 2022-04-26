@@ -183,6 +183,9 @@ SqlColumnAlias *qualify_column_name(SqlValue *column_value, SqlJoin *tables, Sql
 									// Note down that the processing is not complete so that
 									// process_table_asterisk_cla() can identify and complete
 									// its processing
+									// #GAN_TODO: remove duplication of
+									// `ret->is_table_asterisk_processing_done = FALSE;` in both
+									// the if branch.
 									ret->is_table_asterisk_processing_done = FALSE;
 									cur_table_alias->table_asterisk_column_alias = ret;
 								} else {

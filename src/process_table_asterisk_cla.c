@@ -70,20 +70,29 @@ void process_table_asterisk_cla(SqlStatement *specification_list, SqlColumnListA
 		UNPACK_SQL_STATEMENT(cla, cur_table_alias->column_list, column_list_alias);
 		result = copy_column_list_alias_list(cla, cur_table_alias_stmt, cla_cur->keywords);
 		if (QualifyQuery_SELECT_COLUMN_LIST == qualify_query_stage) {
-			// We do not wan't to qualify columns got by expanding TABLE_ASTERISK
-			// So note down the end of the expanded list
+			/* We do not wan't to qualify columns got by expanding TABLE_ASTERISK
+			 * so note down the end of the expanded list.
+			 */
 			column_alias->last_table_asterisk_node = result->prev;
 			/* Replace TABLENAME.ASTERISK cla with a linked list of clas corresponding to columns of table */
 			REPLACE_COLUMNLISTALIAS(cla_cur, result, cla_head, specification_list);
 			*c_cla_cur = column_alias->last_table_asterisk_node;
 			*c_cla_head = cla_head;
 		} else {
-			/* Append linked list of clas corresponding to columns of table after untouched TABLENAME.ASTERISK cla */
 			assert(QualifyQuery_ORDER_BY == qualify_query_stage);
-			column_alias->last_table_asterisk_node = result->prev;
-			cla_cur = cla_cur->next;
-			dqappend(cla_cur, result);
-			//*c_cla_cur = column_alias->last_table_asterisk_node;
+			if (column_alias->group_by_column_number) {
+				/* Do not expand the list as in case where group_by_column_number is set we know that
+				 * `table.*` is used in GROUP BY and we need to refer to the grouped `table.*` data while
+				 * emitting physical plan in tmpl_column_list_combine.ctemplate.
+				 */
+				column_alias->last_table_asterisk_node = *c_cla_cur;
+			} else {
+				/* Append linked list of clas corresponding to columns of table after untouched TABLENAME.ASTERISK
+				 * cla */
+				column_alias->last_table_asterisk_node = result->prev;
+				cla_cur = cla_cur->next;
+				dqappend(cla_cur, result);
+			}
 		}
 		// Noting down that TABLE_ASTERISK is processed so that its not expanded again
 		column_alias->is_table_asterisk_processing_done = TRUE;

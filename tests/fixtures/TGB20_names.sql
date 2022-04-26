@@ -961,11 +961,11 @@ SELECT 1 FROM names n1 GROUP BY n1.*;
 select n1.* from names n1 group by 1,2,3;
 SELECT n1.* FROM names n1 ORDER BY n1.*;
 SELECT n1.* FROM names n1 ORDER BY 1;
--- SELECT 1 FROM names n1 GROUP BY n1.* ORDER BY n1.*;
+SELECT 1 FROM names n1 GROUP BY n1.* ORDER BY n1.*;
 SELECT 1 FROM names n1 GROUP BY n1.* HAVING n1.* is null;
 SELECT 1 FROM names n1 GROUP BY n1.* HAVING n1.* is not null;
 SELECT 1 FROM names n1 GROUP BY n1.* HAVING n1.* is null ORDER BY n1.*;
--- SELECT 1 FROM names n1 GROUP BY n1.* HAVING n1.* is not null ORDER BY n1.*;
+SELECT 1 FROM names n1 GROUP BY n1.* HAVING n1.* is not null ORDER BY n1.*;
 
 
 -- misc
