@@ -327,6 +327,8 @@ OCTO
 }
 
 @test "TERR035 : OCTO463 : Test of CASE statement errors" {
+	load_fixture pastas.sql
+	load_fixture pastas.zwr
 	load_fixture TERR035.sql subtest novv
 	verify_output TERR035 output.txt
 }

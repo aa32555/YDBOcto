@@ -25,14 +25,13 @@ HAVING pastas.id = CASE
 	ELSE pastas.id
 END;
 
--- Nested CASE statement, NULL case, ELSEs omitted
+-- NULL case, with case_value, but omitted ELSE, non-NULL branch
 SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
 FROM   pastas
 WHERE  ( ( pastas.id - 6 ) = 2 )
 GROUP  BY pastas.id
-HAVING pastas.id = CASE
-	WHEN ( 'Orechiette' != pastas.pastaname ) THEN CASE
-		WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
-	END
-	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
+HAVING pastas.id = CASE NULL
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2
 END;
+

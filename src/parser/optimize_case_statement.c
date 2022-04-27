@@ -19,9 +19,6 @@
 
 boolean_t is_same_sqlvalue(SqlValue *val1, SqlValue *val2) {
 	if ((NULL != val1) && (NULL != val2)) {
-		// fprintf(stderr, "DBG: val1->type: %d\t val2->type: %d\n", val1->type, val2->type);
-		// fprintf(stderr, "DBG: val1-v.string_literal: %s\tval2->v.string_literal: %s\n", val1->v.string_literal,
-		// val2->v.string_literal);
 		if ((val1->type == val2->type) && !(strcmp(val1->v.string_literal, val2->v.string_literal))) {
 			return TRUE;
 		}
@@ -88,7 +85,7 @@ SqlValue *get_case_branch_result(SqlStatement *stmt) {
 				break;
 			}
 			// Store the current branch value for later comparison against the next branch value.
-			prev_branch_value = get_case_branch_result(cur_branch->value);
+			prev_branch_value = cur_branch_value;
 			cur_branch = cur_branch->next;
 			cur_branch_value = get_case_branch_result(cur_branch->value);
 		} while (cur_branch != cas_branch);
@@ -126,18 +123,16 @@ SqlStatement *optimize_case_statement(SqlStatement *value_expression, SqlStateme
 	SqlCaseBranchStatement *cas_branch;
 
 	branch_result = get_case_branch_result(simple_when_clause);
-	optimize_result = TRUE;
+	optimize_result = FALSE;
 	if (NULL != branch_result) {
 		if (NULL == optional_else_clause) {
-			if (NUL_VALUE != branch_result->type) {
-				optimize_result = FALSE;
+			if (NUL_VALUE == branch_result->type) {
+				optimize_result = TRUE;
 			}
 		} else if ((value_STATEMENT == optional_else_clause->type)
-			   && !(is_same_sqlvalue(branch_result, optional_else_clause->v.value))) {
-			optimize_result = FALSE;
+			   && (is_same_sqlvalue(branch_result, optional_else_clause->v.value))) {
+			optimize_result = TRUE;
 		}
-	} else {
-		optimize_result = FALSE;
 	}
 
 	if (optimize_result) {
