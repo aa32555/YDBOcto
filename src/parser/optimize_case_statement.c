@@ -52,7 +52,7 @@ SqlValue *get_case_branch_result(SqlStatement *stmt) {
 		do {
 			cur_branch_value = get_case_branch_result(cur_branch->value);
 			if ((NULL == cur_branch_value)
-			    || (NULL != prev_branch_value) && !(is_same_sqlvalue(prev_branch_value, cur_branch_value))) {
+			    || ((NULL != prev_branch_value) && !(is_same_sqlvalue(prev_branch_value, cur_branch_value)))) {
 				/* If the values of the current and previous branches do not match, then we cannot optimize
 				 * away the CASE statement, but must instead include all of the branches for evaluation at query
 				 * runtime. So, signal that here and terminate the loop.
