@@ -49,11 +49,11 @@ SqlValue *get_case_branch_result(SqlStatement *stmt) {
 	case cas_branch_STATEMENT:
 		UNPACK_SQL_STATEMENT(cas_branch, stmt, cas_branch);
 		cur_branch = cas_branch;
-		// Store the initial branch value for later comparison against the next branch value.
-		cur_branch_value = prev_branch_value = get_case_branch_result(cas_branch->value);
+		prev_branch_value = NULL;
 		do {
-			if ((NULL == prev_branch_value) || (NULL == cur_branch_value)
-			    || !(is_same_sqlvalue(prev_branch_value, cur_branch_value))) {
+			cur_branch_value = get_case_branch_result(cur_branch->value);
+			if ((NULL == cur_branch_value)
+			    || (NULL != prev_branch_value) && !(is_same_sqlvalue(prev_branch_value, cur_branch_value))) {
 				/* If the values of the current and previous branches do not match, then we cannot optimize
 				 * away the CASE statement, but must instead include all of the branches for evaluation at query
 				 * runtime. So, signal that here and terminate the loop.
@@ -64,7 +64,6 @@ SqlValue *get_case_branch_result(SqlStatement *stmt) {
 			// Store the current branch value for later comparison against the next branch value.
 			prev_branch_value = cur_branch_value;
 			cur_branch = cur_branch->next;
-			cur_branch_value = get_case_branch_result(cur_branch->value);
 		} while (cur_branch != cas_branch);
 		break;
 	case value_STATEMENT:
