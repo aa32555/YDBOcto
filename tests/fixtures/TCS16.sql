@@ -28,6 +28,14 @@ SELECT CASE
         ELSE id+1
 END from pastas;
 
+SELECT CASE
+        WHEN id < 2 THEN NULL
+        WHEN id < 4 THEN CASE
+                WHEN id < 3 THEN NULL
+                ELSE id+1
+        END
+END from pastas;
+
 -- Nested CASE statement
 SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
 FROM   pastas
@@ -84,3 +92,26 @@ HAVING pastas.pastaname = CASE
 	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
 	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2::text
 END;
+
+-- NULL case, with case_value, omitted ELSE, NULL branches
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id::text = CASE NULL::boolean
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
+END;
+
+-- Nested CASE statement, NULL case, ELSEs omitted
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id::text = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN CASE
+		WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	END
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
+END;
+

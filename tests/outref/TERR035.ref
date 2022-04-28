@@ -14,23 +14,49 @@ HAVING pastas.id = CASE
 	ELSE pastas.id
 END;
 
--- Nested CASE statement, NULL case, ELSEs omitted
+-- NULL case, with case_value, but omitted ELSE, non-NULL branch
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE NULL
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2
+END;
+[ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column PASTANAME must appear in the GROUP BY clause or be used in an aggregate function
+Error with syntax near (line 6, column 25):
+
 SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
 FROM   pastas
 WHERE  ( ( pastas.id - 6 ) = 2 )
 GROUP  BY pastas.id
 HAVING pastas.id = CASE
 	WHEN ( 'Orechiette' != pastas.pastaname ) THEN CASE
-		WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
-	END
-	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
-END;
-[ERROR] PATH:LINENUM DATE TIME : ERR_UNKNOWN_TABLE : Unknown table: PASTAS
-Error with syntax near (line 2, column 8):
+	                       ^^^^^^^^^^^^^^^^
+[ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column PASTANAME must appear in the GROUP BY clause or be used in an aggregate function
+Error with syntax near (line 7, column 25):
 
 SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
 FROM   pastas
-       ^^^^^^
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN CASE
+		WHEN ( 'Orechiette' < pastas.pastaname ) THEN pastas.id
+		                      ^^^^^^^^^^^^^^^^
+[ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column PASTANAME must appear in the GROUP BY clause or be used in an aggregate function
+Error with syntax near (line 9, column 24):
+
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN CASE
+		WHEN ( 'Orechiette' < pastas.pastaname ) THEN pastas.id
+	END
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN pastas.id
+	                      ^^^^^^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
 FROM   pastas
 WHERE  ( ( pastas.id - 6 ) = 2 )
@@ -42,20 +68,33 @@ HAVING pastas.id = CASE
 	WHEN ( 'Orechiette' < pastas.pastaname ) THEN pastas.id
 	ELSE pastas.id
 END;
-[ERROR] PATH:LINENUM DATE TIME : ERR_UNKNOWN_TABLE : Unknown table: PASTAS
-Error with syntax near (line 2, column 8):
+[ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column PASTANAME must appear in the GROUP BY clause or be used in an aggregate function
+Error with syntax near (line 6, column 25):
 
 SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
 FROM   pastas
-       ^^^^^^
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE NULL
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	                       ^^^^^^^^^^^^^^^^
+[ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column PASTANAME must appear in the GROUP BY clause or be used in an aggregate function
+Error with syntax near (line 7, column 24):
+
+SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
+FROM   pastas
+WHERE  ( ( pastas.id - 6 ) = 2 )
+GROUP  BY pastas.id
+HAVING pastas.id = CASE NULL
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2
+	                      ^^^^^^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: SELECT DISTINCT Min(DISTINCT pastas.pastaname), pastas.id
 FROM   pastas
 WHERE  ( ( pastas.id - 6 ) = 2 )
 GROUP  BY pastas.id
-HAVING pastas.id = CASE
-	WHEN ( 'Orechiette' != pastas.pastaname ) THEN CASE
-		WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
-	END
-	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
+HAVING pastas.id = CASE NULL
+	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
+	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2
 END;
 

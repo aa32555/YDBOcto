@@ -96,9 +96,5 @@ setup() {
 @test "TCS16 : OCTO463 : CASE does not issue a syntax error in WHEN conditions if all code paths lead to the same result" {
 	load_fixture pastas.sql
 	load_fixture pastas.zwr
-	# Test queries accepted by PostgreSQL
 	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries pastas TCS16.sql
-	# Test queries accepted by Octo and MySQL (see comment in TCS16b.sql)
-	load_fixture TCS16b.sql subtest novv
-	verify_output TCS16 output.txt
 }

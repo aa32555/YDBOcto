@@ -34,4 +34,3 @@ HAVING pastas.id = CASE NULL
 	WHEN ( 'Orechiette' != pastas.pastaname ) THEN NULL
 	WHEN ( 'Orechiette' < pastas.pastaname ) THEN 2
 END;
-

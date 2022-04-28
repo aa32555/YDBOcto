@@ -44,30 +44,7 @@ SqlValue *get_case_branch_result(SqlStatement *stmt) {
 
 	switch (stmt->type) {
 	case cas_STATEMENT:
-		UNPACK_SQL_STATEMENT(cas_stmt, stmt, cas);
-		cur_branch_value = get_case_branch_result(cas_stmt->branches);
-		/* We can only do the CASE statement optimization when all branches AND
-		 * any ELSE clause all have the same value. So, we must check the result of
-		 * the branches for this CASE statement (i.e. `cas_stmt`) against its optional
-		 * ELSE, if there is one.
-		 *
-		 * If the ELSE is omitted, the CASE statement will implicitly return SQL NULL in the
-		 * ELSE case. So, check whether the branches all resulted in a NUL_VALUE SqlValue statement.
-		 * In that case, we can do the optimization since all the results are them same, i.e. NULL.
-		 *
-		 * If an ELSE is specified, we must check it against the result of the previous examination
-		 * of the CASE branches, i.e. `cur_branch_value`. If the ELSE and the result of the branches
-		 * differ, then we cannot optimize this CASE statement and so return NULL to signal this
-		 * to the caller.
-		 */
-		if (NULL == cas_stmt->optional_else) {
-			cur_branch_value = NULL;
-		} else if (value_STATEMENT == cas_stmt->optional_else->type) {
-			UNPACK_SQL_STATEMENT(optional_else, cas_stmt->optional_else, value);
-			if (!(is_same_sqlvalue(cur_branch_value, optional_else))) {
-				cur_branch_value = NULL;
-			}
-		}
+		cur_branch_value = NULL;
 		break;
 	case cas_branch_STATEMENT:
 		UNPACK_SQL_STATEMENT(cas_branch, stmt, cas_branch);
