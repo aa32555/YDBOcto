@@ -38,8 +38,7 @@ boolean_t is_same_sqlvalue(SqlValue *val1, SqlValue *val2) {
  */
 SqlValue *get_case_branch_result(SqlStatement *stmt) {
 	SqlValue *		cur_branch_value, *prev_branch_value;
-	SqlValue *		value, *optional_else;
-	SqlCaseStatement *	cas_stmt;
+	SqlValue *		value;
 	SqlCaseBranchStatement *cas_branch, *cur_branch;
 
 	switch (stmt->type) {
