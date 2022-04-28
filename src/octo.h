@@ -914,6 +914,9 @@ SqlStatement *insert_statement(SqlStatement *table_name, SqlStatement *column_na
 			       int *plan_id, ParseContext *parse_context);
 SqlStatement *delete_from_statement(SqlStatement *table_name, SqlStatement *alias_name, SqlStatement *where_clause, int *plan_id,
 				    ParseContext *parse_context);
+boolean_t     is_same_sqlvalue(SqlValue *val1, SqlValue *val2);
+SqlStatement *optimize_case_statement(SqlStatement *value_expression, SqlStatement *simple_when_clause,
+				      SqlStatement *optional_else_clause);
 SqlStatement *update_statement(SqlStatement *table_name, SqlStatement *alias_name, SqlStatement *set_clause_list,
 			       SqlStatement *where_clause, int *plan_id, ParseContext *parse_context);
 int	      natural_join_condition(SqlJoin *start, SqlJoin *r_join);
