@@ -43,6 +43,12 @@ SqlValue *get_case_branch_result(SqlStatement *stmt) {
 
 	switch (stmt->type) {
 	case cas_STATEMENT:
+		/* It is okay to set cur_branch_value to NULL here since the parser will parse the nested CASE first before it
+		 * parses the outer CASE. When parsing the nested CASE, whether it is optimized or not depends on what values its
+		 * branches contain. So, when we are parsing the outer CASE, if the inner CASE is still there, it implies it was not
+		 * optimizable. So there's no need to re-parse the nested CASE only to again find the fact that it is not
+		 * optimizable.
+		 */
 		cur_branch_value = NULL;
 		break;
 	case cas_branch_STATEMENT:

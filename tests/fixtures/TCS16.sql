@@ -115,3 +115,5 @@ HAVING pastas.id::text = CASE
 	WHEN ( 'Orechiette' < pastas.pastaname ) THEN NULL
 END;
 
+-- Moved from TTA007: asterisk case
+select 1 from names n1 order by case NULL when NULL then n1.* else n1.* end;

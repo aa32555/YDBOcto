@@ -1,6 +1,6 @@
 #################################################################
 #								#
-# Copyright (c) 2021 YottaDB LLC and/or its subsidiaries.	#
+# Copyright (c) 2021-2022 YottaDB LLC and/or its subsidiaries.	#
 # All rights reserved.						#
 #								#
 #	This source code contains the intellectual property	#
@@ -45,7 +45,6 @@ select 1 from names n1 group by n1.* having nullif(n1.*,NULL)=NULL;
 select 1 from names n1 group by n1.* having nullif(n1.*,n1.*)=NULL;
 
 select 1 from names n1 where case NULL when NULL then n1.* else n1.* end;
-select 1 from names n1 order by case NULL when NULL then n1.* else n1.* end;
 select 1 from names n1 order by case NULL when NULL then n1.id else n1.* end;
 select case NULL when NULL then n1.id else n1.* end from names n1;
 select case NULL when NULL then n1.* else n1.* end from names n1;

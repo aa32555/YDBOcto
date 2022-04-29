@@ -34,7 +34,6 @@ select 1 from names n1 group by n1.* having nullif(n1.*,NULL)=NULL;
 select 1 from names n1 group by n1.* having nullif(n1.*,n1.*)=NULL;
 
 select 1 from names n1 where case NULL when NULL then n1.* else n1.* end;
-select 1 from names n1 order by case NULL when NULL then n1.* else n1.* end;
 select 1 from names n1 order by case NULL when NULL then n1.id else n1.* end;
 select case NULL when NULL then n1.id else n1.* end from names n1;
 select case NULL when NULL then n1.* else n1.* end from names n1;
@@ -272,14 +271,6 @@ Error with syntax near (line 1, column 30):
 select 1 from names n1 where case NULL when NULL then n1.* else n1.* end;
                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: select 1 from names n1 where case NULL when NULL then n1.* else n1.* end;
-???
-1
-1
-1
-1
-1
-1
-(6 rows)
 [ERROR] PATH:LINENUM DATE TIME : ERR_CASE_BRANCH_TYPE_MISMATCH : CASE branch type mismatch: left INTEGER, right TABLENAME.*
 Error with syntax near (line 1, column 58):
 
