@@ -89,7 +89,7 @@ int qualify_check_constraint(SqlStatement *stmt, SqlTable *table, SqlValueType *
 	if (NULL == stmt)
 		return result;
 	switch (stmt->type) {
-	case aggregate_function_STATEMENT:
+	case aggregate_function_STATEMENT:;
 		/* Aggregate functions are not allowed in CHECK constraints. Issue error. */
 		ERROR(ERR_AGGREGATE_FUNCTION_CHECK, NULL);
 

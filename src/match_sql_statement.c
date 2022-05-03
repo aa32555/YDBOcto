@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2020 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2020-2022 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -39,6 +39,10 @@ boolean_t match_sql_statement(SqlStatement *stmt, SqlStatement *match_stmt) {
 	SqlCaseBranchStatement *cur_cas_branch, *start_cas_branch;
 	SqlCaseBranchStatement *match_cur_cas_branch, *match_start_cas_branch;
 	SqlFunctionCall *	function_call, *match_function_call;
+	SqlGreatest *		greatest_call, *match_greatest_call;
+	SqlLeast *		least_call, *match_least_call;
+	SqlCoalesceCall *	coalesce_call, *match_coalesce_call;
+	SqlNullIf *		null_if, *match_null_if;
 	SqlAggregateFunction *	aggregate_function, *match_aggregate_function;
 	boolean_t		ret;
 
@@ -316,6 +320,37 @@ boolean_t match_sql_statement(SqlStatement *stmt, SqlStatement *match_stmt) {
 		if (!ret)
 			break;
 		ret = match_sql_statement(function_call->parameters, match_function_call->parameters);
+		if (!ret)
+			break;
+		break;
+	case greatest_STATEMENT:
+		UNPACK_SQL_STATEMENT(greatest_call, stmt, greatest);
+		UNPACK_SQL_STATEMENT(match_greatest_call, match_stmt, greatest);
+		ret = match_sql_statement(greatest_call->arguments, match_greatest_call->arguments);
+		if (!ret)
+			break;
+		break;
+	case coalesce_STATEMENT:
+		UNPACK_SQL_STATEMENT(coalesce_call, stmt, coalesce);
+		UNPACK_SQL_STATEMENT(match_coalesce_call, match_stmt, coalesce);
+		ret = match_sql_statement(coalesce_call->arguments, match_coalesce_call->arguments);
+		if (!ret)
+			break;
+		break;
+	case least_STATEMENT:
+		UNPACK_SQL_STATEMENT(least_call, stmt, least);
+		UNPACK_SQL_STATEMENT(match_least_call, match_stmt, least);
+		ret = match_sql_statement(least_call->arguments, match_least_call->arguments);
+		if (!ret)
+			break;
+		break;
+	case null_if_STATEMENT:
+		UNPACK_SQL_STATEMENT(null_if, stmt, null_if);
+		UNPACK_SQL_STATEMENT(match_null_if, match_stmt, null_if);
+		ret = match_sql_statement(null_if->left, match_null_if->left);
+		if (!ret)
+			break;
+		ret = match_sql_statement(null_if->right, match_null_if->right);
 		if (!ret)
 			break;
 		break;

@@ -113,6 +113,8 @@ typedef struct LpPieceNumber {
 
 typedef struct LpDefault {
 	struct LogicalPlan *operand[2];
+	int		    group_by_column_num;
+	boolean_t	    is_inner_expression;
 } LpDefault;
 
 /* Extra fields needed by LP_TABLE_JOIN */
@@ -179,6 +181,8 @@ typedef struct LpExtraAggregateFunction {
 typedef struct LpExtraCoerceType {
 	SqlDataTypeStruct coerce_type;	   /* The resulting type of the typecast/coercion operator */
 	SqlValueType	  pre_coerce_type; /* The type of the operand before the typecast/coercion operator */
+	int		  group_by_column_num;
+	boolean_t	  is_inner_expression;
 } LpExtraCoerceType;
 
 /* When adding a LP_FUNCTION_CALL we need to know if a LP_FUNCTION_CALL plan is already part of the linked list.

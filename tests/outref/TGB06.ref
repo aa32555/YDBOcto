@@ -23,6 +23,13 @@ Error with syntax near (line 3, column 60):
 --> even though the aggregate function usage is inside a WHERE clause or FROM clause.
 SELECT COUNT(id),(SELECT n2.id FROM names n2 WHERE n2.id = COUNT(n1.id)) FROM names n1;
                                                            ^^^^^
+[ERROR] PATH:LINENUM DATE TIME : ERR_AGGREGATE_FUNCTION_WHERE : Aggregate functions are not allowed in WHERE
+Error with syntax near (line 3, column 60):
+
+--> Below should not error out even though subquery uses aggregate function on column from outer query
+--> even though the aggregate function usage is inside a WHERE clause or FROM clause.
+SELECT COUNT(id),(SELECT n2.id FROM names n2 WHERE n2.id = COUNT(n1.id)) FROM names n1;
+                                                           ^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: --> Below should not error out even though subquery uses aggregate function on column from outer query
 --> even though the aggregate function usage is inside a WHERE clause or FROM clause.
 SELECT COUNT(id),(SELECT n2.id FROM names n2 WHERE n2.id = COUNT(n1.id)) FROM names n1;
@@ -64,6 +71,11 @@ Error with syntax near (line 1, column 80):
 SELECT (SELECT n3.id FROM names n3 WHERE n3.id = COUNT(n1.id) LIMIT 1),(SELECT n2.id FROM names n2 ORDER BY COUNT(n1.id) LIMIT 1) FROM names n1;
                                                                                ^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: SELECT (SELECT n3.id FROM names n3 WHERE n3.id = COUNT(n1.id) LIMIT 1),(SELECT n2.id FROM names n2 ORDER BY COUNT(n1.id) LIMIT 1) FROM names n1;
+[ERROR] PATH:LINENUM DATE TIME : ERR_AGGREGATE_FUNCTION_WHERE : Aggregate functions are not allowed in WHERE
+Error with syntax near (line 1, column 39):
+
+SELECT (SELECT id FROM names n1 WHERE COUNT(n2.id) = 6 LIMIT 1),COUNT(n2.id) FROM names n2;
+                                      ^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_AGGREGATE_FUNCTION_WHERE : Aggregate functions are not allowed in WHERE
 Error with syntax near (line 1, column 39):
 

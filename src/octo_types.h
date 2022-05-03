@@ -21,6 +21,7 @@ typedef void *yyscan_t;
 
 #include "memory_chunk.h"
 #include "double_list.h"
+#include "mmrhash.h"
 
 // Set maximum M routine length - must be in sync with MAX_MIDENT_LEN in YDB/sr_port/mdef.h
 #define MAX_ROUTINE_LEN YDB_MAX_IDENT
@@ -116,6 +117,12 @@ typedef enum FileType {
 	YDBTrigger,
 	FunctionHash,
 } FileType;
+
+typedef enum ExpressionSwitchCallLoc {
+	COL_LIST_ALIAS,
+	GROUP_HASH,
+	CONST,
+} ExpressionSwitchCallLoc;
 
 /* Note: The order of the statement types listed below is the same as the order of fields listed under
  * the union inside "typedef struct SqlStatement" in a different section of this same file ("octo_types.h").
@@ -477,6 +484,8 @@ typedef struct SqlColumnAlias {
 						      *  `id` and 2 for the SqlColumnAlias corresponding to `firstname`
 						      *  and 0 for the SqlColumnAlias corresponding to `lastname`).
 						      */
+	struct SqlColumnListAlias *last_table_asterisk_node;
+	boolean_t		   is_table_asterisk_processing_done;
 } SqlColumnAlias;
 
 /**
@@ -513,6 +522,7 @@ typedef enum {
 	QualifyQuery_SELECT_COLUMN_LIST,
 	QualifyQuery_ORDER_BY,
 	QualifyQuery_WHERE,
+	QualifyQuery_GROUP_BY_EXPRESSION,
 } QualifyQueryStage;
 
 /* The below is used as a bitmask to form the "aggregate_function_or_group_by_or_having_specified" field below */
@@ -536,13 +546,13 @@ typedef struct SqlTableAlias {
 								 * based on whether a GROUP BY, HAVING, and/or
 								 * aggregate function were specified in the query.
 								 */
-	boolean_t do_group_by_checks; /* TRUE for the time we are in "qualify_statement()" while doing GROUP BY related checks
-				       * in the HAVING, SELECT column list and ORDER BY clause. Note that "qualify_statement()"
-				       * is invoked twice on these lists. The first time, this flag is FALSE. The second time
-				       * it is TRUE. This is used to issue GROUP BY related errors (which requires us to have
-				       * scanned the entire SELECT column list at least once). It is also used to avoid issuing
-				       * duplicate errors (e.g. ERR_UNKNOWN_COLUMN_NAME).
-				       */
+	int do_group_by_checks; /* TRUE for the time we are in "qualify_statement()" while doing GROUP BY related checks
+				 * in the HAVING, SELECT column list and ORDER BY clause. Note that "qualify_statement()"
+				 * is invoked twice on these lists. The first time, this flag is FALSE. The second time
+				 * it is TRUE. This is used to issue GROUP BY related errors (which requires us to have
+				 * scanned the entire SELECT column list at least once). It is also used to avoid issuing
+				 * duplicate errors (e.g. ERR_UNKNOWN_COLUMN_NAME).
+				 */
 	struct SqlTableAlias *parent_table_alias;
 	// SqlColumnListAlias list of available columns
 	struct SqlStatement *column_list;
@@ -560,6 +570,9 @@ typedef struct SqlTableAlias {
 							   */
 	QualifyQueryStage qualify_query_stage;
 } SqlTableAlias;
+
+#define SET_GROUP_BY_NUM_TO_EXPRESSION 0x1
+#define DO_GROUP_BY_CHECKS	       0x2
 
 /**
  * Represents an optional KEYWORD which has a value associated with it */
@@ -668,11 +681,24 @@ typedef struct SqlArray {
 } SqlArray;
 
 /*
+ * Grouping related structure
+ */
+typedef struct group_by_fields_t {
+	int		group_by_column_num;
+	hash128_state_t hash; /* Used by qualify_query()/qualify_statement() to validate Select List and Group By expression.
+			       * And it is also used for finding the group_by_column_num value in get_group_by_column_number().
+			       */
+	boolean_t is_constant;
+	boolean_t is_inner_expression;
+} group_by_fields_t;
+
+/*
  * Represents a unary operation
  */
 typedef struct SqlUnaryOperation {
 	enum UnaryOperations operation; // '+', '-'
 	struct SqlStatement *operand;
+	group_by_fields_t    group_by_fields;
 } SqlUnaryOperation;
 
 /*
@@ -681,6 +707,8 @@ typedef struct SqlUnaryOperation {
 typedef struct SqlBinaryOperation {
 	enum BinaryOperations operation; // '+', '-', '*', '/'
 	struct SqlStatement * operands[2];
+	group_by_fields_t     group_by_fields;
+
 } SqlBinaryOperation;
 
 typedef struct SqlAggregateFunction {
@@ -699,25 +727,30 @@ typedef struct SqlFunctionCall {
 	struct SqlStatement *function_schema;
 	// SqlColumnList
 	struct SqlStatement *parameters;
+	group_by_fields_t    group_by_fields;
 } SqlFunctionCall;
 
 typedef struct SqlCoalesceCall {
 	// SqlColumnList
 	struct SqlStatement *arguments;
+	group_by_fields_t    group_by_fields;
 } SqlCoalesceCall;
 
 typedef struct SqlGreatest {
 	// SqlColumnList
 	struct SqlStatement *arguments;
+	group_by_fields_t    group_by_fields;
 } SqlGreatest;
 
 typedef struct SqlLeast {
 	// SqlColumnList
 	struct SqlStatement *arguments;
+	group_by_fields_t    group_by_fields;
 } SqlLeast;
 
 typedef struct SqlNullIf {
 	struct SqlStatement *left, *right;
+	group_by_fields_t    group_by_fields;
 } SqlNullIf;
 
 /**
@@ -749,6 +782,7 @@ typedef struct SqlValue {
 	enum SqlValueType type;
 	SqlDataTypeStruct coerced_type;	    /* initialized/usable only if `type` is COERCE_TYPE */
 	enum SqlValueType pre_coerced_type; /* initialized/usable only if `type` is COERCE_TYPE */
+	group_by_fields_t group_by_fields;  /* Used only in case of COERCE_TYPE */
 	int		  parameter_index;
 	union {
 		char *string_literal;
@@ -842,6 +876,7 @@ typedef struct SqlCaseStatement {
 	struct SqlStatement *branches;
 	// SqlValue
 	struct SqlStatement *optional_else;
+	group_by_fields_t    group_by_fields;
 } SqlCaseStatement;
 
 typedef struct SqlCaseBranchStatement {
@@ -849,6 +884,7 @@ typedef struct SqlCaseBranchStatement {
 	struct SqlStatement *condition;
 	// SqlValue
 	struct SqlStatement *value;
+	group_by_fields_t    group_by_fields;
 	dqcreate(SqlCaseBranchStatement);
 } SqlCaseBranchStatement;
 

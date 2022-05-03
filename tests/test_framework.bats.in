@@ -1,6 +1,6 @@
 #################################################################
 #								#
-# Copyright (c) 2021 YottaDB LLC and/or its subsidiaries.	#
+# Copyright (c) 2021-2022 YottaDB LLC and/or its subsidiaries.	#
 # All rights reserved.						#
 #								#
 #	This source code contains the intellectual property	#
@@ -43,3 +43,6 @@ teardown() {
   done
 }
 
+@test "TF02: : Verify that t and f values in the result of query execution from Postgres and Octo are converted to 1 and 0 correctly {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TF04.sql "trim_trailing_zeroes"
+}

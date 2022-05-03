@@ -25,8 +25,7 @@
 #include "mmrhash.h" // YottaDB hash functions
 
 /* 0 OR negative values of "*status" are considered normal. Positive values are considered abnormal. */
-#define HASH_LITERAL_VALUES -1
-#define ABNORMAL_STATUS	    1
+#define ABNORMAL_STATUS 1
 
 #define ADD_DATA_TYPE_HASH(STATE, DATA_TYPE_STRUCT)                                        \
 	{                                                                                  \
@@ -42,7 +41,8 @@
 // Helper function that is invoked when we have to traverse a "column_list_alias_STATEMENT".
 // Caller passes "do_loop" variable set to TRUE  if they want us to traverse the linked list.
 //                              and set to FALSE if they want us to traverse only the first element in the linked list.
-void hash_canonical_query_column_list_alias(hash128_state_t *state, SqlStatement *stmt, int *status, boolean_t do_loop) {
+void hash_canonical_query_column_list_alias(hash128_state_t *state, SqlStatement *stmt, int *status, boolean_t do_loop,
+					    boolean_t is_qs_call) {
 	SqlColumnListAlias *start_cla, *cur_cla;
 
 	/* Note: 0 OR negative values of "*status" are considered normal. Positive values are considered abnormal. */
@@ -56,18 +56,18 @@ void hash_canonical_query_column_list_alias(hash128_state_t *state, SqlStatement
 
 		ADD_INT_HASH(state, column_list_alias_STATEMENT);
 		// SqlColumnList
-		hash_canonical_query(state, cur_cla->column_list, status);
+		hash_canonical_query(state, cur_cla->column_list, status, is_qs_call);
 		// SqlValue
 		save_status = *status;
 		*status = HASH_LITERAL_VALUES; /* force different alias values to generate different plans */
-		hash_canonical_query(state, cur_cla->alias, status);
+		hash_canonical_query(state, cur_cla->alias, status, is_qs_call);
 		if (HASH_LITERAL_VALUES == *status) {
 			*status = save_status;
 		} else {
 			/* *status was changed by the "hash_canonical_query()" call. Retain changed value. */
 		}
 		// SqlOptionalKeyword
-		hash_canonical_query(state, cur_cla->keywords, status);
+		hash_canonical_query(state, cur_cla->keywords, status, is_qs_call);
 		// SqlValueType
 		ADD_INT_HASH(state, cur_cla->type);
 		// boolean_t
@@ -89,7 +89,8 @@ void hash_canonical_query_column_list_alias(hash128_state_t *state, SqlStatement
 // Helper function that is invoked when we have to traverse a "column_list_STATEMENT".
 // Caller passes "do_loop" variable set to TRUE  if they want us to traverse the linked list.
 //                              and set to FALSE if they want us to traverse only the first element in the linked list.
-void hash_canonical_query_column_list(hash128_state_t *state, SqlStatement *stmt, int *status, boolean_t do_loop) {
+void hash_canonical_query_column_list(hash128_state_t *state, SqlStatement *stmt, int *status, boolean_t do_loop,
+				      boolean_t is_qs_call) {
 	SqlColumnList *column_list, *cur_column_list;
 
 	/* Note: 0 OR negative values of "*status" are considered normal. Positive values are considered abnormal. */
@@ -101,20 +102,22 @@ void hash_canonical_query_column_list(hash128_state_t *state, SqlStatement *stmt
 	do {
 		ADD_INT_HASH(state, column_list_STATEMENT);
 		// SqlValue or SqlColumnAlias
-		hash_canonical_query(state, cur_column_list->value, status);
+		hash_canonical_query(state, cur_column_list->value, status, is_qs_call);
 		cur_column_list = cur_column_list->next;
 	} while (do_loop && (cur_column_list != column_list));
 	return;
 }
 
-void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *status) {
+/// `is_qs_call` is TRUE only when hash_canonical_query is invoked from qualify_statement() to hash GroupBy values.
+/// 	When its TRUE all `hash_canonical_query_cycle` related computation is avoided as not required.
+void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *status, boolean_t is_qs_call) {
 	// Prepares SqlStatement for hashing by adding all statement elements to state using ydb_mmr_hash_128_ingest.
 	// Assumes state initialized by caller (using HASH128_STATE_INIT macro)
 
 	/* Note: 0 OR negative values of "*status" are considered normal. Positive values are considered abnormal. */
 	if ((NULL == stmt) || (0 < *status))
 		return;
-	if (stmt->hash_canonical_query_cycle == hash_canonical_query_cycle) {
+	if ((!is_qs_call) && (stmt->hash_canonical_query_cycle == hash_canonical_query_cycle)) {
 		switch (stmt->type) {
 		case create_table_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 			SqlTable *table;
@@ -123,7 +126,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 			UNPACK_SQL_STATEMENT(table, stmt, create_table);
 			// On a revisit, just hash the table name and return without retraversing.
 			assert(value_STATEMENT == table->tableName->type);
-			hash_canonical_query(state, table->tableName, status);
+			hash_canonical_query(state, table->tableName, status, is_qs_call);
 			return;
 			break;
 		case table_value_STATEMENT:
@@ -161,10 +164,12 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 			break;
 		}
 	}
-	stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
-									* multiple visits down this same node in the same
-									* outermost call of "hash_canonical_query".
-									*/
+	if (!is_qs_call) {
+		stmt->hash_canonical_query_cycle = hash_canonical_query_cycle; /* Note down this node as being visited. This avoids
+										* multiple visits down this same node in the same
+										* outermost call of "hash_canonical_query".
+										*/
+	}
 	assert(stmt->type < invalid_STATEMENT);
 
 	// Below are variables used in multiple "case" blocks below so are declared before the "switch" statement.
@@ -180,11 +185,11 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		UNPACK_SQL_STATEMENT(cas, stmt, cas);
 		ADD_INT_HASH(state, cas_STATEMENT);
 		// SqlValue
-		hash_canonical_query(state, cas->value, status);
+		hash_canonical_query(state, cas->value, status, is_qs_call);
 		// SqlCaseBranchStatement
-		hash_canonical_query(state, cas->branches, status);
+		hash_canonical_query(state, cas->branches, status, is_qs_call);
 		// SqlValue
-		hash_canonical_query(state, cas->optional_else, status);
+		hash_canonical_query(state, cas->optional_else, status, is_qs_call);
 		break;
 	case cas_branch_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlCaseBranchStatement *cas_branch;
@@ -195,9 +200,9 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		do {
 			ADD_INT_HASH(state, cas_branch_STATEMENT);
 			// SqlValue
-			hash_canonical_query(state, cur_cas_branch->condition, status);
+			hash_canonical_query(state, cur_cas_branch->condition, status, is_qs_call);
 			// SqlValue
-			hash_canonical_query(state, cur_cas_branch->value, status);
+			hash_canonical_query(state, cur_cas_branch->value, status, is_qs_call);
 			cur_cas_branch = cur_cas_branch->next;
 		} while (cur_cas_branch != cas_branch);
 		break;
@@ -209,33 +214,33 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		/* Note: We care only about the "SqlTable" structure (i.e. "dst_table_alias->table"). No other fields
 		 * inside "dst_table_alias" are used (even in the later logical plan stage). Hence the below invocation.
 		 */
-		hash_canonical_query(state, insert->dst_table_alias->table, status);	// SqlTable
-		hash_canonical_query_column_list(state, insert->columns, status, TRUE); // SqlColumnList
+		hash_canonical_query(state, insert->dst_table_alias->table, status, is_qs_call);    // SqlTable
+		hash_canonical_query_column_list(state, insert->columns, status, TRUE, is_qs_call); // SqlColumnList
 		/* TRUE as last parameter above indicates "traverse entire linked list", not just "first element" */
-		hash_canonical_query(state, insert->src_table_alias_stmt, status); // SqlTableAlias
+		hash_canonical_query(state, insert->src_table_alias_stmt, status, is_qs_call); // SqlTableAlias
 		break;
 	case delete_from_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlDeleteFromStatement *delete;
 
 		UNPACK_SQL_STATEMENT(delete, stmt, delete_from);
 		ADD_INT_HASH(state, delete_from_STATEMENT);
-		hash_canonical_query(state, delete->src_join, status); // SqlJoin
-		hash_canonical_query(state, delete->where_clause, status);
+		hash_canonical_query(state, delete->src_join, status, is_qs_call); // SqlJoin
+		hash_canonical_query(state, delete->where_clause, status, is_qs_call);
 		break;
 	case update_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlUpdateStatement *update;
 
 		UNPACK_SQL_STATEMENT(update, stmt, update);
 		ADD_INT_HASH(state, update_STATEMENT);
-		hash_canonical_query(state, update->src_join, status); // SqlTable
-		hash_canonical_query(state, update->where_clause, status);
+		hash_canonical_query(state, update->src_join, status, is_qs_call); // SqlTable
+		hash_canonical_query(state, update->where_clause, status, is_qs_call);
 
 		SqlUpdateColumnValue *ucv, *ucv_head;
 		ucv_head = update->col_value_list;
 		ucv = ucv_head;
 		do {
-			hash_canonical_query(state, ucv->col_name, status);
-			hash_canonical_query(state, ucv->col_value, status);
+			hash_canonical_query(state, ucv->col_name, status, is_qs_call);
+			hash_canonical_query(state, ucv->col_value, status, is_qs_call);
 			ucv = ucv->next;
 		} while (ucv != ucv_head);
 		break;
@@ -245,19 +250,19 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		UNPACK_SQL_STATEMENT(select, stmt, select);
 		ADD_INT_HASH(state, select_STATEMENT);
 		// SqlColumnListAlias that is a linked list
-		hash_canonical_query_column_list_alias(state, select->select_list, status, TRUE);
+		hash_canonical_query_column_list_alias(state, select->select_list, status, TRUE, is_qs_call);
 		// SqlJoin
-		hash_canonical_query(state, select->table_list, status);
+		hash_canonical_query(state, select->table_list, status, is_qs_call);
 		// SqlValue (?)
-		hash_canonical_query(state, select->where_expression, status);
+		hash_canonical_query(state, select->where_expression, status, is_qs_call);
 		// SqlColumnListAlias that is a linked list
-		hash_canonical_query_column_list_alias(state, select->group_by_expression, status, TRUE);
+		hash_canonical_query_column_list_alias(state, select->group_by_expression, status, TRUE, is_qs_call);
 		// SqlValue (?)
-		hash_canonical_query(state, select->having_expression, status);
+		hash_canonical_query(state, select->having_expression, status, is_qs_call);
 		// SqlColumnListAlias that is a linked list
-		hash_canonical_query_column_list_alias(state, select->order_by_expression, status, TRUE);
+		hash_canonical_query_column_list_alias(state, select->order_by_expression, status, TRUE, is_qs_call);
 		// SqlOptionalKeyword
-		hash_canonical_query(state, select->optional_words, status);
+		hash_canonical_query(state, select->optional_words, status, is_qs_call);
 		break;
 	case coalesce_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlCoalesceCall *coalesce_call;
@@ -265,7 +270,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		UNPACK_SQL_STATEMENT(coalesce_call, stmt, coalesce);
 		ADD_INT_HASH(state, coalesce_STATEMENT);
 		// SqlColumnList
-		hash_canonical_query_column_list(state, coalesce_call->arguments, status, TRUE);
+		hash_canonical_query_column_list(state, coalesce_call->arguments, status, TRUE, is_qs_call);
 		break;
 	case greatest_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlGreatest *greatest_call;
@@ -273,7 +278,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		UNPACK_SQL_STATEMENT(greatest_call, stmt, greatest);
 		ADD_INT_HASH(state, greatest_STATEMENT);
 		// SqlColumnList
-		hash_canonical_query_column_list(state, greatest_call->arguments, status, TRUE);
+		hash_canonical_query_column_list(state, greatest_call->arguments, status, TRUE, is_qs_call);
 		break;
 	case least_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlLeast *least_call;
@@ -281,7 +286,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		UNPACK_SQL_STATEMENT(least_call, stmt, least);
 		ADD_INT_HASH(state, least_STATEMENT);
 		// SqlColumnList
-		hash_canonical_query_column_list(state, least_call->arguments, status, TRUE);
+		hash_canonical_query_column_list(state, least_call->arguments, status, TRUE, is_qs_call);
 		break;
 	case null_if_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlNullIf *null_if;
@@ -289,8 +294,8 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		UNPACK_SQL_STATEMENT(null_if, stmt, null_if);
 		ADD_INT_HASH(state, null_if_STATEMENT);
 		// SqlColumnList
-		hash_canonical_query(state, null_if->left, status);
-		hash_canonical_query(state, null_if->right, status);
+		hash_canonical_query(state, null_if->left, status, is_qs_call);
+		hash_canonical_query(state, null_if->right, status, is_qs_call);
 		break;
 	case function_call_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlFunctionCall *function_call;
@@ -303,11 +308,14 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		 */
 		ADD_INT_HASH(state, config->database_emulation);
 		// SqlValue
-		hash_canonical_query(state, function_call->function_name, status);
-		// SqlValue
-		hash_canonical_query(state, function_call->function_schema->v.create_function->extrinsic_function, status);
+		hash_canonical_query(state, function_call->function_name, status, is_qs_call);
+		if (!is_qs_call) {
+			// SqlValue
+			hash_canonical_query(state, function_call->function_schema->v.create_function->extrinsic_function, status,
+					     is_qs_call);
+		}
 		// SqlColumnList
-		hash_canonical_query_column_list(state, function_call->parameters, status, TRUE);
+		hash_canonical_query_column_list(state, function_call->parameters, status, TRUE, is_qs_call);
 		break;
 	case aggregate_function_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlAggregateFunction *aggregate_function;
@@ -317,7 +325,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		// SqlAggregateType
 		ADD_INT_HASH(state, aggregate_function->type);
 		// SqlColumnList : table.* case will have multiple nodes so loop through it
-		hash_canonical_query_column_list(state, aggregate_function->parameter, status, TRUE);
+		hash_canonical_query_column_list(state, aggregate_function->parameter, status, TRUE, is_qs_call);
 		break;
 	case join_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlJoin *cur_join;
@@ -330,9 +338,9 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 			// SqlJoinType
 			ADD_INT_HASH(state, cur_join->type);
 			// SqlTableAlias
-			hash_canonical_query(state, cur_join->value, status);
+			hash_canonical_query(state, cur_join->value, status, is_qs_call);
 			// SqlValue
-			hash_canonical_query(state, cur_join->condition, status);
+			hash_canonical_query(state, cur_join->condition, status, is_qs_call);
 			cur_join = cur_join->next;
 		} while (cur_join != join);
 		break;
@@ -345,7 +353,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		ADD_INT_HASH(state, value->type);
 		switch (value->type) {
 		case CALCULATED_VALUE:
-			hash_canonical_query(state, value->v.calculated, status);
+			hash_canonical_query(state, value->v.calculated, status, is_qs_call);
 			break;
 		case PARAMETER_VALUE:
 			// PARAMETER_VALUEs are just literals representing positional parameters, i.e. $1, $2, etc.
@@ -388,9 +396,8 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 				assert(SIZE_OR_PRECISION_UNSPECIFIED != value->coerced_type.size_or_precision);
 				ADD_INT_HASH(state, SCALE_UNSPECIFIED);
 			}
-			assert(IS_LITERAL_PARAMETER(value->pre_coerced_type) || (NUL_VALUE == value->pre_coerced_type));
 			ADD_INT_HASH(state, value->pre_coerced_type);
-			hash_canonical_query(state, value->v.coerce_target, status);
+			hash_canonical_query(state, value->v.coerce_target, status, is_qs_call);
 			break;
 		default:
 			assert(FALSE);
@@ -403,15 +410,15 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		UNPACK_SQL_STATEMENT(column_alias, stmt, column_alias);
 		ADD_INT_HASH(state, column_alias_STATEMENT);
 		// SqlValue (TABLE_ASTERISK) or SqlColumn or SqlColumnListAlias
-		hash_canonical_query(state, column_alias->column, status);
+		hash_canonical_query(state, column_alias->column, status, is_qs_call);
 		// SqlTableAlias
-		hash_canonical_query(state, column_alias->table_alias_stmt, status);
+		hash_canonical_query(state, column_alias->table_alias_stmt, status, is_qs_call);
 		break;
 	case column_list_STATEMENT:
-		hash_canonical_query_column_list(state, stmt, status, FALSE); // FALSE so we do not loop
+		hash_canonical_query_column_list(state, stmt, status, FALSE, is_qs_call); // FALSE so we do not loop
 		break;
 	case column_list_alias_STATEMENT:
-		hash_canonical_query_column_list_alias(state, stmt, status, FALSE); // FALSE so we do not loop
+		hash_canonical_query_column_list_alias(state, stmt, status, FALSE, is_qs_call); // FALSE so we do not loop
 		break;
 	case create_table_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlTable *table;
@@ -419,26 +426,26 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		UNPACK_SQL_STATEMENT(table, stmt, create_table);
 		assert(table->tableName->type == value_STATEMENT);
 		ADD_INT_HASH(state, create_table_STATEMENT);
-		hash_canonical_query(state, table->tableName, status);
+		hash_canonical_query(state, table->tableName, status, is_qs_call);
 		UNPACK_SQL_STATEMENT(start_column, table->columns, column);
 		cur_column = start_column;
 		do {
-			hash_canonical_query(state, cur_column->columnName, status);
+			hash_canonical_query(state, cur_column->columnName, status, is_qs_call);
 			/* We want to hash two queries using table columns defined as NUMERIC(3) vs NUMERIC(4) into two
 			 * different plans. Hence we invoke ADD_DATA_TYPE_HASH macro which takes not just the type but
 			 * also any optional size/precision and/or scale if specified.
 			 */
 			ADD_DATA_TYPE_HASH(state, cur_column->data_type_struct);
 			assert(stmt == cur_column->table);
-			hash_canonical_query(state, cur_column->delim, status);
-			hash_canonical_query(state, cur_column->keywords, status);
+			hash_canonical_query(state, cur_column->delim, status, is_qs_call);
+			hash_canonical_query(state, cur_column->keywords, status, is_qs_call);
 			cur_column = cur_column->next;
 		} while ((cur_column != start_column));
-		hash_canonical_query(state, table->source, status);
-		hash_canonical_query(state, table->delim, status);
+		hash_canonical_query(state, table->source, status, is_qs_call);
+		hash_canonical_query(state, table->delim, status, is_qs_call);
 		/* Note: No need to hash "readwrite" as it is a derived value (derived from various other keywords in the
 		 * table that are already part of the hash so it is redundant to hash this one too).
-		 *	hash_canonical_query(state, table->readwrite, status);
+		 *	hash_canonical_query(state, table->readwrite, status, is_qs_call);
 		 */
 		break;
 	case table_value_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
@@ -449,7 +456,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		start_column = table_value->column;
 		cur_column = start_column;
 		do {
-			hash_canonical_query(state, cur_column->columnName, status);
+			hash_canonical_query(state, cur_column->columnName, status, is_qs_call);
 			/* We want to hash two queries using table columns defined as NUMERIC(3) vs NUMERIC(4) into two
 			 * different plans. Hence we invoke ADD_DATA_TYPE_HASH macro which takes not just the type but
 			 * also any optional size/precision and/or scale if specified.
@@ -470,7 +477,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 			UNPACK_SQL_STATEMENT(start_column_list, row_value->value_list, column_list);
 			cur_column_list = start_column_list;
 			do {
-				hash_canonical_query(state, cur_column_list->value, status);
+				hash_canonical_query(state, cur_column_list->value, status, is_qs_call);
 				cur_column_list = cur_column_list->next;
 			} while ((cur_column_list != start_column_list));
 			row_value = row_value->next;
@@ -484,16 +491,16 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		 */
 		UNPACK_SQL_STATEMENT(drop_function, stmt, drop_function);
 		assert(drop_function->function_name->type == value_STATEMENT);
-		hash_canonical_query(state, drop_function->function_name, status);
-		hash_canonical_query(state, drop_function->parameter_type_list, status);
+		hash_canonical_query(state, drop_function->function_name, status, is_qs_call);
+		hash_canonical_query(state, drop_function->parameter_type_list, status, is_qs_call);
 		break;
 	case create_function_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlFunction *function;
 
 		UNPACK_SQL_STATEMENT(function, stmt, create_function);
 		assert(function->function_name->type == value_STATEMENT);
-		hash_canonical_query(state, function->function_name, status);
-		hash_canonical_query(state, function->parameter_type_list, status);
+		hash_canonical_query(state, function->function_name, status, is_qs_call);
+		hash_canonical_query(state, function->parameter_type_list, status, is_qs_call);
 		break;
 	case parameter_type_list_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlParameterTypeList *parameter_type_list;
@@ -519,11 +526,17 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		UNPACK_SQL_STATEMENT(table_alias, stmt, table_alias);
 		ADD_INT_HASH(state, table_alias_STATEMENT);
 		// SqlTable or SqlSelectStatement
-		hash_canonical_query(state, table_alias->table, status);
+		hash_canonical_query(state, table_alias->table, status, is_qs_call);
 		// SqlValue
-		hash_canonical_query(state, table_alias->alias, status);
-		// Since unique_id is an int, can use treat it as if it were a type enum
-		ADD_INT_HASH(state, table_alias->unique_id);
+		hash_canonical_query(state, table_alias->alias, status, is_qs_call);
+		// In case it is a is_qs_call then we do not wan't unique_id considered as we only want hash based on contents
+		// This makes a difference in queries like `select lastname in (select 'Cool') from names group by lastname in
+		// (select 'Cool') having lastname in (select 'Cool');` where we only wan't a hash based on sub-query contents and
+		// not the unique_id
+		if (!is_qs_call) {
+			// Since unique_id is an int, can use treat it as if it were a type enum
+			ADD_INT_HASH(state, table_alias->unique_id);
+		}
 		// SqlColumnListAlias
 		/* If table_alias->table is of type "select_STATEMENT", we can skip "table_alias->column_list"
 		 *	as that would have been already traversed as part of "table_alias->table->v.select->select_list" above.
@@ -540,7 +553,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		       || (table_value_STATEMENT == table_alias->table->type));
 		assert((select_STATEMENT != table_alias->table->type)
 		       || (table_alias->table->v.select->select_list == table_alias->column_list));
-		// hash_canonical_query(state, table_alias->column_list, status);
+		// hash_canonical_query(state, table_alias->column_list, status, is_qs_call);
 		break;
 	case binary_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlBinaryOperation *binary;
@@ -552,12 +565,12 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		binary_operation = binary->operation;
 		ADD_INT_HASH(state, binary_operation);
 		// SqlStatement (?)
-		hash_canonical_query(state, binary->operands[0], status);
+		hash_canonical_query(state, binary->operands[0], status, is_qs_call);
 		if (((BOOLEAN_IN == binary_operation) || (BOOLEAN_NOT_IN == binary_operation))
 		    && (column_list_STATEMENT == binary->operands[1]->type)) { // SqlColumnList
-			hash_canonical_query_column_list(state, binary->operands[1], status, TRUE);
+			hash_canonical_query_column_list(state, binary->operands[1], status, TRUE, is_qs_call);
 		} else { // SqlStatement (?)
-			hash_canonical_query(state, binary->operands[1], status);
+			hash_canonical_query(state, binary->operands[1], status, is_qs_call);
 		}
 		break;
 	case set_operation_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
@@ -568,9 +581,9 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		// SqlSetOperationType
 		ADD_INT_HASH(state, set_operation->type);
 		// SqlStatement (?)
-		hash_canonical_query(state, set_operation->operand[0], status);
+		hash_canonical_query(state, set_operation->operand[0], status, is_qs_call);
 		// SqlStatement (?)
-		hash_canonical_query(state, set_operation->operand[1], status);
+		hash_canonical_query(state, set_operation->operand[1], status, is_qs_call);
 		break;
 	case unary_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlUnaryOperation *unary;
@@ -580,14 +593,14 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		// UnaryOperations
 		ADD_INT_HASH(state, unary->operation);
 		// SqlStatement (?)
-		hash_canonical_query(state, unary->operand, status);
+		hash_canonical_query(state, unary->operand, status, is_qs_call);
 		break;
 	case array_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		SqlArray *array;
 
 		UNPACK_SQL_STATEMENT(array, stmt, array);
 		ADD_INT_HASH(state, array_STATEMENT);
-		hash_canonical_query(state, array->argument, status);
+		hash_canonical_query(state, array->argument, status, is_qs_call);
 		break;
 	case keyword_STATEMENT:; /* semicolon for empty statement so we can declare variables in case block */
 		// This is a valid case in "hash_canonical_query" but is not a case in "populate_data_type"
@@ -617,7 +630,7 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 				if (OPTIONAL_LIMIT != cur_keyword->keyword) {
 					*status = HASH_LITERAL_VALUES;
 				}
-				hash_canonical_query(state, cur_keyword->v, status);
+				hash_canonical_query(state, cur_keyword->v, status, is_qs_call);
 				if (HASH_LITERAL_VALUES == *status) {
 					*status = save_status;
 				} else {
@@ -633,11 +646,11 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 
 		UNPACK_SQL_STATEMENT(column, stmt, column);
 		ADD_INT_HASH(state, column_STATEMENT);
-		hash_canonical_query(state, column->columnName, status);
+		hash_canonical_query(state, column->columnName, status, is_qs_call);
 		// SqlDataType
 		ADD_INT_HASH(state, column->data_type_struct.data_type);
-		hash_canonical_query(state, column->table, status);
-		hash_canonical_query(state, column->keywords, status);
+		hash_canonical_query(state, column->table, status, is_qs_call);
+		hash_canonical_query(state, column->keywords, status, is_qs_call);
 		break;
 	default:
 		assert(FALSE);

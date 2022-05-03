@@ -1,7 +1,7 @@
 {}%
 /****************************************************************
  *								*
- * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2022 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -15,6 +15,14 @@
 
 #include "physical_plan.h"
 #include "template_helpers.h"
+#define CALL_TMPL_PRINT_EXPRESSION(IS_LP_TABLE_VALUE, IS_ASTERISK, PLAN, STR2MVAL, DOT_COUNT, PPLAN, DEPTH) \
+	{												    \
+		LogicalPlan *expr_plan = (((!IS_LP_TABLE_VALUE) && (!IS_ASTERISK))			    \
+					? PLAN->v.lp_default.operand[0]->v.lp_default.operand[0]	    \
+					: PLAN->v.lp_default.operand[0]);				    \
+		assert(!STR2MVAL || DOT_COUNT);								    \
+		TMPL(tmpl_print_expression, expr_plan, PPLAN, DOT_COUNT, DEPTH);			    \
+	}
 
 
 TEMPLATE(tmpl_column_list_combine, LogicalPlan *plan, PhysicalPlan *pplan, char *delim, boolean_t str2mval, int dot_count,
@@ -37,7 +45,6 @@ TEMPLATE(tmpl_column_list_combine, LogicalPlan *plan, PhysicalPlan *pplan, char 
 	int	depth;
 	depth = 0;
 	while (NULL != plan) {
-		LogicalPlan	*expr_plan;
 		boolean_t	need_closing_paren;
 
 		assert((is_asterisk
@@ -98,17 +105,8 @@ TEMPLATE(tmpl_column_list_combine, LogicalPlan *plan, PhysicalPlan *pplan, char 
 			assert(!str2mval);
 		}
 		if (!is_order_by_table_asterisk) {
-			expr_plan = (((!is_lp_table_value) && (!is_asterisk))
-						? plan->v.lp_default.operand[0]->v.lp_default.operand[0]
-						: plan->v.lp_default.operand[0]);
-			assert(!str2mval || dot_count);
-			TMPL(tmpl_print_expression, expr_plan, pplan, dot_count, depth);
+			CALL_TMPL_PRINT_EXPRESSION(is_lp_table_value, is_asterisk, plan, str2mval, dot_count, pplan, depth);
 		} else {
-			/* It is a TABLENAME.ASTERISK usage. Need to order a Composite NULL last (even after ROW(NULL))
-			 * (see https://gitlab.com/YottaDB/DBMS/YDBOcto/-/issues/759#note_736104049 for more details).
-			 * This is the reason why "process_table_asterisk_cla()" kept this node intact.
-			 * Achieve this ordering by using "$ZYSQLNULL" in case of a Composite NULL and "0" otherwise.
-			 */
 			LogicalPlan	*tmpPlan;
 			tmpPlan = plan->v.lp_default.operand[0];
 			assert(LP_COLUMN_LIST == tmpPlan->type);
@@ -116,19 +114,30 @@ TEMPLATE(tmpl_column_list_combine, LogicalPlan *plan, PhysicalPlan *pplan, char 
 			assert(LP_WHERE == tmpPlan->type);
 			tmpPlan = tmpPlan->v.lp_default.operand[0];
 			assert(IS_LP_COLUMN_ALIAS_OR_LP_DERIVED_COLUMN(tmpPlan));
-#			ifndef NDEBUG
 			SqlColumnAlias	*column_alias;
 			GET_COLUMN_ALIAS_FROM_LP_COLUMN_ALIAS_OR_LP_DERIVED_COLUMN(tmpPlan, column_alias);
 			assert(is_stmt_table_asterisk(column_alias->column));
-#			endif
-
-			int	unique_id;
-			unique_id = lp_get_unique_id_from_lp_column_alias_or_lp_derived_column(tmpPlan);
-			if (pplan->treat_key_as_null[unique_id]) {
-				/* Composite NULL */
-				%{}$ZYSQLNULL{}%
+			if (column_alias->group_by_column_number) {
+				/* It is a TABLENAME.ASTERISK usage in ORDER BY and the same node is in GROUP BY.
+				 * Call `tmpl_print_expression.ctemplate` to process this node as it will consider
+				 * its grouping information to access data.
+				 */
+				CALL_TMPL_PRINT_EXPRESSION(is_lp_table_value, is_asterisk, plan, str2mval, dot_count, pplan, depth);
 			} else {
-				%{}0{}%
+				/* Need to order a Composite NULL last (even after ROW(NULL))
+				 * (see https://gitlab.com/YottaDB/DBMS/YDBOcto/-/issues/759#note_736104049 for more details).
+				 * This is the reason why "process_table_asterisk_cla()" kept this node intact.
+				 * Achieve this ordering by using "$ZYSQLNULL" in case of a Composite NULL and "0" otherwise.
+				 */
+
+				int	unique_id;
+				unique_id = lp_get_unique_id_from_lp_column_alias_or_lp_derived_column(tmpPlan);
+				if (pplan->treat_key_as_null[unique_id]) {
+					/* Composite NULL */
+					%{}$ZYSQLNULL{}%
+				} else {
+					%{}0{}%
+				}
 			}
 		}
 		if (need_closing_paren) {

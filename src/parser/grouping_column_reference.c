@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2022 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -24,12 +24,24 @@ SqlStatement *grouping_column_reference(SqlStatement *derived_column_expression,
 
 	assert(NULL == collate_clause); /* below code needs to be fixed to handle collate_clause if/when it becomes non-NULL */
 	UNUSED(collate_clause);
-	/* If it is a value check if it is a column name. Otherwise return NULL so caller (select.y) can issue an error.
-	 * If it is not a value then it is some kind of expression so return NULL so caller (select.y) can issue an error.
-	 */
 	if (value_STATEMENT == derived_column_expression->type) {
 		UNPACK_SQL_STATEMENT(value, derived_column_expression, value);
-		invalid_syntax = ((COLUMN_REFERENCE != value->type) && (TABLE_ASTERISK != value->type));
+		invalid_syntax
+		    = ((INTEGER_LITERAL != value->type) && (COLUMN_REFERENCE != value->type) && (TABLE_ASTERISK != value->type)
+		       && (CALCULATED_VALUE != value->type) && (BOOLEAN_VALUE != value->type) && (COERCE_TYPE != value->type));
+		if (CALCULATED_VALUE == value->type) {
+			SqlStatement *calculated_value = value->v.calculated;
+			invalid_syntax
+			    = ((function_call_STATEMENT != calculated_value->type) && (coalesce_STATEMENT != calculated_value->type)
+			       && (null_if_STATEMENT != calculated_value->type) && (greatest_STATEMENT != calculated_value->type)
+			       && (least_STATEMENT != calculated_value->type));
+		} else if ((COERCE_TYPE == value->type) && (table_alias_STATEMENT == value->v.coerce_target->type)) {
+			invalid_syntax = TRUE;
+		}
+	} else if (binary_STATEMENT == derived_column_expression->type || (unary_STATEMENT == derived_column_expression->type)) {
+		invalid_syntax = FALSE;
+	} else if (cas_STATEMENT == derived_column_expression->type) {
+		invalid_syntax = FALSE;
 	} else {
 		invalid_syntax = TRUE;
 	}
