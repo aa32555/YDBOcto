@@ -80,9 +80,6 @@ int lp_verify_structure_helper(LogicalPlan *plan, PhysicalPlanOptions *options, 
 		 * aggregate_cnt) across different logical plans.
 		 */
 		if ((NULL == options) || (options->aggregate == &plan->extra_detail.lp_select_query.first_aggregate)) {
-			if (NULL != options) {
-				options->select_query = plan;
-			}
 			ret &= lp_verify_structure_helper(plan->v.lp_default.operand[0], options, LP_PROJECT);
 			ret &= lp_verify_structure_helper(plan->v.lp_default.operand[1], options, LP_OUTPUT);
 		}
@@ -521,32 +518,32 @@ int lp_verify_structure_helper(LogicalPlan *plan, PhysicalPlanOptions *options, 
 	case LP_AGGREGATE_FUNCTION_COUNT_DISTINCT_TABLE_ASTERISK:
 	case LP_AGGREGATE_FUNCTION_COUNT_TABLE_ASTERISK:
 		if (NULL != options) {
-			boolean_t    is_cur_plan = FALSE;
-			int	     unique_id = plan->extra_detail.lp_aggregate_function.unique_id;
-			LogicalPlan *lcl_plan = options->select_query;
+			boolean_t     is_cur_plan = FALSE;
+			int	      unique_id = plan->extra_detail.lp_aggregate_function.unique_id;
+			LogicalPlan * lcl_plan = options->current;
+			boolean_t     pplan_found = FALSE;
+			LogicalPlan * prev_aggregate;
+			LogicalPlan **first_aggregate;
 			if (-1 == plan->extra_detail.lp_aggregate_function.unique_id) {
 				// Not a simple column_alias_STATEMENT
-				// might be an expression
-				// following condition is not required as we already made sure earlier that this is
-				// satisified
-				// if (options->aggregate == &lcl_plan->extra_detail.lp_select_query.first_aggregate) {
+				// might be an expression.
+				// GAN_TODO: yet to handle
 				is_cur_plan = TRUE;
-				//}
 			} else if ((LP_AGGREGATE_FUNCTION_COUNT_ASTERISK == expected)
 				   || (LP_AGGREGATE_FUNCTION_COUNT_DISTINCT_TABLE_ASTERISK == expected)
 				   || (LP_AGGREGATE_FUNCTION_COUNT_TABLE_ASTERISK == expected)) {
-				// following condition is not required as we already made sure earlier that this is
-				// satisified
-				// if (options->aggregate == &lcl_plan->extra_detail.lp_select_query.first_aggregate) {
+				// GAN_TODO: This case needs to handled similar to how the below code searches and finds the correct
+				// uniqueid.
 				is_cur_plan = TRUE;
-				//}
 			} else {
+				// regular column alias case and we want to add the aggregate to the correct physical plan
+				// See if the aggregate belongs to current table_alias
 				SqlJoin *	    cur_join, *start_join;
 				SqlSelectStatement *select_stmt;
-				UNPACK_SQL_STATEMENT(
-				    select_stmt, options->current->extra_detail.lp_select_query.root_table_alias->table, select);
+				UNPACK_SQL_STATEMENT(select_stmt, lcl_plan->extra_detail.lp_select_query.root_table_alias->table,
+						     select);
 				UNPACK_SQL_STATEMENT(start_join, select_stmt->table_list, join);
-				if (options->current->extra_detail.lp_select_query.root_table_alias->unique_id
+				if (lcl_plan->extra_detail.lp_select_query.root_table_alias->unique_id
 				    == plan->extra_detail.lp_aggregate_function.unique_id) {
 					if (options->aggregate == &lcl_plan->extra_detail.lp_select_query.first_aggregate) {
 						is_cur_plan = TRUE;
@@ -577,7 +574,7 @@ int lp_verify_structure_helper(LogicalPlan *plan, PhysicalPlanOptions *options, 
 
 						for (iter_key_index = 0; iter_key_index < cur->total_iter_keys; iter_key_index++) {
 							if (cur->iterKeys[iter_key_index]->unique_id == unique_id) {
-								is_cur_plan = TRUE;
+								pplan_found = TRUE;
 								break;
 							}
 						}
@@ -586,33 +583,22 @@ int lp_verify_structure_helper(LogicalPlan *plan, PhysicalPlanOptions *options, 
 						}
 						cur = cur->parent_plan;
 					}
-					if (is_cur_plan) {
+					if (pplan_found) {
 						// Update the aggregate of the found physical plans logical plan
-						int	     prev_aggregate_cnt;
-						LogicalPlan *prev_aggregate;
-
 						prev_aggregate = cur->lp_select_query->extra_detail.lp_select_query.first_aggregate;
-						assert(prev_aggregate
-						       != plan); /* otherwise we would end up in an infinite loop later during
-								  * template file generation (see YDBOcto#456 for example).
-								  */
-						assert(NULL == plan->extra_detail.lp_aggregate_function.next_aggregate);
-						plan->extra_detail.lp_aggregate_function.next_aggregate = prev_aggregate;
-						prev_aggregate_cnt
-						    = ((NULL == prev_aggregate)
-							   ? 0
-							   : prev_aggregate->extra_detail.lp_aggregate_function.aggregate_cnt);
-						plan->extra_detail.lp_aggregate_function.aggregate_cnt = prev_aggregate_cnt + 1;
-						cur->lp_select_query->extra_detail.lp_select_query.first_aggregate = plan;
+						first_aggregate
+						    = &cur->lp_select_query->extra_detail.lp_select_query.first_aggregate;
 						is_cur_plan = FALSE;
 					}
 				}
 			}
 			if (is_cur_plan) {
-				int	     prev_aggregate_cnt;
-				LogicalPlan *prev_aggregate;
-
 				prev_aggregate = *options->aggregate;
+				first_aggregate = options->aggregate;
+			}
+			if (is_cur_plan || pplan_found) {
+				int prev_aggregate_cnt;
+
 				assert(prev_aggregate != plan); /* otherwise we would end up in an infinite loop later during
 								 * template file generation (see YDBOcto#456 for example).
 								 */
@@ -622,7 +608,7 @@ int lp_verify_structure_helper(LogicalPlan *plan, PhysicalPlanOptions *options, 
 				    = ((NULL == prev_aggregate) ? 0
 								: prev_aggregate->extra_detail.lp_aggregate_function.aggregate_cnt);
 				plan->extra_detail.lp_aggregate_function.aggregate_cnt = prev_aggregate_cnt + 1;
-				*options->aggregate = plan;
+				*first_aggregate = plan;
 			}
 		}
 		ret &= lp_verify_structure_helper(plan->v.lp_default.operand[0], options, LP_COLUMN_LIST);
