@@ -1,6 +1,6 @@
 #################################################################
 #								#
-# Copyright (c) 2021 YottaDB LLC and/or its subsidiaries.	#
+# Copyright (c) 2021-2022 YottaDB LLC and/or its subsidiaries.	#
 # All rights reserved.						#
 #								#
 #	This source code contains the intellectual property	#
@@ -36,4 +36,9 @@ setup() {
 @test "TAS02 : Issue error for ARRAY constructor with subquery returning more than one row" {
   load_fixture TAS02.sql subtest novv
   verify_output TAS02 output.txt
+}
+
+@test "TAS03 : Issue error for ARRAY constructor with subquery other than a SELECT query" {
+  load_fixture TAS03.sql subtest novv
+  verify_output TAS03 output.txt
 }
