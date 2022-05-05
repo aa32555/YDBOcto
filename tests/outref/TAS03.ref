@@ -1,0 +1,13 @@
+
+select array(select 1 union select 2) from names group by firstname;
+select array(VALUES(1)) from names group by firstname;
+[ERROR] PATH:LINENUM DATE TIME : ERR_FEATURE_NOT_IMPLEMENTED : Feature not implemented: Operands other than regular select queries for arrays
+Error with syntax near (line 1, column 8):
+
+select array(select 1 union select 2) from names group by firstname;
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[ERROR] PATH:LINENUM DATE TIME : ERR_FEATURE_NOT_IMPLEMENTED : Feature not implemented: Operands other than regular select queries for arrays
+Error with syntax near (line 1, column 8):
+
+select array(VALUES(1)) from names group by firstname;
+       ^^^^^^^^^^^^^^^^

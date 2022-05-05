@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2022 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -96,9 +96,15 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *parent_stmt) {
 			/* ARRAY() syntax is used to convert single column'd return rows from a subquery to a SQL array.
 			 * Accordingly, child plans of an array_STATEMENT/LP_ARRAY should always be LP_SELECT_QUERY.
 			 */
-			assert(LP_SELECT_QUERY == ret->v.lp_default.operand[0]->type);
-			// Note that this LP_SELECT_QUERY must be converted to a SQL array.
-			ret->v.lp_default.operand[0]->extra_detail.lp_select_query.to_array = TRUE;
+			if (LP_SELECT_QUERY != ret->v.lp_default.operand[0]->type) {
+				ERROR(ERR_FEATURE_NOT_IMPLEMENTED, "Operands other than regular select queries for arrays");
+				// Print error context
+				yyerror(NULL, NULL, &stmt, NULL, NULL, NULL);
+				ret = NULL;
+			} else {
+				// Note that this LP_SELECT_QUERY must be converted to a SQL array.
+				ret->v.lp_default.operand[0]->extra_detail.lp_select_query.to_array = TRUE;
+			}
 		}
 		break;
 	case coalesce_STATEMENT:
