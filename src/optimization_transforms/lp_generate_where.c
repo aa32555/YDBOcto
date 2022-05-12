@@ -219,7 +219,18 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *parent_stmt) {
 		assert((NULL != cur_cl->value) || (LP_AGGREGATE_FUNCTION_COUNT_ASTERISK == type));
 		assert((NULL == cur_cl->value) || (LP_AGGREGATE_FUNCTION_COUNT_ASTERISK != type));
 		if (NULL != cur_cl->value) {
+			// aggregate functions can have more than one parameter MIN MAX case. Need to see how unique id is assigned
+			// in such a case.
 			error_encountered |= lp_generate_column_list(&ret->v.lp_default.operand[0], stmt, cur_cl);
+			if (cur_cl->value->type == column_alias_STATEMENT) {
+				// Single column arguemnt is the only one handled at this point
+				ret->extra_detail.lp_aggregate_function.unique_id
+				    = cur_cl->value->v.column_alias->table_alias_stmt->v.table_alias->unique_id;
+				//#GAN_TODO:Multiple agrument aggregate functions are yet to be handledl
+			} else {
+				// #GAN_TODO: Expression is used as parameter to aggregate function. Yet to handle this case
+				ret->extra_detail.lp_aggregate_function.unique_id = -1;
+			}
 		}
 		break;
 	case column_STATEMENT:

@@ -1089,7 +1089,28 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 	case LP_AGGREGATE_FUNCTION_COUNT_DISTINCT_TABLE_ASTERISK:
 	case LP_AGGREGATE_FUNCTION_SUM_DISTINCT:
 	case LP_AGGREGATE_FUNCTION_AVG:
-	case LP_AGGREGATE_FUNCTION_AVG_DISTINCT:
+	case LP_AGGREGATE_FUNCTION_AVG_DISTINCT:;
+		PhysicalPlan *cur_pplan = pplan;
+		if (plan->extra_detail.lp_aggregate_function.unique_id != pplan->outputKey->unique_id) {
+                        // The column belongs to parent pplan drop through to the code below to fetch the correct column
+                        PhysicalPlan *cur_plan;
+                        cur_plan = pplan;
+			int unique_id = plan->extra_detail.lp_aggregate_function.unique_id;
+                        do {
+                                PhysicalPlan *next_plan;
+
+                                next_plan = cur_plan->parent_plan;
+                                for (unsigned int i = 0; i < cur_plan->total_iter_keys; i++) {
+                                        SqlKey  *key;
+                                        key = cur_plan->iterKeys[i];
+                                        if (key->unique_id == unique_id) {
+						cur_pplan = cur_plan;
+						break;
+                                        }
+                                }
+                                cur_plan = next_plan;
+                        } while (NULL != cur_plan);
+		}
 		if (dot_count) {
 			TMPL(tmpl_print_dots, dot_count);
 			%{}SET {{ PP_YDB_OCTO_EXPR }}={}%
@@ -1098,7 +1119,7 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		 * Hence the need for $GET.
 		 */
 		%{}$GET({}%
-		TMPL(tmpl_key, pplan->outputKey);
+		TMPL(tmpl_key, cur_pplan->outputKey);
 		(*buffer_index)--;
 		assert(plan->extra_detail.lp_aggregate_function.aggregate_cnt);
 		aggregate_cnt = plan->extra_detail.lp_aggregate_function.aggregate_cnt;
@@ -1113,7 +1134,7 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 			 */
 			aggregate_cnt = - aggregate_cnt;
 		}
-		%{},{{ PP_GROUP_BY }},{{ PP_YDB_OCTO_G }},{{ aggregate_cnt|%d }}{}%
+		%{},{{ PP_GROUP_BY }},{{ PP_YDB_OCTO_G_PARENT }}({{ cur_pplan->outputKey->unique_id|%d }}),{{ aggregate_cnt|%d }}{}%
 		if (is_avg) {
 			%{},"SUM"{}%
 		}
@@ -1143,9 +1164,9 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		if (is_avg) {
 			%{}/{}%
 			%{}$GET({}%
-			TMPL(tmpl_key, pplan->outputKey);
+			TMPL(tmpl_key, cur_pplan->outputKey);
 			(*buffer_index)--;
-			%{},{{ PP_GROUP_BY }},{{ PP_YDB_OCTO_G }},{{ aggregate_cnt|%d }},"COUNT"){}%
+			%{},{{ PP_GROUP_BY }},{{ PP_YDB_OCTO_G_PARENT }}({{ cur_pplan->outputKey->unique_id|%d }}),{{ aggregate_cnt|%d }},"COUNT"){}%
 			%{},1){}%
 		}
 		if (dot_count) {

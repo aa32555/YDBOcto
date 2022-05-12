@@ -437,6 +437,7 @@ set(template_files
   ${template_dir}/tmpl_delete_record_from_table.ctemplate
   ${template_dir}/tmpl_duplication_check.ctemplate
   ${template_dir}/tmpl_emit_source.ctemplate
+  ${template_dir}/tmpl_get_group_by_plan_by_unique_id.ctemplate
   ${template_dir}/tmpl_group_by.ctemplate
   ${template_dir}/tmpl_insert_into.ctemplate
   ${template_dir}/tmpl_invoke_deferred_plan.ctemplate

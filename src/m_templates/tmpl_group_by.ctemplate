@@ -127,6 +127,9 @@ TEMPLATE(tmpl_group_by, PhysicalPlan *pplan, int dot_count) {
 	dot_count++;
 	TMPL(tmpl_print_dots, dot_count);
 	%{}SET {{ PP_YDB_OCTO_EXPR }}=1{}%
+	%{}`n{{ PLAN_LINE_START }}{}%
+	TMPL(tmpl_print_dots, dot_count);
+	%{}SET {{ PP_YDB_OCTO_G_PARENT }}({{ pplan->outputKey->unique_id|%d }})={{ PP_YDB_OCTO_G }}{}%
 	if (NULL != pplan->aggregate_options) {
 		LogicalPlan	*having;
 

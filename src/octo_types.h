@@ -558,6 +558,10 @@ typedef struct SqlTableAlias {
 							   * column alias and not multiple copies of it.
 							   */
 	QualifyQueryStage qualify_query_stage;
+	boolean_t	  set_aggregate_function; /* Used by qualify_statement() to determine if the
+						   * `aggregate_function_or_group_by_or_having_specified`	 needs to be set based the
+						   * parameters of aggregate functions
+						   */
 } SqlTableAlias;
 
 /**

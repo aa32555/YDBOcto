@@ -174,6 +174,7 @@ typedef struct LpExtraAggregateFunction {
 					 * Initialized/Needed only for LP_AGGREGATE_FUNCTION_MIN/LP_AGGREGATE_FUNCTION_MAX
 					 * Inherited from corresponding `SqlAggregateFunction->type`.
 					 */
+	int unique_id;			/* helps in determining which table_alias this aggregate belongs to */
 } LpExtraAggregateFunction;
 
 typedef struct LpExtraCoerceType {

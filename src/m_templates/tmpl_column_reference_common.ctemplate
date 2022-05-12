@@ -1,7 +1,7 @@
 {}%
 /****************************************************************
  *								*
- * Copyright (c) 2021 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2021-2022 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -57,10 +57,19 @@ TEMPLATE(tmpl_column_reference_common, PhysicalPlan *pplan, SqlColumnAlias *colu
 				*done = TRUE;
 				return;
 			}
-		} else {
-			// The column belongs to parent pplan drop through to the code below to fetch the correct column
 		}
 	}
+	// Check if the column belongs to parent pplan group by data
+	boolean_t lcl_done = FALSE;
+	TMPL(tmpl_get_group_by_plan_by_unique_id, pplan->parent_plan, column_alias, unique_id, &lcl_done);
+	if (lcl_done) {
+		/* The column reference was specified in the GROUP BY clause of parent plan
+		 * and the above call retrieved the value from PP_YDB_OCTO_G using the column's unique_id
+		 */
+		*done = TRUE;
+		return;
+	}
+	// Go through the code below to fetch the correct column
 	if (pplan->treat_key_as_null[unique_id]) {	/* Treat all columns in the table as NULL (used for OUTER JOINs) */
 		/* Note that even in the case "column_alias" corresponds to a TABLENAME.ASTERISK, we treat all the columns
 		 * together as one NULL value here. This is necessary for YDBOcto#759.
