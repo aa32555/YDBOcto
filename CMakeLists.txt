@@ -93,13 +93,6 @@ if(NOT MAX_KEY_COUNT)
 	set(MAX_KEY_COUNT 255)
 endif()
 
-# This tells valgrind to use `ignored-valgrind-errors.supp` as the list of errors to ignore when
-# running Octo.
-# NOTE: `CACHE` is required or CMake will not generate the right `MemoryCheckSuppressionFile` line
-# in `DartConfiguration.tcl` (similar to `export` in shell). See
-# https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#cmake-language-variables for
-# more information.
-set(MEMORYCHECK_SUPPRESSIONS_FILE ${PROJECT_SOURCE_DIR}/tools/ci/ignored-valgrind-errors.supp CACHE STRING "")
 include(CTest)
 add_subdirectory(src)
 

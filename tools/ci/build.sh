@@ -662,15 +662,6 @@ if [[ "test-auto-upgrade" != $jobname ]]; then
 		set -v
 		set -x
 	fi
-	# Don't print hundreds of lines of logfiles
-	set +x
-	for file in Testing/Temporary/MemoryChecker.*.log; do
-		if [ -s $file ]; then
-			echo "ERROR  : Octo leaked memory or accessed uninitialized bytes in build/$file"
-			exit_status=1
-		fi
-	done
-	set -x
 	if [[ 0 == $exit_status ]]; then
 		if [[ $build_type != "RelWithDebInfo" || $disable_install != "OFF" ]]; then
 			echo "# Rebuild Octo for packaging as it wasn't a RelWithDebInfo build or was built with installation disabled"
