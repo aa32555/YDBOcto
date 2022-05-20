@@ -18,6 +18,6 @@ exec @valgrind@ \
 	--suppressions="@PROJECT_SOURCE_DIR@/tools/ci/ignored-valgrind-errors.supp" \
 	--leak-check=full \
 	--track-origins=yes \
+	--error-exitcode=99 \
 	@PROJECT_BINARY_DIR@/src/rocto \
 	"${@:1}"
-	# Add this line to generate suppressions
