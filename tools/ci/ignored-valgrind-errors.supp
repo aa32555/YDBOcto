@@ -534,3 +534,22 @@
    fun:trigger_parse
    ...
 }
+# For the following two: see https://stackoverflow.com/questions/53046810/avoiding-memory-leaks-in-posix-thread
+# This only showed up on Ubuntu 22.04; it didn't show up on any other OS.
+{
+   dlopen_ubuntu_22p04-1
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:dlopen@@GLIBC_2.34
+}
+{
+   dlopen_ubuntu_22p04-1
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:dlerror_run
+   ...
+}
