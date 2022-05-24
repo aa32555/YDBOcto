@@ -10,6 +10,7 @@
 #	the license, please stop and do not read further.	#
 #								#
 #################################################################
+# NB: exec is VERY IMPORTANT as it makes us get the real octo pid not the bash process pid
 exec @valgrind@ \
 	--tool=memcheck \
 	--leak-check=full \
