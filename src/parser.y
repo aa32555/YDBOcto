@@ -468,12 +468,12 @@ predicate
 
 comparison_predicate
   : row_value_constructor
-  | row_value_constructor comp_op row_value_constructor {
+  | row_value_constructor comp_op boolean_factor {
       SQL_STATEMENT($$, binary_STATEMENT);
       MALLOC_STATEMENT($$, binary, SqlBinaryOperation);
       ($$)->v.binary->operation = (BinaryOperations)$comp_op;	/* Note: "comp_op" rule returns "BinaryOperations" type */
       ($$)->v.binary->operands[0] = ($1);
-      ($$)->v.binary->operands[1] = ($3);
+      ($$)->v.binary->operands[1] = $boolean_factor;
       ($$)->loc = @1; /* note down the location for later use in populate_data_type (for error reporting) */
     }
   | row_value_constructor TILDE row_value_constructor {

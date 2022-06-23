@@ -1,0 +1,8 @@
+
+CREATE FUNCTION SAMEVALUE(BOOLEAN) RETURNS BOOLEAN AS $$samevalue^functions;
+
+select samevalue(NOT 'test'=lastname) from names group by NOT 'test'=lastname having FALSE!=NOT 'test'=lastname;
+CREATE FUNCTION
+SAMEVALUE
+1
+(1 row)

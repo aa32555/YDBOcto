@@ -977,10 +977,10 @@ Error with syntax near (line 1, column 55):
 
 SELECT id,firstname FROM names n1 WHERE id IN (SELECT 1!=(n1.id=0) FROM names n2 group by 1!=(n1.id=0::int));
                                                       ^
-Error with syntax near (line 1, column 59):
+Error with syntax near (line 1, column 58):
 
 SELECT id,firstname FROM names n1 WHERE id IN (SELECT 1!=(n1.id=0) FROM names n2 group by 1!=(n1.id=0::int));
-                                                          ^^^^^^^
+                                                         ^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: SELECT id,firstname FROM names n1 WHERE id IN (SELECT 1!=(n1.id=0) FROM names n2 group by 1!=(n1.id=0::int));
 [ERROR] PATH:LINENUM DATE TIME : ERR_TYPE_MISMATCH : Type mismatch: left VARCHAR, right INTEGER
 Error with syntax near (line 1, column 8):
@@ -7205,7 +7205,7 @@ Error with syntax near (line 2, column 61):
 
 select id from names group by id::NUMERIC; -- Postgres error saying id not in group by
 select id::NUMERIC from names group by id::INTEGER having 1=id::NUMERIC; -- Postgres allows this but Octo generates an error, #821 is created to track this query
-                                                            ^^
+                                                            ^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: -- Postgres error saying id not in group by
 select id::NUMERIC from names group by id::INTEGER having 1=id::NUMERIC;
 [ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column ID must appear in the GROUP BY clause or be used in an aggregate function

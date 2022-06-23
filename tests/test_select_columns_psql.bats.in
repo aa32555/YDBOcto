@@ -171,3 +171,14 @@ setup() {
 @test "TSCP20 : OCTO500 : Support SELECT without FROM when WHERE is present" {
        run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TSCP20.sql
 }
+
+@test "TSCP21 : OCTO842 : Verify that NOT expression on the right side of a comparison operation doesn't generate parser error for valid cases" {
+	load_fixture TSCP21_original_query.sql subtest novv
+	verify_output TSCP21_original_query output.txt
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TSCP21.sql
+}
+
+@test "TSCP22 : OCTO842 : Comparison operation based queries in this test issue error in Postgres but work in Octo" {
+	load_fixture TSCP22.sql subtest novv
+	verify_output TSCP22 output.txt
+}

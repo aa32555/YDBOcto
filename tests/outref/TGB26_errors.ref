@@ -421,13 +421,12 @@ select samevalue(NOT 'test'=lastname) from names group by samevalue(NOT 'test'=l
                                                                                                                                                ^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: -- Postgres error id in having not in GroupBy
 select samevalue(NOT 'test'=lastname) from names group by samevalue(NOT 'test'=lastname) having FALSE!=samevalue(NOT 'test'=lastname) order by id;
-Error with syntax near (line 2, column 104):
+[ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column LASTNAME must appear in the GROUP BY clause or be used in an aggregate function
+Error with syntax near (line 2, column 115):
 
 select samevalue(NOT 'test'=lastname) from names group by samevalue(NOT 'test'=lastname) having FALSE!=samevalue(NOT 'test'=lastname) order by id; -- Postgres error id in order by not in GroupBy
 select samevalue(NOT 'test'=lastname) from names group by samevalue(NOT 'test'=lastname) having FALSE!=NOT 'test'=lastname; -- Postgres error lastname in having not in GroupBy
-                                                                                                       ^^^
-syntax error, unexpected NOT
-
+                                                                                                                  ^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: -- Postgres error id in order by not in GroupBy
 select samevalue(NOT 'test'=lastname) from names group by samevalue(NOT 'test'=lastname) having FALSE!=NOT 'test'=lastname;
 [ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column ID must appear in the GROUP BY clause or be used in an aggregate function
@@ -555,6 +554,10 @@ Error with syntax near (line 1, column 61):
 
 select samevalue(id) from names group by 1,firstname having 1!=samevalue(firstname) order by 1; -- TYPE MISMATCH ERROR
                                                             ^
+Error with syntax near (line 1, column 64):
+
+select samevalue(id) from names group by 1,firstname having 1!=samevalue(firstname) order by 1; -- TYPE MISMATCH ERROR
+                                                               ^^^^^^^^^^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: select samevalue(id) from names group by 1,firstname having 1!=samevalue(firstname) order by 1;
 [ERROR] PATH:LINENUM DATE TIME : ERR_TYPE_MISMATCH : Type mismatch: left VARCHAR, right BOOLEAN
 Error with syntax near (line 3, column 73):
@@ -563,6 +566,12 @@ select samevalue(id) from names group by 1,firstname having 1!=samevalue(firstna
 
 select samevalue(NOT 'test'=lastname) from names group by 1 having 'Zero'!=samevalue(NOT 'test'=lastname) order by 'Zero'!=samevalue(NOT 'test'=lastname); -- TYPE MYSMATCH
                                                                         ^
+Error with syntax near (line 3, column 76):
+
+select samevalue(id) from names group by 1,firstname having 1!=samevalue(firstname) order by 1; -- TYPE MISMATCH ERROR
+
+select samevalue(NOT 'test'=lastname) from names group by 1 having 'Zero'!=samevalue(NOT 'test'=lastname) order by 'Zero'!=samevalue(NOT 'test'=lastname); -- TYPE MYSMATCH
+                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: -- TYPE MISMATCH ERROR
 
 select samevalue(NOT 'test'=lastname) from names group by 1 having 'Zero'!=samevalue(NOT 'test'=lastname) order by 'Zero'!=samevalue(NOT 'test'=lastname);
@@ -572,6 +581,11 @@ Error with syntax near (line 2, column 73):
 select samevalue(NOT 'test'=lastname) from names group by 1 having 'Zero'!=samevalue(NOT 'test'=lastname) order by 'Zero'!=samevalue(NOT 'test'=lastname); -- TYPE MYSMATCH
 select samevalue(NOT 'test'=lastname) from names group by 1 having 'Zero'!=samevalue(NOT 'test'=lastname) order by 1; -- TYPE MYSMATCH
                                                                         ^
+Error with syntax near (line 2, column 76):
+
+select samevalue(NOT 'test'=lastname) from names group by 1 having 'Zero'!=samevalue(NOT 'test'=lastname) order by 'Zero'!=samevalue(NOT 'test'=lastname); -- TYPE MYSMATCH
+select samevalue(NOT 'test'=lastname) from names group by 1 having 'Zero'!=samevalue(NOT 'test'=lastname) order by 1; -- TYPE MYSMATCH
+                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: -- TYPE MYSMATCH
 select samevalue(NOT 'test'=lastname) from names group by 1 having 'Zero'!=samevalue(NOT 'test'=lastname) order by 1;
 [ERROR] PATH:LINENUM DATE TIME : ERR_TYPE_MISMATCH : Type mismatch: left VARCHAR, right INTEGER
@@ -604,6 +618,11 @@ Error with syntax near (line 2, column 55):
 select parmlessfunc() from names group by 1 order by parmlessfunc()!=1; -- TYPE MISMATCH
 select parmlessfunc() from names group by id order by id!=parmlessfunc(); -- TYPE MISTMATCH
                                                       ^^
+Error with syntax near (line 2, column 59):
+
+select parmlessfunc() from names group by 1 order by parmlessfunc()!=1; -- TYPE MISMATCH
+select parmlessfunc() from names group by id order by id!=parmlessfunc(); -- TYPE MISTMATCH
+                                                          ^^^^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: -- TYPE MISMATCH
 select parmlessfunc() from names group by id order by id!=parmlessfunc();
 [ERROR] PATH:LINENUM DATE TIME : ERR_TYPE_MISMATCH : Type mismatch: left VARCHAR, right INTEGER
@@ -760,6 +779,11 @@ Error with syntax near (line 2, column 78):
 select samevalue(CAST(id AS NUMERIC)) from names group by 1 having 1!=samevalue(firstname) order by 1; -- Postgres error firstname in Having not in GroupBy
 select samevalue(CAST(id AS NUMERIC)) from names group by 1,firstname having 1!=samevalue(firstname) order by 1; -- TYPE mismatch
                                                                              ^
+Error with syntax near (line 2, column 81):
+
+select samevalue(CAST(id AS NUMERIC)) from names group by 1 having 1!=samevalue(firstname) order by 1; -- Postgres error firstname in Having not in GroupBy
+select samevalue(CAST(id AS NUMERIC)) from names group by 1,firstname having 1!=samevalue(firstname) order by 1; -- TYPE mismatch
+                                                                                ^^^^^^^^^^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: -- Postgres error firstname in Having not in GroupBy
 select samevalue(CAST(id AS NUMERIC)) from names group by 1,firstname having 1!=samevalue(firstname) order by 1;
 [ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column ID must appear in the GROUP BY clause or be used in an aggregate function
@@ -900,6 +924,11 @@ Error with syntax near (line 2, column 70):
 select samevalue(id::NUMERIC) from names group by 1 having 1!=samevalue(firstname) order by 1; -- Postgres error firstname in Having not in GroupBy
 select samevalue(id::NUMERIC) from names group by 1,firstname having 1!=samevalue(firstname) order by 1; -- Type mismatch error
                                                                      ^
+Error with syntax near (line 2, column 73):
+
+select samevalue(id::NUMERIC) from names group by 1 having 1!=samevalue(firstname) order by 1; -- Postgres error firstname in Having not in GroupBy
+select samevalue(id::NUMERIC) from names group by 1,firstname having 1!=samevalue(firstname) order by 1; -- Type mismatch error
+                                                                        ^^^^^^^^^^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: -- Postgres error firstname in Having not in GroupBy
 select samevalue(id::NUMERIC) from names group by 1,firstname having 1!=samevalue(firstname) order by 1;
 [ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_OR_AGGREGATE_FUNCTION : Column FIRSTNAME must appear in the GROUP BY clause or be used in an aggregate function
