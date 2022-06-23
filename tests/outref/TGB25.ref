@@ -198,10 +198,10 @@ select firstname from names group by (select firstname);
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: -- subquery uses ungrouped names.lastname from outer query error
 select firstname from names group by (select firstname);
 [ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_SUB_QUERY : Subqueries are not supported in GROUP BY
-Error with syntax near (line 1, column 42):
+Error with syntax near (line 1, column 41):
 
 select 1 from names group by firstname!=(select firstname from names);
-                                         ^^^^^^
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: select 1 from names group by firstname!=(select firstname from names);
 [ERROR] PATH:LINENUM DATE TIME : ERR_GROUP_BY_SUB_QUERY : Subqueries are not supported in GROUP BY
 Error with syntax near (line 1, column 34):

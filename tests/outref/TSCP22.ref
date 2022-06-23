@@ -1,0 +1,19 @@
+
+-- Following query doesn't work in Postgres isn't parsed properly by Postgres if 'test'='test1' is used within parenthesis then the query works fine. Octo at present is able to parse the following correctly
+select FALSE != 'test'='test1';
+select FALSE = 'test' = 'test1';
+
+select FALSE != ('test'='test1');
+select FALSE = ('test' = 'test1');
+???
+0
+(1 row)
+???
+1
+(1 row)
+???
+0
+(1 row)
+???
+1
+(1 row)

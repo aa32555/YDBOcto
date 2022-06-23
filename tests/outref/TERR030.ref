@@ -77,10 +77,10 @@ Error with syntax near (line 1, column 28):
 
 SELECT id FROM names WHERE id = (SELECT * FROM (VALUES (NULL),('abcd')) n1 WHERE column1 IS NOT NULL);
                            ^^
-Error with syntax near (line 1, column 34):
+Error with syntax near (line 1, column 33):
 
 SELECT id FROM names WHERE id = (SELECT * FROM (VALUES (NULL),('abcd')) n1 WHERE column1 IS NOT NULL);
-                                 ^^^^^^
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 [ERROR] PATH:LINENUM DATE TIME : ERR_PARSING_COMMAND : Error parsing statement: SELECT id FROM names WHERE id = (SELECT * FROM (VALUES (NULL),('abcd')) n1 WHERE column1 IS NOT NULL);
 [ERROR] PATH:LINENUM DATE TIME : ERR_UNKNOWN_COLUMN_NAME : Unknown column: A
 Error with syntax near (line 1, column 8):
