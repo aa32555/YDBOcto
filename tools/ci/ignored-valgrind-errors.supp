@@ -1,6 +1,6 @@
 #################################################################
 #								#
-# Copyright (c) 2020-2021 YottaDB LLC and/or its subsidiaries.	#
+# Copyright (c) 2020-2022 YottaDB LLC and/or its subsidiaries.	#
 # All rights reserved.						#
 #								#
 #	This source code contains the intellectual property	#
@@ -14,23 +14,7 @@
 
 # These are leaks that should be ignored, because they are not necessarily bugs.
 {
-  YDB_uninit_mem
-  Memcheck:Cond
-  ...
-  obj:*/libyottadb.so
-  obj:*/libyottadb.so
-  ...
-}
-{
   YDB_leaks
-  Memcheck:Leak
-  ...
-  obj:*/libyottadb.so
-  obj:*/libyottadb.so
-  ...
-}
-{
-  YDB_PEEKBYNAME
   Memcheck:Leak
   ...
   obj:*/libyottadb.so
@@ -46,15 +30,42 @@
   fun:main
 }
 # See https://gitlab.com/YottaDB/DBMS/YDBOcto/-/issues/615#note_434704262 for
-# what's going on here
+# what's going on here. malloc/calloc
 {
   pointers_stored_in_M
   Memcheck:Leak
   fun:malloc
   fun:alloc_chunk
   fun:find_function
+  fun:function_call_data_type_check
   fun:populate_data_type
   ...
+}
+{
+  pointers_stored_in_M
+  Memcheck:Leak
+  fun:calloc
+  fun:alloc_chunk
+  fun:find_function
+  fun:function_call_data_type_check
+  fun:populate_data_type
+  ...
+}
+{
+   pointers_stored_in_M
+   Memcheck:Leak
+   fun:malloc
+   fun:alloc_chunk
+   fun:find_table
+   ...
+}
+{
+   pointers_stored_in_M
+   Memcheck:Leak
+   fun:calloc
+   fun:alloc_chunk
+   fun:find_table
+   ...
 }
 # `input_buffer_combined` lives throughout the lifetime of the program, so this isn't really a leak.
 # It's a pain to clean it up in each and every test runner, so just ignore the valgrind warning.
@@ -122,4 +133,423 @@
   fun:read_cancel_request
   fun:test_valid_input
   ...
+}
+# Tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/820
+{
+   ydb820a
+   Memcheck:Param
+   pwrite64(buf)
+   ...
+   fun:pwrite
+   fun:wcs_wtstart
+   ...
+}
+{
+   ydb820b
+   Memcheck:Param
+   pwrite64(count)
+   ...
+   fun:pwrite
+   fun:wcs_wtstart
+   ...
+}
+{
+   # This one is really rare, but maybe something the C compiler does, as it's the same line (704)
+   # in wcs_wtstart as above. Happened on TTA005.
+   ydb820c
+   Memcheck:Cond
+   fun:wcs_wtstart
+   fun:wcs_stale
+   fun:timer_handler
+   ...
+}
+{
+   # This one is really rare, but maybe something the C compiler does, as it's the same line (704)
+   # in wcs_wtstart as above. Happened on TTA005.
+   ydb820d
+   Memcheck:Cond
+   fun:wcs_wtstart
+   fun:wcs_flu
+   fun:gds_rundown
+   fun:gv_rundown
+   fun:gtm_exit_handler
+   ...
+}
+
+# This old bug report was closed by the pthreads author saying that there is no memory leak
+# https://sourceware.org/bugzilla/show_bug.cgi?id=3087
+# There is a lot of controversy and bad answers on the Internet, esp. those
+# advising that you need to detach from the thread, but none of that is
+# actually documented in any of the pthread man pages, making me think that
+# this is bad advice.
+# Confirmed here: https://stackoverflow.com/questions/68513951/pthread-create-appears-to-leak-memory
+{
+   pthreads_known_leak1
+   Memcheck:Leak
+   ...
+   fun:calloc
+   ...
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC*
+   fun:main
+}
+{
+   pthreads_known_leak2
+   Memcheck:Leak
+   ...
+   fun:calloc
+   ...
+   fun:_dl_allocate_tls
+   fun:pthread_create@@GLIBC*
+   fun:main
+}
+
+# gtm_tls* calls leaks tracked at https://gitlab.com/YottaDB/Util/YDBEncrypt/-/issues/3
+{
+   gtm_tls_socket
+   Memcheck:Leak
+   ...
+   fun:gtm_tls_socket
+   fun:main
+}
+{
+   gtm_tls_init
+   Memcheck:Leak
+   ...
+   fun:gtm_tls_init
+   fun:main
+}
+{
+   gtm_tls_accept
+   Memcheck:Leak
+   ...
+   fun:gtm_tls_accept
+   fun:main
+}
+# I think these (libssl and libcrypto) are just side effects of the gtm_tls* calls leaking
+{
+   libssl_all
+   Memcheck:Leak
+   ...
+   obj:*/libssl.so.*
+}
+{
+   libcrypto_all
+   Memcheck:Leak
+   ...
+   obj:*/libcrypto.so.*
+}
+# This is tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/801
+{
+   YDB801
+   Memcheck:Value8
+   fun:db_csh_get
+   fun:t_qread
+   fun:gvcst_search
+   fun:gvcst_get2
+   fun:gvcst_get
+   fun:op_gvget
+   fun:ydb_get_s
+   fun:find_table
+   fun:table_reference
+   fun:yyparse
+   fun:parse_line
+   fun:run_query
+}
+{
+   YDB801
+   Memcheck:Cond
+   ...
+   fun:gvcst_search
+   fun:gvcst_root_search
+   fun:op_gvname_common
+   fun:op_gvname_fast
+   ...
+}
+
+# This error happens on libreadline < v8 patch 1
+# Fixed here: http://git.savannah.gnu.org/cgit/readline.git/commit/?id=f585708e822e021e15e5bece1de482b63ba581df
+# Current happens on RHEL 8
+# Note the commented out object marker below. I tried various combinations to make it work, but it doesn't seem to.
+# Giving up for now.
+{
+   libreadline_leak
+   Memcheck:Cond
+   fun:read_history_range
+   fun:load_readline_history
+   ...
+#   obj:*/libreadline.so.7.0
+   fun:readline_setup
+   fun:main
+}
+{
+   libreadline_leak
+   Memcheck:Addr1
+   fun:read_history_range
+   fun:load_readline_history
+   ...
+#   obj:*/libreadline.so.7.0
+   fun:readline_setup
+   fun:main
+}
+# YDB uninitialized memory tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/810
+{
+   ydb810
+   Memcheck:Param
+   pwrite64(buf)
+   fun:pwrite
+   fun:jnl_sub_qio_start
+   ...
+}
+# YDB uninitialized memory tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/811
+{
+   ydb811a
+   Memcheck:Value8
+   ...
+   fun:zshow_output
+   ...
+   fun:lvzwr_out
+   fun:lvzwr_var
+   ...
+}
+{
+   ydb811b
+   Memcheck:Param
+   write(buf)
+   ...
+   fun:write
+   ...
+   fun:iorm_write
+   fun:op_write
+   fun:zshow_output
+   ...
+}
+{
+   ydb811c
+   Memcheck:Value8
+   ...
+   fun:mval_write
+   ...
+   fun:lvzwr_out
+   fun:lvzwr_var
+   ...
+}
+# YDB uninitialized memory tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/812
+{
+   ydb812a
+   Memcheck:Value8
+   ...
+   fun:gvcst_put2
+   fun:gvcst_put
+   ...
+   fun:ydb_set_s
+   ...
+}
+{
+   ydb812b
+   Memcheck:Value8
+   ...
+   fun:gvcst_put2
+   fun:gvcst_put
+   ...
+   fun:ydb_incr_s
+   ...
+}
+{
+   ydb812c
+   Memcheck:Cond
+   ...
+   fun:gvcst_put2
+   fun:gvcst_put
+   ...
+   fun:ydb_set_s
+   ...
+}
+{
+   ydb812d
+   Memcheck:Cond
+   ...
+   fun:gvcst_put2
+   fun:gvcst_put
+   ...
+   fun:ydb_incr_s
+   ...
+}
+# YDB uninitialized memory tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/813
+{
+   ydb813
+   Memcheck:Param
+   pwrite64(buf)
+   ...
+   fun:pwrite
+   fun:dsk_write_nocache
+   fun:bml_init
+   fun:gdsfilext
+   fun:bm_getfree
+   ...
+}
+# YDB uninitialized memory tracked at https://gitlab.com/YottaDB/DB/YDB/-/issues/817
+# Note that YDB eats the stack at M runtime and then restores it after, so we can't put a stack signature here
+# Test TW10, TOJ0{2,3}, TS04, TCF018, TC023, TSD04 on YDB Debug build only
+{
+   ydb817a
+   Memcheck:Cond
+   fun:op_fnp1
+   ...
+}
+{
+   ydb817b
+   Memcheck:Cond
+   fun:op_fnzp1
+   ...
+}
+{
+   ydb817c
+   Memcheck:Value8
+   fun:op_fnp1
+   fun:op_fnpiece
+   ...
+}
+{
+   ydb817d
+   Memcheck:Value8
+   fun:op_fnzp1
+   fun:op_fnzpiece
+   ...
+}
+{
+   ydb817e
+   Memcheck:Value8
+   fun:op_fnp1
+   ...
+}
+{
+   ydb817f
+   Memcheck:Value8
+   fun:op_fnzp1
+   ...
+}
+# https://gitlab.com/YottaDB/DB/YDB/-/issues/824
+# TOJ01, TOJ02, TTA005
+{
+   ydb824a
+   Memcheck:Cond
+   ...
+   fun:gvcst_get2
+   fun:gvcst_get
+   fun:op_gvget
+   fun:ydb_get_s
+   ...
+}
+{
+   ydb824b
+   Memcheck:Cond
+   ...
+   fun:gvcst_order2
+   fun:gvcst_order
+   fun:op_gvorder
+   fun:ydb_subscript_next_s
+   ...
+}
+{
+   ydb824c
+   Memcheck:Value8
+   ...
+   fun:gvcst_get2
+   fun:gvcst_get
+   fun:op_gvget
+   fun:ydb_get_s
+   ...
+}
+{
+   ydb824d
+   Memcheck:Value8
+   ...
+   fun:gvcst_order2
+   fun:gvcst_order
+   fun:op_gvorder
+   fun:ydb_subscript_next_s
+   ...
+}
+# https://gitlab.com/YottaDB/DB/YDB/-/issues/826
+# TUT006, TDFT07. No other tests show this.
+{
+   ydb826
+   Memcheck:Cond
+   fun:tp_clean_up
+   fun:op_trollback
+   fun:goframes
+   fun:error_return
+}
+# https://gitlab.com/YottaDB/DB/YDB/-/issues/827
+# These errors show up randomly. This run has them at TSC12, TSS03, TPC020.
+{
+   ydb827
+   Memcheck:Addr1
+   fun:strncpy
+   fun:cli_get_sub_quals
+   fun:parse_arg
+   ...
+   fun:trigger_parse
+   ...
+}
+{
+   ydb827
+   Memcheck:Addr2
+   fun:strncpy
+   fun:cli_get_sub_quals
+   fun:parse_arg
+   ...
+   fun:trigger_parse
+   ...
+}
+{
+   ydb827
+   Memcheck:Addr4
+   fun:strncpy
+   fun:cli_get_sub_quals
+   fun:parse_arg
+   ...
+   fun:trigger_parse
+   ...
+}
+{
+   ydb827
+   Memcheck:Addr8
+   fun:strncpy
+   fun:cli_get_sub_quals
+   fun:parse_arg
+   ...
+   fun:trigger_parse
+   ...
+}
+{
+   ydb827
+   Memcheck:Cond
+   fun:strncpy
+   fun:cli_get_sub_quals
+   fun:parse_arg
+   ...
+   fun:trigger_parse
+   ...
+}
+# For the following two: see https://stackoverflow.com/questions/53046810/avoiding-memory-leaks-in-posix-thread
+# This only showed up on Ubuntu 22.04; it didn't show up on any other OS.
+{
+   dlopen_ubuntu_22p04-1
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:dlopen@@GLIBC_2.34
+}
+{
+   dlopen_ubuntu_22p04-1
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   fun:dlerror_run
+   ...
 }

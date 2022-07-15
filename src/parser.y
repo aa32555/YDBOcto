@@ -2053,23 +2053,37 @@ literal_value
 		} else if (PARAMETER_VALUE == ret->v.value->type) {
 			// ROCTO ONLY: Populate ParseContext to handle prepared statements in extended query protocol
 			if (config->is_rocto && (TRUE == parse_context->is_extended_query)) {
-				if (0 <= parse_context->num_bind_parms) {
-					parse_context->num_bind_parms++;
-					// Resize is_bind_parm array as needed
-					if (parse_context->total_parms >= parse_context->is_bind_parm_size) {
-						if (parse_context->total_parms > (2 * parse_context->is_bind_parm_size)) {
-							// Sync is_bind_parm array size to total_parms
-							EXPAND_ARRAY_ALLOCATION(parse_context->is_bind_parm,
-								parse_context->is_bind_parm_size, parse_context->total_parms,
-								boolean_t);
-							TRACE(INFO_MEM_REALLOCATION, "expanded", "parse_context->is_bind_parm");
-						}
-						DOUBLE_ARRAY_ALLOCATION(parse_context->is_bind_parm,
-							parse_context->is_bind_parm_size, boolean_t, INT16_MAX);
-						TRACE(INFO_MEM_REALLOCATION, "doubled", "parse_context->is_bind_parm");
-					}
-					parse_context->is_bind_parm[parse_context->total_parms] = TRUE;
+				if (0 == parse_context->is_bind_parm_size) {
+					// Array is empty now. At this point, this is the first bind parameter we are seeing.
+					// NB: total_parms is a misnomer. It is the number of parameters seen thus far, and can increase
+					// It's ONLY INCREASED in INVOKE_PARSE_LITERAL_TO_PARAMETER. That means, that when we come through
+					// first time, it's 0.
+					parse_context->is_bind_parm = (boolean_t *)calloc(8, sizeof(boolean_t));
+					parse_context->is_bind_parm_size = 8;
 				}
+
+				// is_bind_parm_size is the total number of possible entries
+				// The array is_bind_parm though is zero based. That's why we add 1 below.
+				// Otherwise, we overflow the memory.
+				if (parse_context->total_parms + 1 > parse_context->is_bind_parm_size) {
+					// The if previously ran, and we have memory, but it's not enough
+					if (parse_context->total_parms + 1 > (2 * parse_context->is_bind_parm_size)) {
+						// This block expands parse_context->is_bind_parm to the size of total_params
+						// After this is done, we double the array
+						EXPAND_ARRAY_ALLOCATION(parse_context->is_bind_parm,
+							parse_context->is_bind_parm_size, parse_context->total_parms, boolean_t);
+						TRACE(INFO_MEM_REALLOCATION, "expanded", "parse_context->is_bind_parm");
+					}
+					DOUBLE_ARRAY_ALLOCATION(parse_context->is_bind_parm, parse_context->is_bind_parm_size, boolean_t, INT16_MAX);
+					TRACE(INFO_MEM_REALLOCATION, "doubled", "parse_context->is_bind_parm");
+				}
+
+				assert(parse_context->num_bind_parms >= 0); // Must be positive or zero
+				parse_context->num_bind_parms++;
+				// Ensure that we don't have a counting bug
+				assert(parse_context->num_bind_parms <= parse_context->is_bind_parm_size);
+				parse_context->is_bind_parm[parse_context->total_parms] = TRUE;
+
 				// Only track parameter offsets when binding, but skip if populating types during
 				// handle_parse, in which case these members will be NULL
 				if ((NULL != parse_context->parm_start) && (NULL != parse_context->parm_end)) {

@@ -53,9 +53,9 @@ option(DISABLE_INSTALL "Disable Installation?" OFF)
 option(FULL_TEST_SUITE "Run full test suite?" OFF)
 option(TEST_SPEED "Run separate speed test?" OFF)
 option(TEST_VISTA "Run separate VistA test (Database needs to be set-up separately)?" OFF)
-if(NOT ${DISABLE_INSTALL})
-	message(STATUS "Install destination: ${CMAKE_INSTALL_PREFIX}")
-endif()
+option(USE_VALGRIND_MEMCHECK "Add Valgrind Memcheck to all tests?" OFF)
+option(USE_VALGRIND_MEMCHECK_RANDOM "Add Valgrind Memcheck to all CMocka tests but to a random assortment of BATS tests" OFF)
+
 if(NOT ${FULL_TEST_SUITE})
 	message(STATUS "Test suite run by `make test`: Limited")
 else()
@@ -66,6 +66,20 @@ if(${TEST_SPEED})
 endif()
 if(${TEST_VISTA})
 	message(STATUS "`make test` will run VistA tests")
+endif()
+if(${USE_VALGRIND_MEMCHECK})
+	message(STATUS "`make test` will run Vargrind MemCheck on all tests")
+	message(STATUS "Disabling Installation as Valgrind isn't supported in that scenario")
+	set(DISABLE_INSTALL ON)
+endif()
+if(${USE_VALGRIND_MEMCHECK_RANDOM})
+	set(USE_VALGRIND_MEMCHECK_RANDOM_PERCENTAGE "2" CACHE INTERNAL "Percentage of tests to run using Valgrind Memcheck")
+	message(STATUS "`make test` will run Vargrind MemCheck on a random assortment of tests (${USE_VALGRIND_MEMCHECK_RANDOM_PERCENTAGE}%)")
+	message(STATUS "Disabling Installation as Valgrind isn't supported in that scenario")
+	set(DISABLE_INSTALL ON)
+endif()
+if(NOT ${DISABLE_INSTALL})
+	message(STATUS "Install destination: ${CMAKE_INSTALL_PREFIX}")
 endif()
 
 set(OCTO_TOOLS_DIR "${CMAKE_SOURCE_DIR}/tools/")
@@ -79,17 +93,14 @@ if(NOT MAX_KEY_COUNT)
 	set(MAX_KEY_COUNT 255)
 endif()
 
-# This tells valgrind to use `ignored-valgrind-errors.supp` as the list of errors to ignore when
-# running Octo.
-# NOTE: `CACHE` is required or CMake will not generate the right `MemoryCheckSuppressionFile` line
-# in `DartConfiguration.tcl` (similar to `export` in shell). See
-# https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#cmake-language-variables for
-# more information.
-set(MEMORYCHECK_SUPPRESSIONS_FILE ${PROJECT_SOURCE_DIR}/tools/ci/ignored-valgrind-errors.supp CACHE STRING "")
 include(CTest)
 add_subdirectory(src)
 
 # Sanity check to ensure that required variables are set
 if(${TEST_VISTA} AND NOT EXISTS ${TEST_VISTA_ENV_FILE})
 	message(FATAL_ERROR "You must set TEST_VISTA_ENV_FILE (e.g. '~vehu/etc/env') if you set TEST_VISTA")
+endif()
+
+if(${USE_VALGRIND_MEMCHECK} AND ${USE_VALGRIND_MEMCHECK_RANDOM})
+	message(FATAL_ERROR "You may set either USE_VALGRIND_MEMCHECK or USE_VALGRIND_MEMCHECK_RANDOM, but not both")
 endif()
