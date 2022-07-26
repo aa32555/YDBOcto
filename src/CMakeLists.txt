@@ -193,6 +193,7 @@ add_library(libocto OBJECT
   get_column_list_alias_n_from_table_alias.c
   get_column_number_from_column_list_alias.c
   get_column_piece_number.c
+  get_deepest_column_alias_stmt.c
   get_emulation_string.c
   get_full_path_of_generated_m_file.c
   get_full_path_of_generated_o_file.c
@@ -490,6 +491,7 @@ set(template_files
   ${template_dir}/tmpl_print_expression.ctemplate
   ${template_dir}/tmpl_print_expression_assignment.ctemplate
   ${template_dir}/tmpl_print_expression_group_by_computation.ctemplate
+  ${template_dir}/tmpl_print_group_by_column_reference.ctemplate
   ${template_dir}/tmpl_rightjoin_key.ctemplate
   ${template_dir}/tmpl_set_duplication_check.ctemplate
   ${template_dir}/tmpl_tablejoin.ctemplate
