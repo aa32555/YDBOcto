@@ -35,6 +35,8 @@ set(aux_files
   aux/_ydboctoxrefupdate.m
   aux/_ydboctoViewsUpgrade.m
   aux/_ydboctofTODTFORMAT.m
+  aux/_ydboctofDATEADD.m
+  aux/_ydboctofDATESUB.m
 )
 
 add_ydb_library(_ydbocto SOURCES ${aux_files})

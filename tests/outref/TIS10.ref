@@ -1,0 +1,483 @@
+
+select date'01-01-2023' + interval'yearmonth';
+select date'01-01-2023' + interval'year1';
+select date'01-01-2023' + interval'yearsmonth';
+select date'01-01-2023' + interval'yeara';
+select date'01-01-2023' + interval'1 yeara';
+select date'01-01-2023' + interval'yearsa';
+select date'01-01-2023' + interval'1 yearsa';
+select date'01-01-2023' + interval'yeaa';
+select date'01-01-2023' + interval'1 yeaa';
+select date'01-01-2023' + interval'1-1 year year 1 year 1 year';
+select date'01-01-2023' + interval'mon';
+select date'01-01-2023' + interval'1 mon';
+select date'01-01-2023' + interval'mona';
+select date'01-01-2023' + interval'1 mona';
+select date'01-01-2023' + interval'minua';
+select date'01-01-2023' + interval'1 minua';
+select date'01-01-2023' + interval'min';
+select date'01-01-2023' + interval'1 min';
+select date'01-01-2023' + interval'1-1 year year 1 year 1 year';
+select date'01-01-2023' + interval'1- year year 1 year 1 year';
+select date'01-01-2023' + interval'1-1 month month 1 month 1 month';
+select date'01-01-2023' + interval'1- month month 1 month 1 month';
+select date'01-01-2023' + interval'1-1 1 month';
+select date'01-01-2023' + interval'1- 1 month';
+select date'01-01-2023' + interval'1-1 1:1 1 month';
+select date'01-01-2023' + interval'dan';
+select date'01-01-2023' + interval'1 dan';
+select date'01-01-2023' + interval'1 day 1 day';
+select date'01-01-2023' + interval'1 1:1 1 day';
+select date'01-01-2023' + interval'1 1: 1 day';
+select date'01-01-2023' + interval'houa';
+select date'01-01-2023' + interval'1 houa';
+select date'01-01-2023' + interval'1 hour 1 hour';
+select date'01-01-2023' + interval'1:1 1 hour';
+select date'01-01-2023' + interval'1 se';
+select date'01-01-2023' + interval'1:1:1 1 second';
+select date'01-01-2023' + interval'1:1:1 1 minute';
+select date'01-01-2023' + interval'1--1';
+select date'01-01-2023' + interval'1:1 1';
+select date'01-01-2023' + interval'1:1+1';
+select date'01-01-2023' + interval'1:1-1';
+select date'01-01-2023' + interval'year';
+select date'01-01-2023' + interval'month';
+select date'01-01-2023' + interval'year month';
+select date'01-01-2023' + interval'year month second';
+select date'01-01-2023' + interval'';
+select date'01-01-2023' + interval'1 1-1';
+select date'01-01-2023' + interval'1 1:1 1';
+select date'01-01-2023' + interval'1+';
+select date'01-01-2023' + interval'1+1';
+select date'01-01-2023' + interval'1+1day';
+select date'01-01-2023' + interval'1*1day';
+select date'01-01-2023' + interval'1 1 year';
+select date'01-01-2023' + interval'1:+1:1';
+select date'01-01-2023' + interval'1:-1:1';
+select date'01-01-2023' + interval'1:1:+1';
+select date'01-01-2023' + interval'1:1:-1';
+select date'01-01-2023' + interval'1:1:-';
+select date'01-01-2023' + interval'1 -';
+select date'01-01-2023' + interval'1 +';
+select date'01-01-2023' + interval'+';
+select date'01-01-2023' + interval'-';
+select date'01-01-2023' + interval'1:1 1:1';
+select date'01-01-2023' + interval'1-1 1-';
+select date'01-01-2023' + interval'1-1 1-1';
+
+-- Field specification included 1st level of tests
+select date'01-01-2023' + interval'1 month 1' month;
+select date'01-01-2023' + interval'1- 1'month;
+select date'01-01-2023' + interval'1 1:1 1'day;
+select date'01-01-2023' + interval'1 day 1'day;
+select date'01-01-2023' + interval'1:1 1'hour;
+select date'01-01-2023' + interval'1 hour 1'hour;
+select date'01-01-2023' + interval'1:1 1'minute;
+select date'01-01-2023' + interval'1 minute 1'minute;
+select date'01-01-2023' + interval'1 second 1'second;
+select date'01-01-2023' + interval'1-1 1'year to month;
+select date'01-01-2023' + interval'1 year 1 month 1'year to month;
+select date'01-01-2023' + interval'1 month 1'year to month;
+select date'01-01-2023' + interval'1: 1'day to second;
+select date'01-01-2023' + interval'1 second 1'day to second;
+select date'01-01-2023' + interval'1: 1'day to minute;
+select date'01-01-2023' + interval'1 minute 1'day to minute;
+select date'01-01-2023' + interval'1: 1'day to hour;
+select date'01-01-2023' + interval'1 hour 1'day to hour;
+select date'01-01-2023' + interval'1: 1'hour to second;
+select date'01-01-2023' + interval'1 second 1'hour to second;
+select date'01-01-2023' + interval'1: 1'hour to minute;
+select date'01-01-2023' + interval'1 minute 1'hour to minute;
+select date'01-01-2023' + interval'1: 1'minute to second;
+select date'01-01-2023' + interval'1 second 1'minute to second;
+
+-- Invalid subtraction order of operands
+select interval'1 1:' - date'01-01-2023'; -- ERR_INVALID_INTERVAL_SUBTRACTION error expected
+select interval'1 1:' - timestamp'01-01-2023 TIME'; -- ERR_INVALID_INTERVAL_SUBTRACTION error expected
+select interval'1 1:' - timestamp with time zone'01-01-2023 TIME-05:00'; -- ERR_INVALID_INTERVAL_SUBTRACTION error expected
+select interval'1 1:' - time'TIME'; -- ERR_INVALID_INTERVAL_SUBTRACTION error expected
+select interval'1 1:' - time with time zone'TIME-05:00'; -- ERR_INVALID_INTERVAL_SUBTRACTION error expected
+
+
+-- Following are invalid in Octo but works in Postgres
+-- The delimiter in this case is '*' but more effort needed to find out which all are allowed in this particular case
+-- alphabet in place of * is invalid in Postgres so not sure.
+select date'01-01-2023' + interval'1year*1month'; -- 1 year 1 month
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'yearmonth'
+LINE 2:1: select date'01-01-2023' + interval'yearmonth';
+                                            ^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'yearmonth';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'year1'
+LINE 3:1: select date'01-01-2023' + interval'year1';
+                                            ^^^^^^^
+OCTO> select date'01-01-2023' + interval'year1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'yearsmonth'
+LINE 4:1: select date'01-01-2023' + interval'yearsmonth';
+                                            ^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'yearsmonth';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'yeara'
+LINE 5:1: select date'01-01-2023' + interval'yeara';
+                                            ^^^^^^^
+OCTO> select date'01-01-2023' + interval'yeara';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 yeara'
+LINE 6:1: select date'01-01-2023' + interval'1 yeara';
+                                            ^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 yeara';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'yearsa'
+LINE 7:1: select date'01-01-2023' + interval'yearsa';
+                                            ^^^^^^^^
+OCTO> select date'01-01-2023' + interval'yearsa';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 yearsa'
+LINE 8:1: select date'01-01-2023' + interval'1 yearsa';
+                                            ^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 yearsa';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'yeaa'
+LINE 9:1: select date'01-01-2023' + interval'yeaa';
+                                            ^^^^^^
+OCTO> select date'01-01-2023' + interval'yeaa';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 yeaa'
+LINE 10:1: select date'01-01-2023' + interval'1 yeaa';
+                                             ^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 yeaa';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1-1 year year 1 year 1 year'
+LINE 11:1: select date'01-01-2023' + interval'1-1 year year 1 year 1 year';
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1-1 year year 1 year 1 year';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'mon'
+LINE 12:1: select date'01-01-2023' + interval'mon';
+                                             ^^^^^
+OCTO> select date'01-01-2023' + interval'mon';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 mon'
+LINE 13:1: select date'01-01-2023' + interval'1 mon';
+                                             ^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 mon';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'mona'
+LINE 14:1: select date'01-01-2023' + interval'mona';
+                                             ^^^^^^
+OCTO> select date'01-01-2023' + interval'mona';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 mona'
+LINE 15:1: select date'01-01-2023' + interval'1 mona';
+                                             ^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 mona';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'minua'
+LINE 16:1: select date'01-01-2023' + interval'minua';
+                                             ^^^^^^^
+OCTO> select date'01-01-2023' + interval'minua';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 minua'
+LINE 17:1: select date'01-01-2023' + interval'1 minua';
+                                             ^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 minua';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'min'
+LINE 18:1: select date'01-01-2023' + interval'min';
+                                             ^^^^^
+OCTO> select date'01-01-2023' + interval'min';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 min'
+LINE 19:1: select date'01-01-2023' + interval'1 min';
+                                             ^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 min';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1-1 year year 1 year 1 year'
+LINE 20:1: select date'01-01-2023' + interval'1-1 year year 1 year 1 year';
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1-1 year year 1 year 1 year';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1- year year 1 year 1 year'
+LINE 21:1: select date'01-01-2023' + interval'1- year year 1 year 1 year';
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1- year year 1 year 1 year';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1-1 month month 1 month 1 month'
+LINE 22:1: ...t date'01-01-2023' + interval'1-1 month month 1 month 1 month';
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1-1 month month 1 month 1 month';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1- month month 1 month 1 month'
+LINE 23:1: ...ect date'01-01-2023' + interval'1- month month 1 month 1 month';
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1- month month 1 month 1 month';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1-1 1 month'
+LINE 24:1: select date'01-01-2023' + interval'1-1 1 month';
+                                             ^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1-1 1 month';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1- 1 month'
+LINE 25:1: select date'01-01-2023' + interval'1- 1 month';
+                                             ^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1- 1 month';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1-1 1:1 1 month'
+LINE 26:1: select date'01-01-2023' + interval'1-1 1:1 1 month';
+                                             ^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1-1 1:1 1 month';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'dan'
+LINE 27:1: select date'01-01-2023' + interval'dan';
+                                             ^^^^^
+OCTO> select date'01-01-2023' + interval'dan';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 dan'
+LINE 28:1: select date'01-01-2023' + interval'1 dan';
+                                             ^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 dan';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 day 1 day'
+LINE 29:1: select date'01-01-2023' + interval'1 day 1 day';
+                                             ^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 day 1 day';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 1:1 1 day'
+LINE 30:1: select date'01-01-2023' + interval'1 1:1 1 day';
+                                             ^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 1:1 1 day';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 1: 1 day'
+LINE 31:1: select date'01-01-2023' + interval'1 1: 1 day';
+                                             ^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 1: 1 day';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'houa'
+LINE 32:1: select date'01-01-2023' + interval'houa';
+                                             ^^^^^^
+OCTO> select date'01-01-2023' + interval'houa';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 houa'
+LINE 33:1: select date'01-01-2023' + interval'1 houa';
+                                             ^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 houa';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 hour 1 hour'
+LINE 34:1: select date'01-01-2023' + interval'1 hour 1 hour';
+                                             ^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 hour 1 hour';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1 1 hour'
+LINE 35:1: select date'01-01-2023' + interval'1:1 1 hour';
+                                             ^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1 1 hour';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 se'
+LINE 36:1: select date'01-01-2023' + interval'1 se';
+                                             ^^^^^^
+OCTO> select date'01-01-2023' + interval'1 se';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1:1 1 second'
+LINE 37:1: select date'01-01-2023' + interval'1:1:1 1 second';
+                                             ^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1:1 1 second';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1:1 1 minute'
+LINE 38:1: select date'01-01-2023' + interval'1:1:1 1 minute';
+                                             ^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1:1 1 minute';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1--1'
+LINE 39:1: select date'01-01-2023' + interval'1--1';
+                                             ^^^^^^
+OCTO> select date'01-01-2023' + interval'1--1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1 1'
+LINE 40:1: select date'01-01-2023' + interval'1:1 1';
+                                             ^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1 1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1+1'
+LINE 41:1: select date'01-01-2023' + interval'1:1+1';
+                                             ^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1+1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1-1'
+LINE 42:1: select date'01-01-2023' + interval'1:1-1';
+                                             ^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1-1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'year'
+LINE 43:1: select date'01-01-2023' + interval'year';
+                                             ^^^^^^
+OCTO> select date'01-01-2023' + interval'year';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'month'
+LINE 44:1: select date'01-01-2023' + interval'month';
+                                             ^^^^^^^
+OCTO> select date'01-01-2023' + interval'month';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'year month'
+LINE 45:1: select date'01-01-2023' + interval'year month';
+                                             ^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'year month';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: 'year month second'
+LINE 46:1: select date'01-01-2023' + interval'year month second';
+                                             ^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'year month second';
+LINE 47:1: select date'01-01-2023' + interval'';
+                                              ^
+syntax error, unexpected EMPTY_STRING, expecting LITERAL
+OCTO> select date'01-01-2023' + interval'';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 1-1'
+LINE 48:1: select date'01-01-2023' + interval'1 1-1';
+                                             ^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 1-1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 1:1 1'
+LINE 49:1: select date'01-01-2023' + interval'1 1:1 1';
+                                             ^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 1:1 1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1+'
+LINE 50:1: select date'01-01-2023' + interval'1+';
+                                             ^^^^
+OCTO> select date'01-01-2023' + interval'1+';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1+1'
+LINE 51:1: select date'01-01-2023' + interval'1+1';
+                                             ^^^^^
+OCTO> select date'01-01-2023' + interval'1+1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1+1day'
+LINE 52:1: select date'01-01-2023' + interval'1+1day';
+                                             ^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1+1day';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1*1day'
+LINE 53:1: select date'01-01-2023' + interval'1*1day';
+                                             ^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1*1day';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 1 year'
+LINE 54:1: select date'01-01-2023' + interval'1 1 year';
+                                             ^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 1 year';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:+1:1'
+LINE 55:1: select date'01-01-2023' + interval'1:+1:1';
+                                             ^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:+1:1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:-1:1'
+LINE 56:1: select date'01-01-2023' + interval'1:-1:1';
+                                             ^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:-1:1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1:+1'
+LINE 57:1: select date'01-01-2023' + interval'1:1:+1';
+                                             ^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1:+1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1:-1'
+LINE 58:1: select date'01-01-2023' + interval'1:1:-1';
+                                             ^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1:-1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1:-'
+LINE 59:1: select date'01-01-2023' + interval'1:1:-';
+                                             ^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1:-';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 -'
+LINE 60:1: select date'01-01-2023' + interval'1 -';
+                                             ^^^^^
+OCTO> select date'01-01-2023' + interval'1 -';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 +'
+LINE 61:1: select date'01-01-2023' + interval'1 +';
+                                             ^^^^^
+OCTO> select date'01-01-2023' + interval'1 +';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '+'
+LINE 62:1: select date'01-01-2023' + interval'+';
+                                             ^^^
+OCTO> select date'01-01-2023' + interval'+';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '-'
+LINE 63:1: select date'01-01-2023' + interval'-';
+                                             ^^^
+OCTO> select date'01-01-2023' + interval'-';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1 1:1'
+LINE 64:1: select date'01-01-2023' + interval'1:1 1:1';
+                                             ^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1 1:1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1-1 1-'
+LINE 65:1: select date'01-01-2023' + interval'1-1 1-';
+                                             ^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1-1 1-';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1-1 1-1'
+LINE 66:1: select date'01-01-2023' + interval'1-1 1-1';
+                                             ^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1-1 1-1';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 month 1'
+LINE 68:1: select date'01-01-2023' + interval'1 month 1' month;
+                                             ^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 month 1' month;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1- 1'
+LINE 69:1: select date'01-01-2023' + interval'1- 1'month;
+                                             ^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1- 1'month;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 1:1 1'
+LINE 70:1: select date'01-01-2023' + interval'1 1:1 1'day;
+                                             ^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 1:1 1'day;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 day 1'
+LINE 71:1: select date'01-01-2023' + interval'1 day 1'day;
+                                             ^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 day 1'day;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1 1'
+LINE 72:1: select date'01-01-2023' + interval'1:1 1'hour;
+                                             ^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1 1'hour;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 hour 1'
+LINE 73:1: select date'01-01-2023' + interval'1 hour 1'hour;
+                                             ^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 hour 1'hour;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1 1'
+LINE 74:1: select date'01-01-2023' + interval'1:1 1'minute;
+                                             ^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1:1 1'minute;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 minute 1'
+LINE 75:1: select date'01-01-2023' + interval'1 minute 1'minute;
+                                             ^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 minute 1'minute;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 second 1'
+LINE 76:1: select date'01-01-2023' + interval'1 second 1'second;
+                                             ^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 second 1'second;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1-1 1'
+LINE 77:1: select date'01-01-2023' + interval'1-1 1'year to month;
+                                             ^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1-1 1'year to month;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 year 1 month 1'
+LINE 78:1: ...ect date'01-01-2023' + interval'1 year 1 month 1'year to month;
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 year 1 month 1'year to month;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 month 1'
+LINE 79:1: select date'01-01-2023' + interval'1 month 1'year to month;
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 month 1'year to month;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1: 1'
+LINE 80:1: select date'01-01-2023' + interval'1: 1'day to second;
+                                             ^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1: 1'day to second;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 second 1'
+LINE 81:1: select date'01-01-2023' + interval'1 second 1'day to second;
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 second 1'day to second;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1: 1'
+LINE 82:1: select date'01-01-2023' + interval'1: 1'day to minute;
+                                             ^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1: 1'day to minute;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 minute 1'
+LINE 83:1: select date'01-01-2023' + interval'1 minute 1'day to minute;
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 minute 1'day to minute;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1: 1'
+LINE 84:1: select date'01-01-2023' + interval'1: 1'day to hour;
+                                             ^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1: 1'day to hour;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 hour 1'
+LINE 85:1: select date'01-01-2023' + interval'1 hour 1'day to hour;
+                                             ^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 hour 1'day to hour;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1: 1'
+LINE 86:1: select date'01-01-2023' + interval'1: 1'hour to second;
+                                             ^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1: 1'hour to second;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 second 1'
+LINE 87:1: select date'01-01-2023' + interval'1 second 1'hour to second;
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 second 1'hour to second;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1: 1'
+LINE 88:1: select date'01-01-2023' + interval'1: 1'hour to minute;
+                                             ^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1: 1'hour to minute;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 minute 1'
+LINE 89:1: select date'01-01-2023' + interval'1 minute 1'hour to minute;
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 minute 1'hour to minute;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1: 1'
+LINE 90:1: select date'01-01-2023' + interval'1: 1'minute to second;
+                                             ^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1: 1'minute to second;
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1 second 1'
+LINE 91:1: select date'01-01-2023' + interval'1 second 1'minute to second;
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'01-01-2023' + interval'1 second 1'minute to second;
+[ERROR]: ERR_INVALID_INTERVAL_SUBTRACTION: Cannot subtract a date/time operand from an interval
+OCTO> select interval'1 1:' - date'01-01-2023';
+[ERROR]: ERR_INVALID_INTERVAL_SUBTRACTION: Cannot subtract a date/time operand from an interval
+OCTO> -- ERR_INVALID_INTERVAL_SUBTRACTION error expected
+select interval'1 1:' - timestamp'01-01-2023 TIME';
+[ERROR]: ERR_INVALID_INTERVAL_SUBTRACTION: Cannot subtract a date/time operand from an interval
+OCTO> -- ERR_INVALID_INTERVAL_SUBTRACTION error expected
+select interval'1 1:' - timestamp with time zone'01-01-2023 TIME-05:00';
+[ERROR]: ERR_INVALID_INTERVAL_SUBTRACTION: Cannot subtract a date/time operand from an interval
+OCTO> -- ERR_INVALID_INTERVAL_SUBTRACTION error expected
+select interval'1 1:' - time'TIME';
+[ERROR]: ERR_INVALID_INTERVAL_SUBTRACTION: Cannot subtract a date/time operand from an interval
+OCTO> -- ERR_INVALID_INTERVAL_SUBTRACTION error expected
+select interval'1 1:' - time with time zone'TIME-05:00';
+[ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1year*1month'
+LINE 100:4: ...ect date'01-01-2023' + interval'1year*1month'; -- 1 year 1 month
+                                              ^^^^^^^^^^^^^^
+OCTO> -- ERR_INVALID_INTERVAL_SUBTRACTION error expected
+
+
+select date'01-01-2023' + interval'1year*1month';
+OCTO> -- 1 year 1 month

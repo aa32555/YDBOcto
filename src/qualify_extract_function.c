@@ -64,6 +64,9 @@ int qualify_extract_function_column_list(SqlStatement *v, SqlTable *table, SqlVa
 						 */
 						col_name = NULL;
 					}
+				} else if (interval_STATEMENT == cur_column_list->value->type) {
+					// This is an interval literal, similar to other literals no cicular dependencies expected
+					col_name = NULL;
 				} else {
 					assert(column_alias_STATEMENT == cur_column_list->value->type);
 					UNPACK_SQL_STATEMENT(
@@ -272,6 +275,8 @@ int qualify_extract_function(SqlStatement *stmt, SqlTable *table, SqlValueType *
 				*type = get_sqlvaluetype_from_sqldatatype(value->u.coerce_type.coerced_type.data_type, FALSE);
 			}
 			break;
+		case INTERVAL_LITERAL:
+			// Do not expect a value_STATEMENT with this type
 		case FUNCTION_HASH:
 		case DELIM_VALUE:
 		case IS_NULL_LITERAL:
@@ -295,6 +300,9 @@ int qualify_extract_function(SqlStatement *stmt, SqlTable *table, SqlValueType *
 			 * general purpose bucket where all types not listed above fall into as that could hide subtle bugs.
 			 */
 		}
+		break;
+	case interval_STATEMENT:
+		*type = INTERVAL_LITERAL;
 		break;
 	case function_call_STATEMENT:;
 		SqlFunctionCall *fc;

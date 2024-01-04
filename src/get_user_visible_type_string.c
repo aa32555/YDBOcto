@@ -66,6 +66,9 @@ char *get_user_visible_type_string(SqlValueType type) {
 	case TIMESTAMP_WITH_TIME_ZONE_LITERAL:
 		ret = "TIMESTAMP WITH TIME ZONE";
 		break;
+	case INTERVAL_LITERAL:
+		ret = "INTERVAL"; // Only used for DATE_ADD/DATE_SUB functions
+		break;
 	case COLUMN_REFERENCE:
 	case CALCULATED_VALUE:
 	case UNKNOWN_SqlValueType:

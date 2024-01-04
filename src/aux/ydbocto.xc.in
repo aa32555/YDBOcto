@@ -21,3 +21,5 @@ ydboctoSubDateTimeM: ydb_long_t ydboctoSubDateTimeC(I:ydb_long_t, I:ydb_int_t, I
 ydboctoAddDateTimeM: ydb_long_t ydboctoAddDateTimeC(I:ydb_long_t, I:ydb_int_t, I:ydb_long_t, I:ydb_int_t):SIGSAFE
 ydboctoValidateDateTimeValueM: ydb_long_t ydboctoValidateDateTimeValueC(I:ydb_string_t*, I:ydb_int_t, I:ydb_int_t, I:ydb_string_t*):SIGSAFE
 ydboctoConvertToLocalTimezoneM: ydb_long_t ydboctoConvertToLocalTimezoneC(I:ydb_int_t, I:ydb_long_t):SIGSAFE
+ydboctoAddIntervalM: ydb_long_t ydboctoAddIntervalC(I:ydb_long_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_long_t):SIGSAFE
+ydboctoSubIntervalM: ydb_long_t ydboctoSubIntervalC(I:ydb_long_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_int_t, I:ydb_long_t):SIGSAFE

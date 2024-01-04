@@ -97,6 +97,8 @@ SqlStatement *find_column_alias_name(SqlStatement *stmt) {
 					return string_literal("TIMETZ");
 				case TIMESTAMP_WITH_TIME_ZONE_TYPE:
 					return string_literal("TIMESTAMPTZ");
+				case INTERVAL_TYPE:
+					return string_literal("INTERVAL");
 				case NUL_TYPE:
 					assert(FALSE);
 				case UNKNOWN_SqlDataType:
@@ -171,6 +173,9 @@ SqlStatement *find_column_alias_name(SqlStatement *stmt) {
 		ret = cur_cla->alias;
 		break;
 	}
+	case interval_STATEMENT:
+		return string_literal("INTERVAL");
+		break;
 	default:
 		assert(FALSE);
 		break;

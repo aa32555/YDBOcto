@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2019-2022 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2024 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -19,6 +19,11 @@
 SqlStatement *between_predicate(SqlStatement *row_value_constructor, SqlStatement *from, SqlStatement *to,
 				boolean_t not_specified) {
 	SqlStatement *left, *right, *ret;
+	if ((interval_STATEMENT == row_value_constructor->type) || (interval_STATEMENT == from->type)
+	    || (interval_STATEMENT == to->type)) {
+		ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+		return NULL;
+	}
 
 	/* Implement the BETWEEN operator which is just `(x >= from) AND (x <= to)`.
 	 * But note that we should not repeat use the same `x` in the binary operations on either side of the AND.

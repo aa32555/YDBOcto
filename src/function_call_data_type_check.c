@@ -52,8 +52,17 @@ int function_call_data_type_check(SqlStatement *fc_stmt, SqlValueType *type, Par
 
 	SqlValue *function_name_value;
 	function_name_value = fc->function_name->v.value;
+	int	  func_name_len = strlen(function_name_value->v.reference);
+	boolean_t allow_interval_literal;
+	if ((8 == func_name_len)
+	    && ((0 == strcmp(function_name_value->v.reference, "date_add"))
+		|| (0 == strcmp(function_name_value->v.reference, "date_sub")))) {
+		allow_interval_literal = TRUE;
+	} else {
+		allow_interval_literal = FALSE;
+	}
 	ADD_INT_HASH(&state, function_name_value->type);
-	ydb_mmrhash_128_ingest(&state, (void *)function_name_value->v.reference, strlen(function_name_value->v.reference));
+	ydb_mmrhash_128_ingest(&state, (void *)function_name_value->v.reference, func_name_len);
 
 	char *c, function_parm_types[MAX_FUNC_TYPES_LEN];
 	int   function_parm_types_len = 0;
@@ -83,6 +92,12 @@ int function_call_data_type_check(SqlStatement *fc_stmt, SqlValueType *type, Par
 				result |= qualify_check_constraint(cur_column_list->value, table, type, NULL);
 			}
 			if (result) {
+				break;
+			}
+			if ((INTERVAL_LITERAL == *type) && !allow_interval_literal) {
+				ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+				yyerror(&fc->function_name->loc, NULL, NULL, NULL, NULL, NULL);
+				return 1;
 				break;
 			}
 			if (BOOLEAN_OR_STRING_LITERAL == *type) {

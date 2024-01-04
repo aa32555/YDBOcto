@@ -232,6 +232,11 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 			if (result) {
 				break;
 			}
+			if (INTERVAL_LITERAL == *type) {
+				ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+				yyerror(NULL, NULL, &cas->value, NULL, NULL, NULL);
+				return 1;
+			}
 			if (BOOLEAN_OR_STRING_LITERAL == *type) {
 				SqlValueType fix_type2;
 
@@ -267,6 +272,11 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 			CAST_AMBIGUOUS_TYPES(*type, child_type[0], result, parse_context);
 			if (result) {
 				break;
+			}
+			if (INTERVAL_LITERAL == child_type[0]) {
+				ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+				yyerror(NULL, NULL, &cas->optional_else, NULL, NULL, NULL);
+				return 1;
 			}
 			CHECK_TYPE_AND_BREAK_ON_MISMATCH(*type, child_type[0], ERR_CASE_BRANCH_TYPE_MISMATCH,
 							 &cas->branches->v.cas_branch->value, &cas->optional_else, result);
@@ -311,12 +321,22 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 		if (result) {
 			break;
 		}
+		if (INTERVAL_LITERAL == child_type[0]) {
+			ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+			yyerror(NULL, NULL, &cur_branch->value, NULL, NULL, NULL);
+			return 1;
+		}
 		do {
 			result |= populate_data_type(cur_branch->condition, &child_type[1], v, parse_context, NULL);
 			if (result) {
 				break;
 			}
 			assert(UNKNOWN_SqlValueType != child_type[1]);
+			if (INTERVAL_LITERAL == child_type[1]) {
+				ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+				yyerror(NULL, NULL, &cur_branch->condition, NULL, NULL, NULL);
+				return 1;
+			}
 			if (BOOLEAN_OR_STRING_LITERAL == child_type[1]) {
 				SqlValueType fix_type2;
 
@@ -587,6 +607,11 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 	case array_STATEMENT:
 		UNPACK_SQL_STATEMENT(array, v, array);
 		result |= populate_data_type(array->argument, type, v, parse_context, NULL);
+		if (INTERVAL_LITERAL == *type) {
+			ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+			yyerror(NULL, NULL, &array->argument, NULL, NULL, NULL);
+			return 1;
+		}
 		/* Currently only ARRAY(single_column_subquery) is supported. In this case, "array->argument" points to a
 		 * table_alias_STATEMENT type structure. And so any errors will show up in the above call. No additional
 		 * errors possible in the "array" structure. This might change once more features of ARRAY() are supported
@@ -601,6 +626,10 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 		if ((!result) && (TABLE_ASTERISK == *type)) {
 			assert(coalesce_call->arguments);
 			ISSUE_TYPE_COMPATIBILITY_ERROR(*type, "coalesce operation", &coalesce_call->arguments, result);
+		} else if ((!result) && (INTERVAL_LITERAL == *type)) {
+			ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+			yyerror(NULL, NULL, &coalesce_call->arguments, NULL, NULL, NULL);
+			return 1;
 		}
 		break;
 	case greatest_STATEMENT:
@@ -610,6 +639,10 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 							 NULL);
 		if ((!result) && (TABLE_ASTERISK == *type)) {
 			ISSUE_TYPE_COMPATIBILITY_ERROR(*type, "greatest operation", &greatest_call->arguments, result);
+		} else if ((!result) && (INTERVAL_LITERAL == *type)) {
+			ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+			yyerror(NULL, NULL, &greatest_call->arguments, NULL, NULL, NULL);
+			return 1;
 		}
 		break;
 	case least_STATEMENT:
@@ -619,6 +652,10 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 		    |= populate_data_type_column_list(least_call->arguments, type, v, TRUE, ensure_same_type, parse_context, NULL);
 		if ((!result) && (TABLE_ASTERISK == *type)) {
 			ISSUE_TYPE_COMPATIBILITY_ERROR(*type, "least operation", &least_call->arguments, result);
+		} else if ((!result) && (INTERVAL_LITERAL == *type)) {
+			ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+			yyerror(NULL, NULL, &least_call->arguments, NULL, NULL, NULL);
+			return 1;
 		}
 		break;
 	case null_if_STATEMENT:;
@@ -685,6 +722,12 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 		// SqlColumnList : table.* usage will have more than one node so loop through
 		result |= populate_data_type_column_list(aggregate_function->parameter, type, v, TRUE, NULL, parse_context, NULL);
 		if (result) {
+			break;
+		}
+		if (INTERVAL_LITERAL == *type) {
+			ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+			yyerror(NULL, NULL, &v, NULL, NULL, NULL);
+			return 1;
 			break;
 		}
 		// Note that COUNT(...) is always an INTEGER type even though ... might be a string type column.
@@ -922,7 +965,12 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 				break;
 			}
 			target_type = get_sqlvaluetype_from_sqldatatype(value->u.coerce_type.coerced_type.data_type, FALSE);
-			if (TABLE_ASTERISK == source_type) {
+			if (INTERVAL_LITERAL == source_type) {
+				ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+				yyerror(NULL, NULL, &v, NULL, NULL, NULL);
+				return 1;
+				break;
+			} else if (TABLE_ASTERISK == source_type) {
 				/* Type cast of TABLE.* syntax is not allowed as it does not make sense to type cast
 				 * what is a record into a scalar type. Issue error.
 				 */
@@ -1015,6 +1063,7 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 		case DELIM_VALUE:
 		case IS_NULL_LITERAL:
 		case SELECT_ASTERISK:
+		case INTERVAL_LITERAL: // Not expected to reach here as this type is handled at interval_STATEMENT
 		case INVALID_SqlValueType:
 		case UNKNOWN_SqlValueType:
 			/* These usages should not be possible. Assert accordingly. */
@@ -1068,6 +1117,11 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 		 * been set. Skip further processing in such cases.
 		 */
 		if (UNKNOWN_SqlDataType != table_value->column_stmt->v.column->data_type_struct.data_type) {
+			if (INTERVAL_TYPE == table_value->column_stmt->v.column->data_type_struct.data_type) {
+				ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+				yyerror(NULL, NULL, &table_value->column_stmt, NULL, NULL, NULL);
+				return 1;
+			}
 			*type = get_sqlvaluetype_from_sqldatatype(table_value->column_stmt->v.column->data_type_struct.data_type,
 								  FALSE);
 			assert(BOOLEAN_OR_STRING_LITERAL != *type);
@@ -1104,6 +1158,14 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 					result |= populate_data_type(cur_column_list->value, &current_type, v, parse_context, NULL);
 					if (result) {
 						break;
+					}
+					if (INTERVAL_LITERAL == current_type) {
+						ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+						yyerror(NULL, NULL, &table_value->column_stmt, NULL, NULL, NULL);
+						free(saw_boolean_or_string_literal_array);
+						free(type_array);
+						free(first_value);
+						return 1;
 					}
 					if (BOOLEAN_OR_STRING_LITERAL == current_type) {
 						saw_boolean_or_string_literal_array[colno] = TRUE;
@@ -1437,6 +1499,9 @@ int populate_data_type(SqlStatement *v, SqlValueType *type, SqlStatement *parent
 			assert(!result); /* type fixing call of "populate_data_type" should never fail as it is 2nd call */
 			UNUSED(result);	 /* to avoid [clang-analyzer-deadcode.DeadStores] warning */
 		}
+		break;
+	case interval_STATEMENT:;
+		*type = INTERVAL_LITERAL;
 		break;
 	case create_function_STATEMENT:
 	case drop_table_STATEMENT:

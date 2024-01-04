@@ -270,6 +270,8 @@ int qualify_check_constraint(SqlStatement *stmt, SqlTable *table, SqlValueType *
 				*type = get_sqlvaluetype_from_sqldatatype(value->u.coerce_type.coerced_type.data_type, FALSE);
 			}
 			break;
+		case INTERVAL_LITERAL:
+			// Do not expect a value_STATEMENT with this type
 		case FUNCTION_HASH:
 		case DELIM_VALUE:
 		case IS_NULL_LITERAL:
@@ -285,6 +287,9 @@ int qualify_check_constraint(SqlStatement *stmt, SqlTable *table, SqlValueType *
 			 * general purpose bucket where all types not listed above fall into as that could hide subtle bugs.
 			 */
 		}
+		break;
+	case interval_STATEMENT:
+		*type = INTERVAL_LITERAL;
 		break;
 	case binary_STATEMENT:;
 		SqlBinaryOperation *binary;

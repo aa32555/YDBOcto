@@ -1,0 +1,496 @@
+
+select 1 from values(interval '1');
+select 1 union select interval '1';
+select * from (select 1 union select interval '1');
+select exists (select interval'1');
+select interval'1'+'hello';
+select interval'1'+1.1;
+select interval'1'+TRUE;
+select interval'1'+NULL;
+select 'hello'+interval'1';
+select 1.1+interval'1';
+select TRUE+interval'1';
+select NULL+interval'1';
+
+select interval'1'-'hello';
+select interval'1'-1.1;
+select interval'1'-TRUE;
+select interval'1'-NULL;
+select 'hello'-interval'1';
+select 1.1-interval'1';
+select TRUE-interval'1';
+select NULL-interval'1';
+
+select interval'1'*'hello';
+select interval'1'*1.1;
+select interval'1'*TRUE;
+select interval'1'*NULL;
+select 'hello'*interval'1';
+select 1.1*interval'1';
+select TRUE*interval'1';
+select NULL*interval'1';
+
+select interval'1'/'hello';
+select interval'1'/1.1;
+select interval'1'/TRUE;
+select interval'1'/NULL;
+select 'hello'/interval'1';
+select 1.1/interval'1';
+select TRUE/interval'1';
+select NULL/interval'1';
+
+select interval'1'%'hello';
+select interval'1'%1.1;
+select interval'1'%TRUE;
+select interval'1'%NULL;
+select 'hello'%interval'1';
+select 1.1%interval'1';
+select TRUE%interval'1';
+select NULL%interval'1';
+
+select 'hello'::interval;
+
+select CAST('hello' AS INTERVAL);
+
+select ARRAY(select interval'1');
+select ARRAY(values(interval'1'));
+
+select interval'1' LIKE 'hello';
+select interval'1' SIMILAR TO 'hello';
+select interval'1' ~~ 'hello';
+select interval'1' !~~ TO 'hello';
+select 'hello' LIKE interval'1';
+select 'hello' SIMILAR TO interval'1';
+select 'hello' !~~ interval'1';
+select 'hello' ~~ interval'1';
+
+select interval '1' AND TRUE;
+select TRUE AND interval '1';
+select interval '1' AND FALSE;
+select FALSE AND interval '1';
+
+select 1 between 2 and interval '1';
+select interval '1' between interval '1' and interval'3';
+select interval'1' between '1' AND '2';
+
+select interval'1'=ANY(select interval'1');
+select '1'=ANY(select interval'1');
+select interval'1'=ALL(select interval'1');
+select '1'=ALL(select interval'1');
+select interval'1'=SOME(select interval'1');
+select '1'=SOME(select interval'1');
+
+select case interval'1' when interval'1' then 1 END;
+select case when interval'1'=interval'1' then 1 END;
+select case 1 when 1 then interval'1' END;
+select case 1 when 2 then 1 else interval'1' END;
+
+select NOT NOT interval'1';
+select interval '1' IS NULL;
+select interval '1' IS NOT NULL;
+
+select interval'1' IN (select 1);
+select 1 in (interval'1',interval'2');
+select 1 in (select interval'1');
+
+select interval'1' not IN (1,2);
+select interval'1' not IN (select 1);
+select 1 not in (interval'1',interval'2');
+select 1 not in (select interval'1');
+
+select coalesce(interval'1');
+select greatest(interval'1');
+select least(interval'1');
+select null_if(interval'1',interval'2');
+select null_if(inteval'1',NULL);
+select null_if(NULL, inteval'1');
+
+select abs(interval'1');
+select distinct interval '1';
+
+create table test (id integer, dob interval);
+create table test (id integer, dob interval day to second);
+create function test_func(interval) returns integer as $$testf^test;
+create function test_func(integer) returns interval as $$testf^test;
+create table test (id integer, dob interval day to second);
+create function test_func(interval day to second) returns integer as $$testf^test;
+create function test_func(integer) returns interval day to second as $$testf^test;
+LINE 2:1: select 1 from values(interval '1');
+                        ^^^^^^
+syntax error, unexpected VALUES
+OCTO> select 1 from values(interval '1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 3:1: select 1 union select interval '1';
+                                ^^^^^^^^^^^^
+OCTO> select 1 union select interval '1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 4:1: select * from (select 1 union select interval '1');
+                                               ^^^^^^^^^^^^
+OCTO> select * from (select 1 union select interval '1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 5:1: select exists (select interval'1');
+                                ^^^^^^^^^^^
+OCTO> select exists (select interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 6:1: select interval'1'+'hello';
+                             ^^^^^^^
+OCTO> select interval'1'+'hello';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 7:1: select interval'1'+1.1;
+                             ^^^
+OCTO> select interval'1'+1.1;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 8:1: select interval'1'+TRUE;
+                             ^^^^
+OCTO> select interval'1'+TRUE;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 9:1: select interval'1'+NULL;
+                             ^^^^
+OCTO> select interval'1'+NULL;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 10:1: select 'hello'+interval'1';
+                  ^^^^^^^
+OCTO> select 'hello'+interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 11:1: select 1.1+interval'1';
+                  ^^^
+OCTO> select 1.1+interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 12:1: select TRUE+interval'1';
+                  ^^^^
+OCTO> select TRUE+interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 13:1: select NULL+interval'1';
+                  ^^^^
+OCTO> select NULL+interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 15:1: select interval'1'-'hello';
+                              ^^^^^^^
+OCTO> select interval'1'-'hello';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 16:1: select interval'1'-1.1;
+                              ^^^
+OCTO> select interval'1'-1.1;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 17:1: select interval'1'-TRUE;
+                              ^^^^
+OCTO> select interval'1'-TRUE;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 18:1: select interval'1'-NULL;
+                              ^^^^
+OCTO> select interval'1'-NULL;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 19:1: select 'hello'-interval'1';
+                  ^^^^^^^
+OCTO> select 'hello'-interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 20:1: select 1.1-interval'1';
+                  ^^^
+OCTO> select 1.1-interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 21:1: select TRUE-interval'1';
+                  ^^^^
+OCTO> select TRUE-interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 22:1: select NULL-interval'1';
+                  ^^^^
+OCTO> select NULL-interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 24:1: select interval'1'*'hello';
+                              ^^^^^^^
+OCTO> select interval'1'*'hello';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 25:1: select interval'1'*1.1;
+                              ^^^
+OCTO> select interval'1'*1.1;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 26:1: select interval'1'*TRUE;
+                              ^^^^
+OCTO> select interval'1'*TRUE;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 27:1: select interval'1'*NULL;
+                              ^^^^
+OCTO> select interval'1'*NULL;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 28:1: select 'hello'*interval'1';
+                  ^^^^^^^
+OCTO> select 'hello'*interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 29:1: select 1.1*interval'1';
+                  ^^^
+OCTO> select 1.1*interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 30:1: select TRUE*interval'1';
+                  ^^^^
+OCTO> select TRUE*interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 31:1: select NULL*interval'1';
+                  ^^^^
+OCTO> select NULL*interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 33:1: select interval'1'/'hello';
+                              ^^^^^^^
+OCTO> select interval'1'/'hello';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 34:1: select interval'1'/1.1;
+                              ^^^
+OCTO> select interval'1'/1.1;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 35:1: select interval'1'/TRUE;
+                              ^^^^
+OCTO> select interval'1'/TRUE;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 36:1: select interval'1'/NULL;
+                              ^^^^
+OCTO> select interval'1'/NULL;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 37:1: select 'hello'/interval'1';
+                  ^^^^^^^
+OCTO> select 'hello'/interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 38:1: select 1.1/interval'1';
+                  ^^^
+OCTO> select 1.1/interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 39:1: select TRUE/interval'1';
+                  ^^^^
+OCTO> select TRUE/interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 40:1: select NULL/interval'1';
+                  ^^^^
+OCTO> select NULL/interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 42:1: select interval'1'%'hello';
+                              ^^^^^^^
+OCTO> select interval'1'%'hello';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 43:1: select interval'1'%1.1;
+                              ^^^
+OCTO> select interval'1'%1.1;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 44:1: select interval'1'%TRUE;
+                              ^^^^
+OCTO> select interval'1'%TRUE;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 45:1: select interval'1'%NULL;
+                              ^^^^
+OCTO> select interval'1'%NULL;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 46:1: select 'hello'%interval'1';
+                  ^^^^^^^
+OCTO> select 'hello'%interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 47:1: select 1.1%interval'1';
+                  ^^^
+OCTO> select 1.1%interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 48:1: select TRUE%interval'1';
+                  ^^^^
+OCTO> select TRUE%interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 49:1: select NULL%interval'1';
+                  ^^^^
+OCTO> select NULL%interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+OCTO> select 'hello'::interval;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+OCTO> select CAST('hello' AS INTERVAL);
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 55:1: select ARRAY(select interval'1');
+                               ^^^^^^^^^^^
+OCTO> select ARRAY(select interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+OCTO> select ARRAY(values(interval'1'));
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 58:1: select interval'1' LIKE 'hello';
+                                   ^^^^^^^
+OCTO> select interval'1' LIKE 'hello';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 59:1: select interval'1' SIMILAR TO 'hello';
+                                         ^^^^^^^
+OCTO> select interval'1' SIMILAR TO 'hello';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 60:1: select interval'1' ~~ 'hello';
+                                 ^^^^^^^
+OCTO> select interval'1' ~~ 'hello';
+LINE 61:1: select interval'1' !~~ TO 'hello';
+                                     ^^^^^^^
+syntax error, unexpected LITERAL, expecting EXCEPT or UNION or SEMICOLON or ENDOFFILE
+OCTO> select interval'1' !~~ TO 'hello';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 62:1: select 'hello' LIKE interval'1';
+                  ^^^^^^^
+OCTO> select 'hello' LIKE interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 63:1: select 'hello' SIMILAR TO interval'1';
+                  ^^^^^^^
+OCTO> select 'hello' SIMILAR TO interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 64:1: select 'hello' !~~ interval'1';
+                  ^^^^^^^
+OCTO> select 'hello' !~~ interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 65:1: select 'hello' ~~ interval'1';
+                  ^^^^^^^
+OCTO> select 'hello' ~~ interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 67:1: select interval '1' AND TRUE;
+                  ^^^^^^^^^^^^
+LINE 67:1: select interval '1' AND TRUE;
+                                   ^^^^
+OCTO> select interval '1' AND TRUE;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 68:1: select TRUE AND interval '1';
+                  ^^^^
+LINE 68:1: select TRUE AND interval '1';
+                           ^^^^^^^^^^^^
+OCTO> select TRUE AND interval '1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 69:1: select interval '1' AND FALSE;
+                  ^^^^^^^^^^^^
+LINE 69:1: select interval '1' AND FALSE;
+                                   ^^^^^
+OCTO> select interval '1' AND FALSE;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 70:1: select FALSE AND interval '1';
+                  ^^^^^
+LINE 70:1: select FALSE AND interval '1';
+                            ^^^^^^^^^^^^
+OCTO> select FALSE AND interval '1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 72:1: select 1 between 2 and interval '1';
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select 1 between 2 and interval '1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 73:1: select interval '1' between interval '1' and interval'3';
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select interval '1' between interval '1' and interval'3';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 74:1: select interval'1' between '1' AND '2';
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select interval'1' between '1' AND '2';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 76:1: select interval'1'=ANY(select interval'1');
+                                         ^^^^^^^^^^^
+OCTO> select interval'1'=ANY(select interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 77:1: select '1'=ANY(select interval'1');
+                                 ^^^^^^^^^^^
+OCTO> select '1'=ANY(select interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 78:1: select interval'1'=ALL(select interval'1');
+                                         ^^^^^^^^^^^
+OCTO> select interval'1'=ALL(select interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 79:1: select '1'=ALL(select interval'1');
+                                 ^^^^^^^^^^^
+OCTO> select '1'=ALL(select interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 80:1: select interval'1'=SOME(select interval'1');
+                                          ^^^^^^^^^^^
+OCTO> select interval'1'=SOME(select interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 81:1: select '1'=SOME(select interval'1');
+                                  ^^^^^^^^^^^
+OCTO> select '1'=SOME(select interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 83:1: select case interval'1' when interval'1' then 1 END;
+                       ^^^^^^^^^^^
+OCTO> select case interval'1' when interval'1' then 1 END;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+OCTO> select case when interval'1'=interval'1' then 1 END;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 85:1: select case 1 when 1 then interval'1' END;
+                                     ^^^^^^^^^^^
+OCTO> select case 1 when 1 then interval'1' END;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 86:1: select case 1 when 2 then 1 else interval'1' END;
+                                            ^^^^^^^^^^^
+OCTO> select case 1 when 2 then 1 else interval'1' END;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 88:1: select NOT NOT interval'1';
+                          ^^^^^^^^^^^
+OCTO> select NOT NOT interval'1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 89:1: select interval '1' IS NULL;
+                                  ^^^^
+OCTO> select interval '1' IS NULL;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 90:1: select interval '1' IS NOT NULL;
+                                      ^^^^
+OCTO> select interval '1' IS NOT NULL;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 92:1: select interval'1' IN (select 1);
+                                  ^^^^^^
+OCTO> select interval'1' IN (select 1);
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 93:1: select 1 in (interval'1',interval'2');
+                        ^^^^^^^^^^^
+OCTO> select 1 in (interval'1',interval'2');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 94:1: select 1 in (select interval'1');
+                               ^^^^^^^^^^^
+OCTO> select 1 in (select interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 96:1: select interval'1' not IN (1,2);
+                                      ^^^
+OCTO> select interval'1' not IN (1,2);
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 97:1: select interval'1' not IN (select 1);
+                                      ^^^^^^
+OCTO> select interval'1' not IN (select 1);
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 98:1: select 1 not in (interval'1',interval'2');
+                            ^^^^^^^^^^^
+OCTO> select 1 not in (interval'1',interval'2');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 99:1: select 1 not in (select interval'1');
+                                   ^^^^^^^^^^^
+OCTO> select 1 not in (select interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 101:1: select coalesce(interval'1');
+                            ^^^^^^^^^^^
+OCTO> select coalesce(interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 102:1: select greatest(interval'1');
+                            ^^^^^^^^^^^
+OCTO> select greatest(interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 103:1: select least(interval'1');
+                         ^^^^^^^^^^^
+OCTO> select least(interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 104:1: select null_if(interval'1',interval'2');
+                   ^^^^^^^
+OCTO> select null_if(interval'1',interval'2');
+LINE 105:1: select null_if(inteval'1',NULL);
+                                  ^^^
+syntax error, unexpected LITERAL, expecting RIGHT_PAREN
+OCTO> select null_if(inteval'1',NULL);
+LINE 106:1: select null_if(NULL, inteval'1');
+                                        ^^^
+syntax error, unexpected LITERAL, expecting RIGHT_PAREN
+OCTO> select null_if(NULL, inteval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 108:1: select abs(interval'1');
+                   ^^^
+OCTO> select abs(interval'1');
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+LINE 109:1: select distinct interval '1';
+                            ^^^^^^^^^^^^
+OCTO> select distinct interval '1';
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+OCTO> create table test (id integer, dob interval);
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+OCTO> create table test (id integer, dob interval day to second);
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+OCTO> create function test_func(interval) returns integer as $$testf^test;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+OCTO> create function test_func(integer) returns interval as $$testf^test;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+OCTO> create table test (id integer, dob interval day to second);
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+OCTO> create function test_func(interval day to second) returns integer as $$testf^test;
+[ERROR]: ERR_INVALID_INTERVAL_OPERATION: Interval literal syntax not allowed for this operation
+OCTO> create function test_func(integer) returns interval day to second as $$testf^test;
+OCTO> 

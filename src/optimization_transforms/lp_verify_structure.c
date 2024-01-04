@@ -447,6 +447,7 @@ int lp_verify_structure_helper(LogicalPlan *plan, PhysicalPlanOptions *options, 
 		}
 		break;
 	case LP_VALUE:
+	case LP_INTERVAL:
 	case LP_COLUMN_ALIAS:
 	case LP_DERIVED_COLUMN:
 	case LP_INSERT_INTO_COL:
@@ -637,7 +638,7 @@ boolean_t lp_verify_value(LogicalPlan *plan, PhysicalPlanOptions *options) {
 	       | lp_verify_structure_helper(plan, options, LP_AGGREGATE_FUNCTION_COUNT_DISTINCT_TABLE_ASTERISK)
 	       | lp_verify_structure_helper(plan, options, LP_AGGREGATE_FUNCTION_COUNT_TABLE_ASTERISK)
 	       | lp_verify_structure_helper(plan, options, LP_DERIVED_COLUMN) | lp_verify_structure_helper(plan, options, LP_VALUE)
-	       | lp_verify_structure_helper(plan, options, LP_COERCE_TYPE)
+	       | lp_verify_structure_helper(plan, options, LP_INTERVAL) | lp_verify_structure_helper(plan, options, LP_COERCE_TYPE)
 	       | lp_verify_structure_helper(plan, options, LP_BOOLEAN_IN)
 	       | lp_verify_structure_helper(plan, options, LP_BOOLEAN_NOT_IN)
 	       | lp_verify_structure_helper(plan, options, LP_BOOLEAN_NOT)

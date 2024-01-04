@@ -37,6 +37,10 @@ SqlStatement *function_definition(SqlStatement *identifier, SqlStatement *functi
 	 */
 	function->return_type = data_type;
 	function->extrinsic_function = m_function;
+	if (INTERVAL_TYPE == data_type->v.data_type_struct.data_type) {
+		ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+		return NULL;
+	}
 	/* Note:
 	 *   "function->function_hash" is initialized later in "run_query.c" (under "case create_function_STATEMENT")
 	 *   "function->oid" is initialized later in "store_function_in_pg_proc.c" (at end just before a "compress_statement" call)
@@ -45,6 +49,15 @@ SqlStatement *function_definition(SqlStatement *identifier, SqlStatement *functi
 	SqlValue *function_name_value;
 	UNPACK_SQL_STATEMENT(function_name_value, function->function_name, value);
 	function_name_value->type = FUNCTION_NAME;
+
+	boolean_t allow_interval_literal;
+	if (('d' == function_name_value->v.reference[0]) && (8 == strlen(function_name_value->v.reference))
+	    && ((0 == strcmp(function_name_value->v.reference, "date_add"))
+		|| (0 == strcmp(function_name_value->v.reference, "date_sub")))) {
+		allow_interval_literal = TRUE;
+	} else {
+		allow_interval_literal = FALSE;
+	}
 
 	SqlValue *extrinsic_function_value;
 	UNPACK_SQL_STATEMENT(extrinsic_function_value, function->extrinsic_function, value);
@@ -146,6 +159,11 @@ SqlStatement *function_definition(SqlStatement *identifier, SqlStatement *functi
 				if (YDB_MAX_PARMS < function->num_args) {
 					ERROR(ERR_TOO_MANY_FUNCTION_ARGUMENTS, function_name_value->v.string_literal,
 					      YDB_MAX_PARMS);
+					return NULL;
+				}
+				if ((INTERVAL_TYPE == cur_parameter_type->data_type_struct->v.data_type_struct.data_type)
+				    && !allow_interval_literal) {
+					ERROR(ERR_INVALID_INTERVAL_OPERATION, "")
 					return NULL;
 				}
 				if (octo929_drop_function) {
