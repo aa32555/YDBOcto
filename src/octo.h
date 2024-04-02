@@ -400,7 +400,7 @@
 
 /* The below macro needs to be manually bumped if there is a non-cosmetic change to octo-seed.sql.
  */
-#define FMT_SEED_DEFINITION 9
+#define FMT_SEED_DEFINITION 10
 
 #define FMT_SEED_DEFINITION_OCTO929                                                 \
 	7 /* The value of FMT_SEED_DEFINITION when YDBOcto#929 changes were merged. \

@@ -1953,3 +1953,173 @@ ydb_long_t ydboctoAddIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, yd
 	// Return the result
 	return ret;
 }
+
+ydb_string_t *ydboctoExtractDateTimeC(int count, ydb_string_t *field, ydb_string_t *value, ydb_string_t *format) {
+	// Get field
+	char *field_str;
+	field_str = ydb_malloc(field->length + 1);
+	memcpy(field_str, field->address, field->length);
+	field_str[field->length] = '\0';
+	// Get format
+	char *time_format;
+	time_format = ydb_malloc(format->length + 1);
+	memcpy(time_format, format->address, format->length);
+	time_format[format->length] = '\0';
+	// Convert value to tm structure
+	struct tm tm1;
+	// 0-initialize fields of tm struct
+	memset(&tm1, 0, sizeof(struct tm));
+	/* Null terminate date string for use in strptime. This is needed
+	 * since ydb_string_ts are not guaranteed to be null terminated.
+	 */
+	char *time_str;
+	time_str = ydb_malloc(value->length + 1); // Null terminator
+	memcpy(time_str, value->address, value->length);
+	time_str[value->length] = '\0';
+
+	// Remove microseconds as it is not recognized by srptime
+	char *micro_second_str_ptr = strchr(time_str, '.');
+	char  micro[7] = {'0', '0', '0', '0', '0', '0', '\0'};
+	char *orig_micro_second_str_ptr = micro_second_str_ptr;
+	if (NULL == micro_second_str_ptr) {
+		// Micro seconds not present
+	} else {
+		// Get microseconds
+		micro_second_str_ptr++; // Moving one location next to '.'
+		char *plus_or_minus = micro_second_str_ptr;
+		int   length = 0;
+		// Traverse the string to get only the microsecond part
+		while ('\0' != *plus_or_minus) {
+			if (('+' == *plus_or_minus) || ('-' == *plus_or_minus)) {
+				// Found timezone part
+				break;
+			}
+			micro[length] = *plus_or_minus;
+			length++;
+			plus_or_minus++;
+		}
+		// Pad any remaining locations with 0's
+		while (length < 6) {
+			micro[length++] = '0';
+		}
+		if ('\0' == *plus_or_minus) {
+			// No timezone, add '\0' to the beginning of microseconds so strptime doesn't have to re-parse microseconds
+			*orig_micro_second_str_ptr = '\0';
+		} else {
+			// Copy timezone info in place of microseconds
+			int length = strlen(plus_or_minus);
+			assert(7 > length);
+			char time_zone[6];
+			memcpy(time_zone, plus_or_minus, length); // Avoids memcpy-param-overlap
+			memcpy(orig_micro_second_str_ptr, time_zone, length);
+			*(orig_micro_second_str_ptr + length) = '\0';
+		}
+	}
+	// At this point the time_str will only have date time and timezone, microseconds is extracted to micro
+
+	// Change micro_second_str_ptr to a different name
+	micro_second_str_ptr = strptime(time_str, time_format, &tm1);
+	UNUSED(micro_second_str_ptr);
+	assert(NULL != micro_second_str_ptr);
+	ydb_long_t result;
+	boolean_t  need_to_add_micro = FALSE;
+	if (0 == strcmp("year", field_str)) {
+		result = tm1.tm_year + 1900; // Add 1900 as tm_year value consider this as the 0th year
+	} else if (0 == strcmp("month", field_str)) {
+		result = tm1.tm_mon + 1; // Add one as tm_mon is 0-11
+	} else if (0 == strcmp("day", field_str)) {
+		result = tm1.tm_mday;
+	} else if (0 == strcmp("hour", field_str)) {
+		result = tm1.tm_hour;
+	} else if (0 == strcmp("minute", field_str)) {
+		result = tm1.tm_min;
+	} else if (0 == strcmp("second", field_str)) {
+		result = tm1.tm_sec;
+		need_to_add_micro = TRUE;
+	} else if (0 == strcmp("timezone_hour", field_str)) {
+		/* Ideally parser should have generated an error if when this field is asked for value which doesn't have timezone
+		 * and we could assert(FALSE) here but parser doesn't handle it yet so we return 0 in such cases.
+		 */
+		result = tm1.__tm_gmtoff / 3600;
+	} else if (0 == strcmp("timezone_minute", field_str)) {
+		/* Ideally parser should have generated an error if when this field is asked for value which doesn't have timezone
+		 * and we could assert(FALSE) here but parser doesn't handle it yet so we return 0 in such cases.
+		 */
+		result = tm1.__tm_gmtoff % 3600;
+	} else {
+		assert(FALSE);
+		result = 0;
+	}
+	ydb_string_t *ret;
+	// This allocation will be freed not in Octo but by YottaDB after the external call returns.
+	ret = ydb_malloc(sizeof(ydb_string_t));
+	ret->address = ydb_malloc(sizeof(char) * 19); // Null terminator included
+	if (need_to_add_micro) {
+		ret->length = sprintf(ret->address, "%ld.%s", result, micro);
+	} else {
+		ret->length = sprintf(ret->address, "%ld", result);
+	}
+	ret->address[ret->length] = '\0';
+	ydb_free(field_str);
+	ydb_free(time_format);
+	ydb_free(time_str);
+	return ret;
+}
+
+ydb_string_t *ydboctoExtractIntervalC(int count, ydb_string_t *field, ydb_int_t year, ydb_int_t month, ydb_int_t day,
+				      ydb_int_t hour, ydb_int_t minute, ydb_int_t second, ydb_long_t microseconds) {
+	// Get field
+	ydb_long_t result;
+	char	  *field_str;
+	field_str = ydb_malloc(field->length + 1);
+	memcpy(field_str, field->address, field->length);
+	field_str[field->length] = '\0';
+	boolean_t need_to_add_micro = FALSE;
+	if (0 == strcmp("year", field_str)) {
+		result = year;
+	} else if (0 == strcmp("month", field_str)) {
+		result = month;
+	} else if (0 == strcmp("day", field_str)) {
+		result = day;
+	} else if (0 == strcmp("hour", field_str)) {
+		result = hour;
+	} else if (0 == strcmp("minute", field_str)) {
+		result = minute;
+	} else if (0 == strcmp("second", field_str)) {
+		result = second;
+		need_to_add_micro = TRUE;
+	} else if (0 == strcmp("timezone_hour", field_str)) {
+		/* Ideally parser should have generated an error for this type and we could assert(FALSE) here but parser doesn't
+		 * handle this yet so just return 0.
+		 */
+		result = 0;
+	} else if (0 == strcmp("timezone_minute", field_str)) {
+		/* Ideally parser should have generated an error for this type and we could assert(FALSE) here but parser doesn't
+		 * handle this yet so just return 0.
+		 */
+		result = 0;
+	} else {
+		assert(FALSE);
+		result = 0;
+	}
+	ydb_string_t *ret;
+	// This allocation will be freed not in Octo but by YottaDB after the external call returns.
+	ret = ydb_malloc(sizeof(ydb_string_t));
+	ret->address = ydb_malloc(sizeof(char) * 19); // Null terminator included
+	if (need_to_add_micro) {
+		if (0 > microseconds) {
+			/* Following query will reach here
+			 * select extract(second FROM interval'-323:42:4.774');
+			 */
+			assert(0 > second);
+			assert((microseconds < 1000000) || (microseconds > -1000000));
+			microseconds = abs((int)microseconds);
+		}
+		ret->length = sprintf(ret->address, "%ld.%06ld", result, microseconds);
+	} else {
+		ret->length = sprintf(ret->address, "%ld", result);
+	}
+	ret->address[ret->length] = '\0';
+	ydb_free(field_str);
+	return ret;
+}

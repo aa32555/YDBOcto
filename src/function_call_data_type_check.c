@@ -54,9 +54,10 @@ int function_call_data_type_check(SqlStatement *fc_stmt, SqlValueType *type, Par
 	function_name_value = fc->function_name->v.value;
 	int	  func_name_len = strlen(function_name_value->v.reference);
 	boolean_t allow_interval_literal;
-	if ((8 == func_name_len)
-	    && ((0 == strcmp(function_name_value->v.reference, "date_add"))
-		|| (0 == strcmp(function_name_value->v.reference, "date_sub")))) {
+	if (((8 == func_name_len)
+	     && ((0 == strcmp(function_name_value->v.reference, "date_add"))
+		 || (0 == strcmp(function_name_value->v.reference, "date_sub"))))
+	    || ((7 == func_name_len) && (0 == strcmp(function_name_value->v.reference, "extract")))) {
 		allow_interval_literal = TRUE;
 	} else {
 		allow_interval_literal = FALSE;

@@ -130,7 +130,7 @@ octo_region_label|KILL|25
 default_region_label|SET|27
 octo_region_label|TCOM|54
 octo_region_label|TSET|54
-octo_region_label|SET|5555
+octo_region_label|SET|5603
 (17 rows)
 OCTO> SELECT RECTYPE, TBLTYPE FROM YDBJNLFRECTYPE;
 rectype|tbltype
@@ -1445,7 +1445,13 @@ SET|^%ydboctoocto|^%ydboctoocto("oid")|"1256"
 SET|^%ydboctoocto|^%ydboctoocto("oid")|"1257"
 SET|^%ydboctoocto|^%ydboctoocto("oid")|"1258"
 SET|^%ydboctoocto|^%ydboctoocto("oid")|"1259"
-(1259 rows)
+SET|^%ydboctoocto|^%ydboctoocto("oid")|"1260"
+SET|^%ydboctoocto|^%ydboctoocto("oid")|"1261"
+SET|^%ydboctoocto|^%ydboctoocto("oid")|"1262"
+SET|^%ydboctoocto|^%ydboctoocto("oid")|"1263"
+SET|^%ydboctoocto|^%ydboctoocto("oid")|"1264"
+SET|^%ydboctoocto|^%ydboctoocto("oid")|"1265"
+(1265 rows)
 OCTO> SELECT op FROM YDBJNLFTYPE10;
 op
 PINI

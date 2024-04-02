@@ -1,0 +1,61 @@
+
+-- Following queries ideally should return error but at present it just returns 0
+select extract(hour from date'01-01-2023');
+select extract(day from time'01:01:01');
+
+-- Following query tests boundary values
+select extract(year from interval'999999999999999 year');
+select extract(month from interval'999999999999999 month');
+select extract(hour from interval'999999999999999 hour');
+select extract(minute from interval'999999999999999 minute');
+select extract(second from interval'999999999999999 second');
+select extract(day from interval'999999999999999 day');
+select extract(year from date'01-01-0001' - interval'1000000 year');
+select extract(year from date'01-01-0001' - interval'999999 year');
+select extract(year from date'01-01-0001' - interval'99999 year');
+
+-- Following has a different result in postgres because it rounds sub-second
+select extract(second from interval'1000000000 hour 1000000000 minute 1000000000.999999999 second');
+OCTO> select extract(hour from date'01-01-2023');
+extract
+0
+(1 row)
+OCTO> select extract(day from time'01:01:01');
+extract
+0
+(1 row)
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 5:1: select extract(year from interval'999999999999999 year');
+                                           ^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select extract(year from interval'999999999999999 year');
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 6:1: select extract(month from interval'999999999999999 month');
+                                            ^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select extract(month from interval'999999999999999 month');
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 7:1: select extract(hour from interval'999999999999999 hour');
+                                           ^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select extract(hour from interval'999999999999999 hour');
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 8:1: select extract(minute from interval'999999999999999 minute');
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select extract(minute from interval'999999999999999 minute');
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 9:1: select extract(second from interval'999999999999999 second');
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select extract(second from interval'999999999999999 second');
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 10:1: select extract(day from interval'999999999999999 day');
+                                           ^^^^^^^^^^^^^^^^^^^^^
+OCTO> select extract(day from interval'999999999999999 day');
+OCTO> select extract(year from date'01-01-0001' - interval'1000000 year');
+[ERROR]: ERR_INVALID_DATE_TIME_VALUE: Invalid value "02-06-169109 16:03:39.10323" of type timestamp and format text is seen
+OCTO> select extract(year from date'01-01-0001' - interval'999999 year');
+[ERROR]: ERR_INVALID_DATE_TIME_VALUE: Invalid value "02-06-169110 16:03:39.10323" of type timestamp and format text is seen
+OCTO> select extract(year from date'01-01-0001' - interval'99999 year');
+[ERROR]: ERR_INVALID_DATE_TIME_VALUE: Invalid value "01-01--99998 00:00:00" of type timestamp and format text is seen
+OCTO> select extract(second from interval'1000000000 hour 1000000000 minute 1000000000.999999999 second');
+extract
+40.999999
+(1 row)
+OCTO> 

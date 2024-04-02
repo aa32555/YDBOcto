@@ -51,9 +51,11 @@ SqlStatement *function_definition(SqlStatement *identifier, SqlStatement *functi
 	function_name_value->type = FUNCTION_NAME;
 
 	boolean_t allow_interval_literal;
-	if (('d' == function_name_value->v.reference[0]) && (8 == strlen(function_name_value->v.reference))
-	    && ((0 == strcmp(function_name_value->v.reference, "date_add"))
-		|| (0 == strcmp(function_name_value->v.reference, "date_sub")))) {
+	if ((('d' == function_name_value->v.reference[0]) && (8 == strlen(function_name_value->v.reference))
+	     && ((0 == strcmp(function_name_value->v.reference, "date_add"))
+		 || (0 == strcmp(function_name_value->v.reference, "date_sub"))))
+	    || (('e' == function_name_value->v.reference[0]) && (7 == strlen(function_name_value->v.reference))
+		&& (0 == strcmp(function_name_value->v.reference, "extract")))) {
 		allow_interval_literal = TRUE;
 	} else {
 		allow_interval_literal = FALSE;

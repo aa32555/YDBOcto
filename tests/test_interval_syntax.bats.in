@@ -162,19 +162,32 @@ teardown() {
 	fi
 }
 
-@test "TIS06 : OCTO845 : Validate different EXTRACT function usages with INTERVAL" {
-	# skip this untill extract is implemented
-	skip
+@test "TIS06 : OCTO845 : Validate different EXTRACT function usages with Date/Time argument" {
 	$ydb_dist/yottadb -r getExtractQueries^intervalsyntax "postgres">> input.sql
 	psql names -f input.sql >& output.txt
 	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
-	mv input.sql postgres_input.sql
 	mv output.txt postgres_output.txt
+	octo -f input.sql >& output.txt
+	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
+	mv input.sql postgres_input.sql
+	mv output.txt octo_postgres_output.txt
+	sed '/.*extract/d;/^--/d;s/^ //g;/^(/d;/^$/d;s/ //g' postgres_output.txt >> postgres_output.log
+	sed '/^OCTO/d;/^(/d;/^extract/d' octo_postgres_output.txt >> octo_postgres_output_only.txt
+	diff postgres_output.log octo_postgres_output_only.txt
 	$ydb_dist/yottadb -r getExtractQueries^intervalsyntax "mysql">> input.sql
 	run_mysql names input.sql >& output.txt
 	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
-	mv input.sql mysql_input.sql
 	mv output.txt mysql_output.txt
+	echo "datestyle = \"YMD\"" > octo.conf
+	octo --emulate=MYSQL -f input.sql >& output.txt
+	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
+	mv input.sql mysql_input.sql
+	mv output.txt octo_mysql_output.txt
+	sed '/^extract/d;/^$/d' mysql_output.txt >> mysql_output.log
+	sed '/^OCTO/d;/^(/d;/^extract/d' octo_mysql_output.txt >> octo_mysql_output_only.ref1
+	# Remove decimal value as mysql doesn't output any
+	sed 's/\..*//g;s/ //g' octo_mysql_output_only.ref1 >> octo_mysql_output_only.ref
+	diff mysql_output.log octo_mysql_output_only.ref
 }
 
 @test "TIS07 : OCTO845 : Validate that interval expression evaluation consider FEB month end date correctly" {
@@ -279,4 +292,29 @@ teardown() {
 @test "TIS22 : OCTO845 : Validate date/time function usage with intervals" {
 	$ydb_dist/yottadb -r getFuncQueries^intervalsyntax "postgres">> input.sql
 	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names input.sql
+}
+
+@test "TIS23 : OCTO845 : Validate extract function with interval argument" {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS23.sql
+	$ydb_dist/yottadb -r getExtractIntervalQueries^intervalsyntax "postgres">> input.sql
+	mv input.sql postgres_input.sql
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names postgres_input.sql
+	$ydb_dist/yottadb -r getExtractIntervalQueries^intervalsyntax "mysql">> input.sql
+	echo "datestyle = \"YMD\"" > octo.conf
+	mv input.sql mysql_input.sql.tmp
+	sed 's/_/ to /g' mysql_input.sql.tmp >> mysql_input.sql
+	# Cannot cross check with mysql as interval is not allowed as extract argument in it but do validate the queries
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names mysql_input.sql
+}
+
+@test "TIS24 : OCTO845 : Validate extract function with timezone_hour and timezone_minute field" {
+	load_fixture TIS24_errors.sql subtest novv
+	verify_output TIS24_errors output.txt nodatetimefilter noinfo nodebug
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS24.sql
+}
+
+@test "TIS25 : OCTO845 : Validate extract function edge cases" {
+	load_fixture TIS25_errors.sql subtest novv
+	verify_output TIS25_errors output.txt nodatetimefilter noinfo nodebug
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS25.sql
 }

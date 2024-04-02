@@ -103,6 +103,35 @@ typedef void* yyscan_t;
 	interval->type = KIND;\
 }\
 
+#define DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL(RET, FIELD, VAL, LOC)\
+	{\
+		/* Define argument list for the function */\
+		SqlStatement *field;\
+		SQL_VALUE_STATEMENT(field, STRING_LITERAL, FIELD);\
+		INVOKE_PARSE_LITERAL_TO_PARAMETER(parse_context, field->v.value, FALSE);\
+		SqlStatement *tail = create_sql_column_list(VAL, NULL, NULL);\
+		SqlStatement *list = create_sql_column_list(field, tail, NULL);\
+		/*RET->loc = LOC;*/\
+		/* Define this as a function call */\
+		SQL_STATEMENT(RET, value_STATEMENT);\
+		MALLOC_STATEMENT(RET, value, SqlValue);\
+		SqlStatement *fc_statement;\
+		SqlFunctionCall *fc;\
+		SqlValue *value;\
+		UNPACK_SQL_STATEMENT(value, RET, value);\
+		value->type = CALCULATED_VALUE;\
+		SQL_STATEMENT(fc_statement, function_call_STATEMENT);\
+		MALLOC_STATEMENT(fc_statement, function_call, SqlFunctionCall);\
+		UNPACK_SQL_STATEMENT(fc, fc_statement, function_call);\
+		/* Form the function name */\
+		SqlStatement *fc_name;\
+		SQL_VALUE_STATEMENT(fc_name, FUNCTION_NAME, "extract");\
+		fc->function_name = fc_name;\
+		/* Form the parameter list */\
+		fc->parameters = list;\
+		value->v.calculated = fc_statement;\
+	}
+
 extern int yylex(YYSTYPE * yylval_param, YYLTYPE *llocp, yyscan_t yyscanner);
 extern int yyparse(yyscan_t scan, SqlStatement **out, int *plan_id, ParseContext *parse_context);
 extern void yyerror(YYLTYPE *llocp, yyscan_t scan, SqlStatement **out, int *plan_id, ParseContext *parse_context, char const *s);
@@ -275,6 +304,8 @@ extern void yyerror(YYLTYPE *llocp, yyscan_t scan, SqlStatement **out, int *plan
 %token HOURTOMINUTE
 %token HOURTOSECOND
 %token MINUTETOSECOND
+%token TIMEZONE_HOUR
+%token TIMEZONE_MINUTE
 
 %token TRUE_TOKEN
 %token FALSE_TOKEN
@@ -321,7 +352,7 @@ extern void yyerror(YYLTYPE *llocp, yyscan_t scan, SqlStatement **out, int *plan
 %left COMMA COLLATE RIGHT_PAREN
 
 %left PREC2
-%left DAY YEAR
+%left DAY YEAR LEFT_PAREN
 
 %%
 
@@ -1150,7 +1181,42 @@ numeric_primary
       }
       $$->loc = @1;
     }
-//  | numeric_value_function
+  | numeric_value_function
+  ;
+
+numeric_value_function
+  : extract_expression { $$ = $extract_expression; }
+  ;
+
+extract_expression
+  : EXTRACT LEFT_PAREN YEAR FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "year", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN MONTH FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "month", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN DAY FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "day", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN HOUR FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "hour", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN MINUTE FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "minute", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN SECOND FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "second", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN TIMEZONE_HOUR FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "timezone_hour", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN TIMEZONE_MINUTE FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "timezone_minute", $extract_source, yyloc);
+    }
+  ;
+
+extract_source
+  : value_expression { $$ = $value_expression; }
   ;
 
 value_expression_primary
@@ -2772,6 +2838,11 @@ sql_keyword
       SQL_VALUE_STATEMENT($$, COLUMN_REFERENCE, "year");
       $$->loc = yyloc;
     }
+  | EXTRACT {
+      SQL_VALUE_STATEMENT($$, FUNCTION_NAME, "extract");
+      $$->loc = yyloc;
+    }	%prec PREC2
+
   ;
 
 function_parameter_type_list

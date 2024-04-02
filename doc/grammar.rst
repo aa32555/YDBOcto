@@ -827,6 +827,80 @@ Functions
     * time when the expression involves only time
     * timestamp or timestamp with time zone when time zone is present in the operand
 
+ ``EXTRACT``
+
+   Extracts a particular field from the date/time or interval. Date/time or interval is normalized before extracting the indicated field.
+
+   Syntax:
+
+   .. code-block::
+
+     EXTRACT(field FROM value)
+     field -> YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, TIMEZONE_HOUR and TIMEZONE_MINUTE
+     value -> Date/time or interval values
+
+   Return value:
+   * Null if value is NULL
+   * Numeric value representing the quantity of the unit specified
+
+   Example:
+
+   .. code-block::
+
+	OCTO> select extract(year from date'01-01-2023');
+	extract
+	2023
+	(1 row)
+
+	OCTO> select extract(month from timestamp with time zone'04-04-2024');
+	extract
+	4
+	(1 row)
+
+	OCTO> select extract(day from timestamp with time zone'04-04-2024');
+	extract
+	4
+	(1 row)
+
+	OCTO> select extract(hour from timestamp with time zone'04-04-2024 01:54:01');
+	extract
+	1
+	(1 row)
+
+	OCTO> select extract(minute from timestamp with time zone'04-04-2024 01:54:01');
+	extract
+	54
+	(1 row)
+
+	-- Seconds always includes sub-second information
+	OCTO> select extract(second from timestamp with time zone'04-04-2024 01:54:01.0909');
+	extract
+	1.090900
+	(1 row)
+
+	-- timezone_hour and timezone_minute always reflects active timezone
+	OCTO> select extract(timezone_hour from timestamp with time zone'04-04-2024 01:54:01.0909');
+	extract
+	-4
+	(1 row)
+
+	OCTO> select extract(timezone_minute from timestamp with time zone'04-04-2024 01:54:01.0909');
+	extract
+	0
+	(1 row)
+
+	-- Time fields are normalized
+	OCTO> select extract(hour from interval'12 hour 70 minutes');
+	extract
+	13
+	(1 row)
+
+	-- Year and Month fields are normalized
+	OCTO> select extract(year from interval'1 year 13 months');
+	extract
+	2
+	(1 row)
+
 +++++++++++++++++++++++++
 Casting between SQL types
 +++++++++++++++++++++++++

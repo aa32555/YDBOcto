@@ -1566,10 +1566,19 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 			%{}SET {{ PP_YDB_OCTO_EXPR }}={}%
 		}
 		boolean_t is_date_add = FALSE;
-		if ((0 == strcmp(second_operand->v.lp_default.operand[0]->v.lp_value.value->v.string_literal,"$$^%ydboctofDATEADD"))|| (0 == strcmp(second_operand->v.lp_default.operand[0]->v.lp_value.value->v.string_literal,"$$^%ydboctofDATESUB"))) {
+		boolean_t is_extract_only = FALSE;
+		if ((0 == strcmp(second_operand->v.lp_default.operand[0]->v.lp_value.value->v.string_literal,"$$^%ydboctofDATEADD"))
+		    || (0 == strcmp(second_operand->v.lp_default.operand[0]->v.lp_value.value->v.string_literal,
+		    		    "$$^%ydboctofDATESUB"))
+		    || (0 == strcmp(second_operand->v.lp_default.operand[0]->v.lp_value.value->v.string_literal,
+		    		    "$$EXTRACTINTERVAL^%ydboctosqlfunctions"))) {
 			// function name
 			is_date_add = TRUE;
+		} else if (0 == strcmp(second_operand->v.lp_default.operand[0]->v.lp_value.value->v.string_literal,
+		    		    "$$EXTRACT^%ydboctosqlfunctions")) {
+			is_extract_only = TRUE;
 		}
+
 		boolean_t text_format = FALSE;
 		if (BOOLEAN_VALUE == return_type) {
 			%{}$$String2Boolean^%%ydboctoplanhelpers({}%
@@ -1664,6 +1673,10 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 						}
 					}
 					%{},{{ date_time_operand_type|%d }},{{ cur_parm->data_type_struct->v.data_type_struct.format|%d }},"{{ datetime_text_format_specifier }}"){}%
+					if (is_extract_only) {
+						// Add the format also as it is used to process further
+						%{},"{{ datetime_text_format_specifier }}"{}%
+					}
 				} else if (is_date_add && IS_DATE_TIME_DATA_TYPE(cur_parm->data_type_struct->v.data_type_struct.data_type)) {
 					SqlValueType op_type = get_sqlvaluetype_from_sqldatatype(cur_parm->data_type_struct->v.data_type_struct.data_type, FALSE);
 					%{},{{ op_type|%d }}{}%

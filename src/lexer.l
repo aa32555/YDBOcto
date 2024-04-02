@@ -224,6 +224,8 @@ int copied_so_far;
 (?i:THEN) { return THEN; }
 (?i:TIME) { return TIME; }
 (?i:TIMESTAMP) { return TIMESTAMP; }
+(?i:TIMEZONE_HOUR) { return TIMEZONE_HOUR; }
+(?i:TIMEZONE_MINUTE) { return TIMEZONE_MINUTE; }
 (?i:TO) { return TO; }
 (?i:TRUNCATE) { return TRUNCATE; }
 (?i:UNION) { return UNION; }

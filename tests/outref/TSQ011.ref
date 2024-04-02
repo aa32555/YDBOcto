@@ -137,6 +137,12 @@ timestamp_to_zhorolog|varchar
 timestamptz_to_zhorolog|varchar
 date_to_zut|int4
 timestamp_to_zut|int4
+extract|numeric
+extract|numeric
+extract|numeric
+extract|numeric
+extract|numeric
+extract|numeric
 dayofmonth|varchar
 dayofmonth|varchar
 date_add|timestamp
@@ -214,5 +220,5 @@ pg_get_ruledef|varchar
 pg_get_partkeydef|varchar
 pg_stat_get_numscans|varchar
 pg_tablespace_location|varchar
-(210 rows)
+(216 rows)
 OCTO> 

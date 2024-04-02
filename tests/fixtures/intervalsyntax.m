@@ -492,13 +492,35 @@ getExtractQueries
 	set typeArr(3)="hour"
 	set typeArr(4)="minute"
 	set typeArr(5)="second"
-	set typeArrCnt=6
+	set typeArr(6)="timezone_hour"
+	set typeArr(7)="timezone_minute"
+	set typeArrCnt=8
 	new dt,unit,randInt
 	for queries=queries:-1:1 do
 	. set dt=$$dtValue(mysqlOrPostgres)
 	. if (dt["date'") set randInt=$random(3),unit=$select(0=randInt:"year",1=randInt:"month",2=randInt:"day")
-	. else  if ((dt["time'")!(dt["time with time zone'")) set randInt=$random(3),unit=$select(0=randInt:"hour",1=randInt:"minute",2=randInt:"second")
-	. else  set unit=typeArr($random(typeArrCnt))
+	. else  if ((dt["time'")!(dt["time with time zone")) set randInt=$random(3),unit=$select(0=randInt:"hour",1=randInt:"minute",2=randInt:"second")
+	. else  if (dt["timestamp with time zone") set unit=typeArr($random(typeArrCnt))
+	. else  set unit=typeArr($random(typeArrCnt-2)) ; timezone unit not valid for timestamp
+	. write "select extract("_unit_" FROM "_dt_");",!
+	quit
+
+getExtractIntervalQueries
+	new mysqlOrPostgres,queries
+	set mysqlOrPostgres=$zcmdline
+	set queries=100
+	new typeArr,typeArrCnt
+	set typeArr(0)="year"
+	set typeArr(1)="month"
+	set typeArr(2)="day"
+	set typeArr(3)="hour"
+	set typeArr(4)="minute"
+	set typeArr(5)="second"
+	set typeArrCnt=6
+	new dt,unit,randInt
+	for queries=queries:-1:1 do
+	. set unit=typeArr($random(typeArrCnt))
+	. set dt=$$randomInterval(mysqlOrPostgres)
 	. write "select extract("_unit_" FROM "_dt_");",!
 	quit
 

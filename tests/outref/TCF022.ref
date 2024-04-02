@@ -138,6 +138,12 @@ timestamp_to_zhorolog|1|1043|1114
 timestamptz_to_zhorolog|1|1043|1184
 date_to_zut|1|23|1082
 timestamp_to_zut|1|23|1114
+extract|2|1700|1043 1082
+extract|2|1700|1043 1083
+extract|2|1700|1043 1266
+extract|2|1700|1043 1114
+extract|2|1700|1043 1184
+extract|2|1700|1043 1186
 dayofmonth|1|1043|1082
 dayofmonth|1|1043|1043
 date_add|2|1114|1082 1186
@@ -215,7 +221,7 @@ pg_get_ruledef|2|1043|23 16
 pg_get_partkeydef|1|1043|23
 pg_stat_get_numscans|1|1043|23
 pg_tablespace_location|1|1043|23
-(210 rows)
+(216 rows)
 OCTO> SELECT proname,pronargs,prorettype,proargtypes FROM pg_proc;
 proname|pronargs|prorettype|proargtypes
 abs|1|1700|1700
@@ -351,6 +357,12 @@ timestamp_to_zhorolog|1|1043|1114
 timestamptz_to_zhorolog|1|1043|1184
 date_to_zut|1|23|1082
 timestamp_to_zut|1|23|1114
+extract|2|1700|1043 1082
+extract|2|1700|1043 1083
+extract|2|1700|1043 1266
+extract|2|1700|1043 1114
+extract|2|1700|1043 1184
+extract|2|1700|1043 1186
 dayofmonth|1|1043|1082
 dayofmonth|1|1043|1043
 date_add|2|1114|1082 1186
@@ -428,5 +440,5 @@ pg_get_ruledef|2|1043|23 16
 pg_get_partkeydef|1|1043|23
 pg_stat_get_numscans|1|1043|23
 pg_tablespace_location|1|1043|23
-(210 rows)
+(216 rows)
 OCTO> 

@@ -1,0 +1,17 @@
+-- These are expected to generate error by Postgres but Octo doesn't handle error generation yet to expect 0 as the result for all
+select extract(timezone_hour from time'01:01:01');
+select extract(timezone_hour from date'01-01-2023');
+select extract(timezone_hour from timestamp'01-01-2023');
+OCTO> select extract(timezone_hour from time'01:01:01');
+extract
+0
+(1 row)
+OCTO> select extract(timezone_hour from date'01-01-2023');
+extract
+0
+(1 row)
+OCTO> select extract(timezone_hour from timestamp'01-01-2023');
+extract
+0
+(1 row)
+OCTO> 
