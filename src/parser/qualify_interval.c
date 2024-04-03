@@ -793,16 +793,26 @@ int qualify_interval(SqlStatement *literal_stmt, SqlStatement *interval_stmt) {
 	/* Postgres stores interval data as three variables. Day, Month and Microseconds. This leads to expressions having
 	 * results offset by a small amount. To have the same result in Octo following calculation is performed.
 	 */
-	int tmp_seconds;
-	tmp_seconds = second;
-	tmp_seconds += minute * 60;
-	tmp_seconds += hour * 3600;
+	// Time
+	long int tmp_micro = microsecond;
+	tmp_micro += ((long)second * 1000000);
+	tmp_micro += ((long)minute * 60 * 1000000);
+	tmp_micro += ((long)hour * 60 * 60 * 1000000);
+	hour = tmp_micro / ((long)3600 * 1000000);
+	tmp_micro = tmp_micro % ((long)3600 * 1000000);
+	minute = tmp_micro / ((long)60 * 1000000);
+	tmp_micro = tmp_micro % ((long)60 * 1000000);
+	second = tmp_micro / 1000000;
+	tmp_micro = tmp_micro % 1000000;
+	microsecond = tmp_micro;
 
-	hour = tmp_seconds / 3600;
-	tmp_seconds = tmp_seconds % 3600;
-	minute = tmp_seconds / 60;
-	tmp_seconds = tmp_seconds % 60;
-	second = tmp_seconds;
+	// Year and Month
+	int tmp_month;
+	tmp_month = month;
+	tmp_month += (year * 12);
+	year = tmp_month / 12;
+	tmp_month = tmp_month % 12;
+	month = tmp_month;
 	/* Without the above logic following example results in the difference shown below.
 	 * 	select date'1-27-7378' - interval'+8 hour -1 minute -1 second'day to minute;
 	 * Postgres output: 7378-01-26 16:02:00
