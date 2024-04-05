@@ -1756,6 +1756,45 @@ int getCurrentTimeZoneOffset2(struct tm *tm1) {
 }
 #define IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(VAL) ((60 < VAL) || (0 > VAL))
 
+// year is tm_year from struct tm
+// month is tm_mon from struct tm
+// day is tm_mday from struct tm
+int handle_feb_date(int year, int month, int day) {
+	// get actual year
+	year = year + 1900;
+	// Increment year if month is greater than 12
+	if (12 < (month + 1)) {
+		// Considering month+1 as tm_mon represents months as 0-11
+		year += ((month + 1) / 12);
+	}
+	// Check is month is FEB
+	if ((1 == month) || (2 == ((month + 1) % 12))) {
+		// Check if the given year is a leap year
+		boolean_t is_leap_year = FALSE;
+		if (0 == (year % 4)) {
+			is_leap_year = TRUE;
+			if (0 == (year % 100)) {
+				if (0 != (year % 400)) {
+					is_leap_year = FALSE;
+				} else {
+					is_leap_year = TRUE;
+				}
+			}
+		}
+		if (is_leap_year) {
+			// February 29th is the last day of the month
+			// Update day to 29 if the value is 30
+			if (30 == day) {
+				day = 29;
+			}
+		} else if ((29 == day) || (30 == day)) {
+			// February 28th is the last day of the month
+			// Update day to 28 if the value is 29 or 30
+			day = 28;
+		}
+	}
+	return day;
+}
 /* Following function assumes `op1` is `date` or `timestamp and subtracts the given interval values from the given `date` or
  * `timestamp` or `time`. mktime() is expected to normalize the result.
  */
@@ -1784,6 +1823,8 @@ ydb_long_t ydboctoSubIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, yd
 	tm1.tm_hour -= hour;
 	tm1.tm_min -= minute;
 	tm1.tm_sec -= second;
+
+	tm1.tm_mday = handle_feb_date(tm1.tm_year, tm1.tm_mon, tm1.tm_mday);
 
 	if (0 != hour) {
 		if (IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_hour) || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_min)
@@ -1861,6 +1902,8 @@ ydb_long_t ydboctoAddIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, yd
 	tm1.tm_hour += hour;
 	tm1.tm_min += minute;
 	tm1.tm_sec += second;
+
+	tm1.tm_mday = handle_feb_date(tm1.tm_year, tm1.tm_mon, tm1.tm_mday);
 
 	if (0 != hour) {
 		if (IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_hour) || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_min)

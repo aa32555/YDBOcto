@@ -177,8 +177,8 @@ teardown() {
 	mv output.txt mysql_output.txt
 }
 
-@test "TIS07 : OCTO845 : Empty" {
-	skip
+@test "TIS07 : OCTO845 : Validate that interval expression evaluation consider FEB month end date correctly" {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS07.sql
 }
 
 @test "TIS08 : OCTO845 : Validate error cases" {
