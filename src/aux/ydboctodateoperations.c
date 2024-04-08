@@ -1826,6 +1826,7 @@ ydb_long_t ydboctoSubIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, yd
 
 	tm1.tm_mday = handle_feb_date(tm1.tm_year, tm1.tm_mon, tm1.tm_mday);
 
+	boolean_t is_time_modified = FALSE;
 	if (0 != hour) {
 		if (IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_hour) || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_min)
 		    || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_sec)) {
@@ -1839,6 +1840,7 @@ ydb_long_t ydboctoSubIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, yd
 			tm1.tm_sec += (tm1.tm_min * 60);
 			tm1.tm_hour = tm1.tm_min = 0;
 		}
+		is_time_modified = TRUE;
 	}
 
 	long int micro_op2 = microseconds;
@@ -1863,8 +1865,11 @@ ydb_long_t ydboctoSubIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, yd
 		 * timezone value here.
 		 */
 		// if (0 == hour) {
-		tm1.tm_isdst = -1;
+		//		tm1.tm_isdst = -1;
 		//}
+		if (!is_time_modified) {
+			tm1.tm_isdst = -1;
+		}
 		tm1.tm_sec += getCurrentTimeZoneOffset2(&tm1);
 	}
 	ret = utc_mktime(&tm1);
@@ -1905,6 +1910,7 @@ ydb_long_t ydboctoAddIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, yd
 
 	tm1.tm_mday = handle_feb_date(tm1.tm_year, tm1.tm_mon, tm1.tm_mday);
 
+	boolean_t is_time_modified = FALSE;
 	if (0 != hour) {
 		if (IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_hour) || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_min)
 		    || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_sec)) {
@@ -1918,6 +1924,7 @@ ydb_long_t ydboctoAddIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, yd
 			tm1.tm_sec += (tm1.tm_min * 60);
 			tm1.tm_hour = tm1.tm_min = 0;
 		}
+		is_time_modified = TRUE;
 	}
 
 	long int micro_op2 = microseconds;
@@ -1936,7 +1943,9 @@ ydb_long_t ydboctoAddIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, yd
 		 * might change the date/time value such that daylight savings might change the original timezone info. So recompute
 		 * timezone value here.
 		 */
-		tm1.tm_isdst = -1;
+		if (!is_time_modified) {
+			tm1.tm_isdst = -1;
+		}
 		tm1.tm_sec += getCurrentTimeZoneOffset2(&tm1);
 	}
 	ret = utc_mktime(&tm1);

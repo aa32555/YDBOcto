@@ -103,3 +103,20 @@ select timestamp with time zone'06-01-2024 00:00:00' + interval'-83'day;
 select interval'+92-1'year to month + timestamp with time zone'10-4-3228 14:35:6+11:23';
 select timestamp with time zone'11-3-2024 02:00:00' + interval'1 minutes';
 select timestamp with time zone'11-7-4134 14:19:42-05:56' - interval'-215';
+
+-- before dst to dst
+select timestamp with time zone'03-09-2024 03:00:00' + interval'24 hour';
+-- in dst to after dst
+select timestamp with time zone'11-02-2024 03:00:00' + interval'24 hour';
+-- after dst to in dst
+select timestamp with time zone'11-03-2024 03:00:00' + interval'-24 hour';
+select timestamp with time zone'11-03-2024 03:00:00' + interval'-1 month';
+-- in dst to before dst
+select timestamp with time zone'03-10-2024 03:00:00' + interval'-24 hour';
+-- before dst to after dst
+select timestamp with time zone'03-08-2024 03:00:00' + interval'8 months';
+-- after dst to before dst
+select timestamp with time zone'11-08-2024 03:00:00' + interval'-8 months';
+
+-- before dst to dst in reverse
+select timestamp with time zone'03-09-2024 03:00:00' + interval'-8 months';
