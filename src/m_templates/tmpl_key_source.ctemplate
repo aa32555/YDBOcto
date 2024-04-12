@@ -1,7 +1,7 @@
 {}%
 /****************************************************************
  *								*
- * Copyright (c) 2019-2023 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2024 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -44,7 +44,8 @@ TEMPLATE(tmpl_key_source, PhysicalPlan *pplan, SqlKey *key, enum EmitSourceForm 
 		}
 		// Output the column this cross reference is sourced from
 		iter_key_index = 0;
-		while ((iter_key_index < pplan->total_iter_keys) && (pplan->iterKeys[iter_key_index]->unique_id != key->unique_id))
+		// while ((iter_key_index < pplan->total_iter_keys) && (pplan->iterKeys[iter_key_index]->unique_id != key->unique_id))
+		// while ((iter_key_index < pplan->total_iter_keys) && ((get_iter_key(pplan->outputKey->unique_id, iter_key_index))->unique_id != key->unique_id))
 			iter_key_index++;
 		%{},{}%
 
@@ -56,7 +57,8 @@ TEMPLATE(tmpl_key_source, PhysicalPlan *pplan, SqlKey *key, enum EmitSourceForm 
 			aimsub_needed = FALSE;
 		}
 		// We only look at the first subscript, since we don't want to look at actual values of the keys
-		assert(key == pplan->iterKeys[iter_key_index]);
+		// assert(key == pplan->iterKeys[iter_key_index]);
+		assert(key == get_iter_key(pplan->outputKey->unique_id, iter_key_index));
 		if (IS_NULL_FIXED_VALUE(key->fixed_to_value)) {
 			/* Use empty string instead of $ZYSQLNULL when generating xref global subscript.
 			 * This is because we use "" to store NULL values in the xref global.
@@ -80,7 +82,8 @@ TEMPLATE(tmpl_key_source, PhysicalPlan *pplan, SqlKey *key, enum EmitSourceForm 
 		iter_key_index = 0;
 		keys_to_match = 0;
 		for ( ; ; ) {
-			plan_key = pplan->iterKeys[iter_key_index];
+			// plan_key = pplan->iterKeys[iter_key_index];
+			plan_key = get_iter_key(pplan->outputKey->unique_id, iter_key_index);
 			if ((plan_key->unique_id == key->unique_id) && !plan_key->is_cross_reference_key) {
 				keys_to_match++;
 			}

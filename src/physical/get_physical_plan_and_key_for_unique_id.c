@@ -1,6 +1,6 @@
 /****************************************************************
  *								*
- * Copyright (c) 2020-2023 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2020-2024 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -31,7 +31,8 @@ PhysicalPlan *get_physical_plan_and_key_for_unique_id(PhysicalPlan *pplan, int u
 		for (i = 0; i < cur_plan->total_iter_keys; i++) {
 			SqlKey *key;
 
-			key = cur_plan->iterKeys[i];
+			// key = cur_plan->iterKeys[i];
+			key = get_iter_key(cur_plan->outputKey->unique_id, i);
 			if (key->unique_id == unique_id) {
 				assert((NULL == matching_plan) || (matching_plan == cur_plan));
 				matching_plan = cur_plan;

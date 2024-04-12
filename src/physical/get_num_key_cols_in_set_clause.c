@@ -34,7 +34,8 @@ int get_num_key_cols_in_set_clause(PhysicalPlan *pplan) {
 	for (;;) {
 		SqlKey *plan_key;
 
-		plan_key = pplan->iterKeys[iter_key_index];
+		// plan_key = pplan->iterKeys[iter_key_index];
+		plan_key = get_iter_key(pplan->outputKey->unique_id, iter_key_index);
 		if (!plan_key->is_cross_reference_key) {
 			LogicalPlan *lp_column_list;
 			lp_column_list = lp_get_update_column_list(lp_update);

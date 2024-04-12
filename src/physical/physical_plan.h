@@ -42,7 +42,6 @@ typedef struct SetOperType {
 typedef struct PhysicalPlan {
 	char		    *plan_name, *filename;
 	struct PhysicalPlan *prev, *next;
-	SqlKey		    *iterKeys[MAX_KEY_COUNT]; /* These represent the keys we used to do the iteration */
 	SqlKey		    *outputKey;
 	LogicalPlan	    *where;		/* WHERE clause */
 	LogicalPlan	    *tablejoin;		/* FROM clause */
@@ -128,6 +127,9 @@ typedef struct PhysicalPlan {
 #define IS_UPDATE_PHYSICAL_PLAN(PPLAN)	    ((NULL != PPLAN->lp_select_query) && (LP_UPDATE == PPLAN->lp_select_query->type))
 #define HYPHEN_LINE			    "---------------------------------------------------------"
 
+/* Declarations */
+#define OCTOLIT_ITERKEYS "%ydboctoiterkeys"
+
 // This provides a convenient way to pass options to subplans
 // which need to be aware of a request from a higher level
 typedef struct PhysicalPlanOptions {
@@ -176,5 +178,6 @@ PhysicalPlan *get_physical_plan_and_key_for_unique_id(PhysicalPlan *pplan, int u
 PhysicalPlan *emit_sql_statement(SqlStatement *stmt, char *plan_filename);
 int emit_physical_or_xref_plan(char *plan_filename, SqlStatement *stmt, char *tableName, char *columnName, PhysicalPlan *xref_plan);
 int emit_xref_plan(char *plan_filename, char *tableName, char *columnName, PhysicalPlan *xref_plan);
+SqlKey *get_iter_key(int pplan_unique_id, int key_index);
 
 #endif

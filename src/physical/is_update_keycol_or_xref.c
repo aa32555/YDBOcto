@@ -30,7 +30,8 @@ int is_update_keycol_or_xref(PhysicalPlan *pplan) {
 	for (;;) {
 		SqlKey *plan_key;
 
-		plan_key = pplan->iterKeys[iter_key_index];
+		// plan_key = pplan->iterKeys[iter_key_index];
+		plan_key = get_iter_key(pplan->outputKey->unique_id, iter_key_index);
 		if (plan_key->is_cross_reference_key) {
 			return TRUE; /* Found a cross reference key */
 		}

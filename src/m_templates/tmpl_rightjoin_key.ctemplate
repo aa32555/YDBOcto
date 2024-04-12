@@ -1,7 +1,7 @@
 {}%
 /****************************************************************
  *								*
- * Copyright (c) 2019-2021 YottaDB LLC and/or its subsidiaries.	*
+ * Copyright (c) 2019-2024 YottaDB LLC and/or its subsidiaries.	*
  * All rights reserved.						*
  *								*
  *	This source code contains the intellectual property	*
@@ -20,7 +20,8 @@ TEMPLATE(tmpl_rightjoin_key, PhysicalPlan *pplan, unsigned int key_start, unsign
 	do {
 		SqlKey	*key;
 
-		key = pplan->iterKeys[key_start];
+		// key = pplan->iterKeys[key_start];
+		key = get_iter_key(pplan->outputKey->unique_id, key_start);
 		if (!key->is_cross_reference_key)
 			TMPL(tmpl_key, key);
 		key_start++;
