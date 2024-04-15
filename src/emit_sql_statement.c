@@ -78,7 +78,7 @@ PhysicalPlan *emit_sql_statement(SqlStatement *stmt, char *plan_filename) {
 	char		    valbuff[INT32_TO_STRING_MAX];
 	int		    status;
 	int16_t		    num_columns = 0;
-	ydb_buffer_t	    plan_meta[6], value_buffer;
+	ydb_buffer_t	    plan_meta[6], value_buffer, varname;
 	PhysicalPlanOptions physical_options;
 	PSQL_TypeOid	    column_type;
 	PSQL_TypeSize	    type_size;
@@ -97,6 +97,24 @@ PhysicalPlan *emit_sql_statement(SqlStatement *stmt, char *plan_filename) {
 	YDB_LITERAL_TO_BUFFER("%ydboctoViewLp", &ydboctoViewLp);
 
 	status = ydb_delete_s(&ydboctoViewLp, 0, NULL, YDB_DEL_TREE);
+	YDB_ERROR_CHECK(status);
+	if (YDB_OK != status) {
+		assert(FALSE);
+		return NULL;
+	}
+	// Kill OCTOLIT_VIEWKEYS created in generate_physical_plan.c invocation
+	YDB_LITERAL_TO_BUFFER(OCTOLIT_VIEWKEYS, &varname);
+
+	status = ydb_delete_s(&varname, 0, NULL, YDB_DEL_TREE);
+	YDB_ERROR_CHECK(status);
+	if (YDB_OK != status) {
+		assert(FALSE);
+		return NULL;
+	}
+	// Kill OCTOLIT_ITERKEYS created in generate_physical_plan.c invocation
+	YDB_LITERAL_TO_BUFFER(OCTOLIT_ITERKEYS, &varname);
+
+	status = ydb_delete_s(&varname, 0, NULL, YDB_DEL_TREE);
 	YDB_ERROR_CHECK(status);
 	if (YDB_OK != status) {
 		assert(FALSE);

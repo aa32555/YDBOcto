@@ -93,9 +93,6 @@ typedef enum {
 								: PLAN->extra_detail.lp_derived_column.subquery_column_alias); \
 	}
 
-// Following declarations helps view to access its keys stored in lvn
-#define OCTOLIT_VIEWKEYS "%ydboctoviewkeys"
-
 extern const char *lp_action_type_str[];
 
 /* Fields needed by various LP_* types */

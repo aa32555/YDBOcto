@@ -127,9 +127,6 @@ typedef struct PhysicalPlan {
 #define IS_UPDATE_PHYSICAL_PLAN(PPLAN)	    ((NULL != PPLAN->lp_select_query) && (LP_UPDATE == PPLAN->lp_select_query->type))
 #define HYPHEN_LINE			    "---------------------------------------------------------"
 
-/* Declarations */
-#define OCTOLIT_ITERKEYS "%ydboctoiterkeys"
-
 // This provides a convenient way to pass options to subplans
 // which need to be aware of a request from a higher level
 typedef struct PhysicalPlanOptions {
