@@ -45,7 +45,7 @@ TEMPLATE(tmpl_key_source, PhysicalPlan *pplan, SqlKey *key, enum EmitSourceForm 
 		// Output the column this cross reference is sourced from
 		iter_key_index = 0;
 		// while ((iter_key_index < pplan->total_iter_keys) && (pplan->iterKeys[iter_key_index]->unique_id != key->unique_id))
-		// while ((iter_key_index < pplan->total_iter_keys) && ((get_iter_key(pplan->outputKey->unique_id, iter_key_index))->unique_id != key->unique_id))
+		while ((iter_key_index < pplan->total_iter_keys) && ((get_iter_key(pplan->outputKey->unique_id, iter_key_index))->unique_id != key->unique_id))
 			iter_key_index++;
 		%{},{}%
 
