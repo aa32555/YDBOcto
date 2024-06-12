@@ -21,7 +21,7 @@ TEMPLATE(tmpl_rightjoin_key, PhysicalPlan *pplan, unsigned int key_start, unsign
 		SqlKey	*key;
 
 		// key = pplan->iterKeys[key_start];
-		key = get_iter_key(pplan->outputKey->unique_id, key_start);
+		key = get_iter_key(pplan, key_start);
 		if (!key->is_cross_reference_key)
 			TMPL(tmpl_key, key);
 		key_start++;

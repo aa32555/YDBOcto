@@ -175,6 +175,6 @@ PhysicalPlan *get_physical_plan_and_key_for_unique_id(PhysicalPlan *pplan, int u
 PhysicalPlan *emit_sql_statement(SqlStatement *stmt, char *plan_filename);
 int emit_physical_or_xref_plan(char *plan_filename, SqlStatement *stmt, char *tableName, char *columnName, PhysicalPlan *xref_plan);
 int emit_xref_plan(char *plan_filename, char *tableName, char *columnName, PhysicalPlan *xref_plan);
-SqlKey *get_iter_key(int pplan_unique_id, int key_index);
+SqlKey *get_iter_key(PhysicalPlan *pplan, int key_index);
 
 #endif

@@ -48,7 +48,7 @@ TEMPLATE(tmpl_duplication_check, PhysicalPlan *pplan) {
 	%{}{{ PP_YDB_OCTO_ZDUPLICATE }}({{ output_key_id|%d }}{}%
 	for (i = 0; i < first_dnf_pplan->total_iter_keys; i++) {
 		// key = first_dnf_pplan->iterKeys[i];
-		key = get_iter_key(first_dnf_pplan->outputKey->unique_id, i);
+		key = get_iter_key(first_dnf_pplan, i);
 		if (key->is_cross_reference_key)
 			continue;
 		%{},{}%

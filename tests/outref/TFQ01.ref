@@ -128,6 +128,8 @@ CREATE TABLE
 OCTO> select 1 from  c c1, c c2, c c3, c c4, c c5, c c6, c c7, c c8, c c9, c c10, c c11, c c12, c c13, c c14, c c15, c c16, c c17, c c18, c c19, c c20, c c21, c c22, c c23, c c24, c c25, c c26, c c27, c c28, c c29, c c30, c c31, c c32, c c33;
 ???
 (0 rows)
+OCTO> drop table c;
+DROP TABLE
 OCTO> create table tmp (lastname varchar, check((lastname like 'abc\%')));
 CREATE TABLE
 OCTO> insert into tmp values ('abc%');

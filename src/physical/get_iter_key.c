@@ -13,17 +13,15 @@
 #include "logical_plan.h"
 #include "physical_plan.h"
 
-SqlKey *get_iter_key(int pplan_unique_id, int key_index) {
+SqlKey *get_iter_key(PhysicalPlan *pplan, int key_index) {
 	// Get key pointer from lvn
 	// varname
 	ydb_buffer_t varname;
 	YDB_LITERAL_TO_BUFFER(OCTOLIT_ITERKEYS, &varname);
 	// subs pplan_unique_id, key_index
 	ydb_buffer_t subs[2];
-	char	     cur_plan_unique_id[INT32_TO_STRING_MAX];
-	subs[0].buf_addr = cur_plan_unique_id;
-	subs[0].len_alloc = sizeof(cur_plan_unique_id);
-	subs[0].len_used = snprintf(subs[0].buf_addr, subs[0].len_alloc, "%d", pplan_unique_id);
+	subs[0].buf_addr = (char *)&pplan;
+	subs[0].len_used = subs[0].len_alloc = sizeof(void *);
 	char key_unique_id[INT32_TO_STRING_MAX];
 	subs[1].buf_addr = key_unique_id;
 	subs[1].len_alloc = sizeof(key_unique_id);

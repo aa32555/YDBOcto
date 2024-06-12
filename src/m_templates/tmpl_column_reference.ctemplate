@@ -90,7 +90,7 @@ TEMPLATE(tmpl_column_reference, PhysicalPlan *pplan, SqlColumnAlias *column_alia
 		next_plan = cur_plan->parent_plan;
 		for (i = 0; i < cur_plan->total_iter_keys; i++) {
 			// key = cur_plan->iterKeys[i];
-			key = get_iter_key(cur_plan->outputKey->unique_id, i);
+			key = get_iter_key(cur_plan, i);
 			if (key->unique_id == unique_id) {
 				if (key->column == column) {
 					if (matching_plan != pplan) {

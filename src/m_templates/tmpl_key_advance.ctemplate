@@ -61,12 +61,12 @@ TEMPLATE(tmpl_key_advance, PhysicalPlan *pplan, SqlKey *key) {
 		//while ((iter_key_index < pplan->total_iter_keys)
 		//		&& (pplan->iterKeys[iter_key_index]->unique_id != key->unique_id)) {
 		while ((iter_key_index < pplan->total_iter_keys)
-				&& ((get_iter_key(pplan->outputKey->unique_id, iter_key_index)->unique_id) != key->unique_id)) {
+				&& ((get_iter_key(pplan, iter_key_index)->unique_id) != key->unique_id)) {
 
 			iter_key_index++;
 		}
 		// iter_key = pplan->iterKeys[iter_key_index];
-		iter_key = get_iter_key(pplan->outputKey->unique_id, iter_key_index);
+		iter_key = get_iter_key(pplan, iter_key_index);
 		while (iter_key_index < pplan->total_iter_keys) {
 			if (iter_key->unique_id == key->unique_id)
 				keys_to_match++;
@@ -95,7 +95,7 @@ TEMPLATE(tmpl_key_advance, PhysicalPlan *pplan, SqlKey *key) {
 			}
 			iter_key_index++;
 			// iter_key = pplan->iterKeys[iter_key_index];
-			iter_key = get_iter_key(pplan->outputKey->unique_id, iter_key_index);
+			iter_key = get_iter_key(pplan, iter_key_index);
 			if (hit_key && (iter_key != key))
 				break;
 			if (iter_key == key)
@@ -109,7 +109,7 @@ TEMPLATE(tmpl_key_advance, PhysicalPlan *pplan, SqlKey *key) {
 		iter_key_index = 0;
 		for (iter_key_index = 0; iter_key_index < pplan->total_iter_keys; iter_key_index++) {
 			// plan_key = pplan->iterKeys[iter_key_index];
-			plan_key = get_iter_key(pplan->outputKey->unique_id, iter_key_index);
+			plan_key = get_iter_key(pplan, iter_key_index);
 			if (plan_key == key) {
 				break;
 			}

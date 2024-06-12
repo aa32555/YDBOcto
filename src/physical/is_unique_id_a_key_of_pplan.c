@@ -19,7 +19,7 @@ boolean_t is_unique_id_a_key_of_pplan(PhysicalPlan *pplan, int unique_id) {
 	for (unsigned int i = 0; i < pplan->total_iter_keys; i++) {
 		SqlKey *key;
 		// key = pplan->iterKeys[i];
-		key = get_iter_key(pplan->outputKey->unique_id, i);
+		key = get_iter_key(pplan, i);
 		if (key->unique_id == unique_id) {
 			return TRUE;
 		}

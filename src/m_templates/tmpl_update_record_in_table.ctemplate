@@ -32,7 +32,7 @@ TEMPLATE(tmpl_update_record_in_table, PhysicalPlan *pplan, int dot_count) {
 	SqlKey		*key;
 	assert(0 < pplan->total_iter_keys);
 	// key = pplan->iterKeys[pplan->total_iter_keys - 1];
-	key = get_iter_key(pplan->outputKey->unique_id, pplan->total_iter_keys - 1);
+	key = get_iter_key(pplan, pplan->total_iter_keys - 1);
 
 
 	/* Define the local variable name under which we will store column numbers that have PP_COL(i) initialized.

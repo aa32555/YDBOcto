@@ -46,11 +46,8 @@ PhysicalPlan *get_physical_plan_from_unique_id(PhysicalPlan *pplan, int unique_i
 				YDB_LITERAL_TO_BUFFER(OCTOLIT_VIEWKEYS, &varname);
 				// subs cur_plan->unique_id, i
 				ydb_buffer_t subs[2];
-				char	     cur_plan_unique_id[INT32_TO_STRING_MAX];
-				subs[0].buf_addr = cur_plan_unique_id;
-				subs[0].len_alloc = sizeof(cur_plan_unique_id);
-				subs[0].len_used
-				    = snprintf(subs[0].buf_addr, subs[0].len_alloc, "%d", cur_plan->outputKey->unique_id);
+				subs[0].buf_addr = (char *)&cur_plan;
+				subs[0].len_used = subs[0].len_alloc = sizeof(void *);
 				char view_unique_id[INT32_TO_STRING_MAX];
 				subs[1].buf_addr = view_unique_id;
 				subs[1].len_alloc = sizeof(view_unique_id);

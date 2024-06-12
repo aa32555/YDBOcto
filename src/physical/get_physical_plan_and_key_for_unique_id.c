@@ -32,7 +32,7 @@ PhysicalPlan *get_physical_plan_and_key_for_unique_id(PhysicalPlan *pplan, int u
 			SqlKey *key;
 
 			// key = cur_plan->iterKeys[i];
-			key = get_iter_key(cur_plan->outputKey->unique_id, i);
+			key = get_iter_key(cur_plan, i);
 			if (key->unique_id == unique_id) {
 				assert((NULL == matching_plan) || (matching_plan == cur_plan));
 				matching_plan = cur_plan;
