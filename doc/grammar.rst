@@ -2493,6 +2493,20 @@ PG_IS_XLOG_REPLAY_PAUSED
 
     This function is only partially implemented and returns a fixed value regardless of input. It is partially implemented solely to avoid syntax errors during SQL client startup.
 
+++++++++
+REPLACE
+++++++++
+
+  .. code-block:: SQL
+
+     REPLACE(VARCHAR, VARCHAR, VARCHAR)
+
+  This is a standard SQL replace function which does substring replacement in the given input. First argument is the src string in which the second argument which is the substring is searched and replaced with the string given in third arguemnt.
+
+  .. note::
+
+    This function treates empty string as NULL
+
 +++++++
 ROUND
 +++++++
