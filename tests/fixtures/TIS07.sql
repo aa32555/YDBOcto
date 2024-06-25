@@ -10,10 +10,10 @@
 #								#
 #################################################################
 
-select timestamp with time zone'4-30-6873 2:10:46+09:26' - interval'+699 year 62 month'year to month;
-select timestamp with time zone'4-30-6169' - interval'2 month';
-select timestamp'4-30-6169' - interval'2 month';
-select timestamp'7-30-2881 18:3:8' - interval'+101'month;
-select date'12-30-3976' + interval'988-2'hour to second;
-select date'3-30-7643' + interval'+371'month;
-select date'2-29-5652' + interval'-654'; -- leap year
+select timestamp with time zone'6873-4-30 2:10:46+09:26' - interval'+699 year 62 month'year to month;
+select timestamp with time zone'6169-4-30' - interval'2 month';
+select timestamp'6169-4-30' - interval'2 month';
+select timestamp'2881-7-30 18:3:8' - interval'+101'month;
+select date'3976-12-30' + interval'988-2'hour to second;
+select date'7643-3-30' + interval'+371'month;
+select date'5652-2-29' + interval'-654'; -- leap year

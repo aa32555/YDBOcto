@@ -11,14 +11,14 @@
 #################################################################
 
 -- All are expected to generate ERR_INTERVAL_FIELD_OUT_OF_RANGE
-select date'01-01-0001' + interval'999999999999999 year';
-select date'01-01-0001' + interval'999999999999999 month';
-select date'01-01-0001' + interval'999999999999999 hour';
-select date'01-01-0001' + interval'999999999999999 minute';
-select date'01-01-0001' + interval'999999999999999 second';
-select date'01-01-0001' + interval'999999999999999 day';
+select date'0001-01-01' + interval'999999999999999 year';
+select date'0001-01-01' + interval'999999999999999 month';
+select date'0001-01-01' + interval'999999999999999 hour';
+select date'0001-01-01' + interval'999999999999999 minute';
+select date'0001-01-01' + interval'999999999999999 second';
+select date'0001-01-01' + interval'999999999999999 day';
 
 -- All are expected to generate ERR_INVALID_DATE_TIME_VALUE
-select date'01-01-0001' - interval'1000000 year';
-select date'01-01-0001' - interval'999999 year';
-select date'01-01-0001' - interval'99999 year';
+select date'0001-01-01' - interval'1000000 year';
+select date'0001-01-01' - interval'999999 year';
+select date'0001-01-01' - interval'99999 year';

@@ -10,8 +10,8 @@
 #								#
 #################################################################
 
-select date'01-01-2023' + interval'1:1:1.999999'; -- Postgres output is 2023-01-01 01:01:01.999999
-select date'01-01-2023' + interval'1:1:1.9999999'; -- Postgres output is 2023-01-01 01:01:02
-select date'01-01-2023' + interval'59:59:59.9999999'; -- Postgres output is 2023-01-03 12:00:00
-select date'01-01-2023' + interval'59:59:60.9999999'; -- Postgres output is 2023-01-03 12:00:01
+select date'2023-01-01' + interval'1:1:1.999999'; -- Postgres output is 2023-01-01 01:01:01.999999
+select date'2023-01-01' + interval'1:1:1.9999999'; -- Postgres output is 2023-01-01 01:01:02
+select date'2023-01-01' + interval'59:59:59.9999999'; -- Postgres output is 2023-01-03 12:00:00
+select date'2023-01-01' + interval'59:59:60.9999999'; -- Postgres output is 2023-01-03 12:00:01
 

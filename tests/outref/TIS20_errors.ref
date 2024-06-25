@@ -1,150 +1,150 @@
 
-select date'01-01-2023' + interval '1.1 year';
-select date'01-01-2023' + interval '1.1 month';
-select date'01-01-2023' + interval '1.1 day';
-select date'01-01-2023' + interval '1.1 hour';
-select date'01-01-2023' + interval '1.1 minute';
+select date'2023-01-01' + interval '1.1 year';
+select date'2023-01-01' + interval '1.1 month';
+select date'2023-01-01' + interval '1.1 day';
+select date'2023-01-01' + interval '1.1 hour';
+select date'2023-01-01' + interval '1.1 minute';
 
-select date'01-01-2023' + interval '1.1' year;
-select date'01-01-2023' + interval '1.1' month;
-select date'01-01-2023' + interval '1.1' day;
-select date'01-01-2023' + interval '1.1' hour;
-select date'01-01-2023' + interval '1.1' minute;
+select date'2023-01-01' + interval '1.1' year;
+select date'2023-01-01' + interval '1.1' month;
+select date'2023-01-01' + interval '1.1' day;
+select date'2023-01-01' + interval '1.1' hour;
+select date'2023-01-01' + interval '1.1' minute;
 
-select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute';
-select date'01-01-2023' + interval '1.1-1';
-select date'01-01-2023' + interval '1-1.1';
-select date'01-01-2023' + interval '1.1:1:1';
-select date'01-01-2023' + interval '1:1.1:1';
-select date'01-01-2023' + interval '1.1 1:1:1';
-select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1';
-select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' year to month;
-select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' day to hour;
-select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' day to minute;
-select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' day to second;
-select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' minute to second;
-select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' hour to second;
+select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute';
+select date'2023-01-01' + interval '1.1-1';
+select date'2023-01-01' + interval '1-1.1';
+select date'2023-01-01' + interval '1.1:1:1';
+select date'2023-01-01' + interval '1:1.1:1';
+select date'2023-01-01' + interval '1.1 1:1:1';
+select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1';
+select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' year to month;
+select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' day to hour;
+select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' day to minute;
+select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' day to second;
+select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' minute to second;
+select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' hour to second;
 
-select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'year to month;
-select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to hour;
-select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to minute;
-select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to second;
-select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'minute to second;
-select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'hour to second;
+select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'year to month;
+select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to hour;
+select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to minute;
+select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to second;
+select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'minute to second;
+select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'hour to second;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 year'
-LINE 2:1: select date'01-01-2023' + interval '1.1 year';
+LINE 2:1: select date'2023-01-01' + interval '1.1 year';
                                              ^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 year';
+OCTO> select date'2023-01-01' + interval '1.1 year';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 month'
-LINE 3:1: select date'01-01-2023' + interval '1.1 month';
+LINE 3:1: select date'2023-01-01' + interval '1.1 month';
                                              ^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 month';
+OCTO> select date'2023-01-01' + interval '1.1 month';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 day'
-LINE 4:1: select date'01-01-2023' + interval '1.1 day';
+LINE 4:1: select date'2023-01-01' + interval '1.1 day';
                                              ^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 day';
+OCTO> select date'2023-01-01' + interval '1.1 day';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 hour'
-LINE 5:1: select date'01-01-2023' + interval '1.1 hour';
+LINE 5:1: select date'2023-01-01' + interval '1.1 hour';
                                              ^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 hour';
+OCTO> select date'2023-01-01' + interval '1.1 hour';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 minute'
-LINE 6:1: select date'01-01-2023' + interval '1.1 minute';
+LINE 6:1: select date'2023-01-01' + interval '1.1 minute';
                                              ^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 minute';
+OCTO> select date'2023-01-01' + interval '1.1 minute';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1'
-LINE 8:1: select date'01-01-2023' + interval '1.1' year;
+LINE 8:1: select date'2023-01-01' + interval '1.1' year;
                                              ^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1' year;
+OCTO> select date'2023-01-01' + interval '1.1' year;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1'
-LINE 9:1: select date'01-01-2023' + interval '1.1' month;
+LINE 9:1: select date'2023-01-01' + interval '1.1' month;
                                              ^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1' month;
+OCTO> select date'2023-01-01' + interval '1.1' month;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1'
-LINE 10:1: select date'01-01-2023' + interval '1.1' day;
+LINE 10:1: select date'2023-01-01' + interval '1.1' day;
                                               ^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1' day;
+OCTO> select date'2023-01-01' + interval '1.1' day;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1'
-LINE 11:1: select date'01-01-2023' + interval '1.1' hour;
+LINE 11:1: select date'2023-01-01' + interval '1.1' hour;
                                               ^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1' hour;
+OCTO> select date'2023-01-01' + interval '1.1' hour;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1'
-LINE 12:1: select date'01-01-2023' + interval '1.1' minute;
+LINE 12:1: select date'2023-01-01' + interval '1.1' minute;
                                               ^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1' minute;
+OCTO> select date'2023-01-01' + interval '1.1' minute;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'
-LINE 14:1: ...23' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute';
+LINE 14:1: ...01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute';
                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute';
+OCTO> select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1-1'
-LINE 15:1: select date'01-01-2023' + interval '1.1-1';
+LINE 15:1: select date'2023-01-01' + interval '1.1-1';
                                               ^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1-1';
+OCTO> select date'2023-01-01' + interval '1.1-1';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1-1.1'
-LINE 16:1: select date'01-01-2023' + interval '1-1.1';
+LINE 16:1: select date'2023-01-01' + interval '1-1.1';
                                               ^^^^^^^
-OCTO> select date'01-01-2023' + interval '1-1.1';
+OCTO> select date'2023-01-01' + interval '1-1.1';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1:1:1'
-LINE 17:1: select date'01-01-2023' + interval '1.1:1:1';
+LINE 17:1: select date'2023-01-01' + interval '1.1:1:1';
                                               ^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1:1:1';
+OCTO> select date'2023-01-01' + interval '1.1:1:1';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1:1.1:1'
-LINE 18:1: select date'01-01-2023' + interval '1:1.1:1';
+LINE 18:1: select date'2023-01-01' + interval '1:1.1:1';
                                               ^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1:1.1:1';
+OCTO> select date'2023-01-01' + interval '1:1.1:1';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 1:1:1'
-LINE 19:1: select date'01-01-2023' + interval '1.1 1:1:1';
+LINE 19:1: select date'2023-01-01' + interval '1.1 1:1:1';
                                               ^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 1:1:1';
+OCTO> select date'2023-01-01' + interval '1.1 1:1:1';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1-1.1 1.11 1.1:1.1:1'
-LINE 20:1: select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1';
+LINE 20:1: select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1';
                                               ^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1';
+OCTO> select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1';
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1-1.1 1.11 1.1:1.1:1'
-LINE 21:1: ...e'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' year to month;
+LINE 21:1: ...e'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' year to month;
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' year to month;
+OCTO> select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' year to month;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1-1.1 1.11 1.1:1.1:1'
-LINE 22:1: ...ate'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' day to hour;
+LINE 22:1: ...ate'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' day to hour;
                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' day to hour;
+OCTO> select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' day to hour;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1-1.1 1.11 1.1:1.1:1'
-LINE 23:1: ...e'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' day to minute;
+LINE 23:1: ...e'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' day to minute;
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' day to minute;
+OCTO> select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' day to minute;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1-1.1 1.11 1.1:1.1:1'
-LINE 24:1: ...e'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' day to second;
+LINE 24:1: ...e'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' day to second;
                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' day to second;
+OCTO> select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' day to second;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1-1.1 1.11 1.1:1.1:1'
-LINE 25:1: ...-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' minute to second;
+LINE 25:1: ...23-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' minute to second;
                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' minute to second;
+OCTO> select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' minute to second;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1-1.1 1.11 1.1:1.1:1'
-LINE 26:1: ...01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' hour to second;
+LINE 26:1: ...2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' hour to second;
                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1-1.1 1.11 1.1:1.1:1' hour to second;
+OCTO> select date'2023-01-01' + interval '1.1-1.1 1.11 1.1:1.1:1' hour to second;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'
 LINE 28:1: ... '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'year to month;
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'year to month;
+OCTO> select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'year to month;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'
 LINE 29:1: ...al '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to hour;
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to hour;
+OCTO> select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to hour;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'
 LINE 30:1: ... '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to minute;
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to minute;
+OCTO> select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to minute;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'
 LINE 31:1: ... '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to second;
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to second;
+OCTO> select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'day to second;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'
 LINE 32:1: ...'1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'minute to second...
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'minute to second;
+OCTO> select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'minute to second;
 [ERROR]: ERR_INVALID_INTERVAL_SYNTAX: Interval literal syntax is invalid: '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'
 LINE 33:1: ... '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'hour to second;
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OCTO> select date'01-01-2023' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'hour to second;
+OCTO> select date'2023-01-01' + interval '1.1 year 1.1 month 1.1 day 1.1 hour 1.1 minute'hour to second;
 OCTO> 

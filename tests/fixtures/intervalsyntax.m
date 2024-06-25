@@ -13,7 +13,7 @@
 ; Helper functions used by interval bats tests
 
 ; Following routine generates 100 queries with varying interval values
-; + operation is used with a simple date value of date'01-01-2023' as the
+; + operation is used with a simple date value of date'2023-01-01' as the
 ; left operand. Right operand will have a interval.
 ; Input: Receives "mysql" or "postgres" as argument
 ;        If argument is "mysql" generates MySQL favorable queries
@@ -23,7 +23,7 @@ getIntervalSyntaxValidationQueries
 	new queries,expressionStr,query,mysqlOrPostgres
 	set mysqlOrPostgres=$zcmdline
 	if ("mysql"=mysqlOrPostgres) set expressionStr="date'2023-01-01' + "
-	else  set expressionStr="date'01-01-2023' + "
+	else  set expressionStr="date'2023-01-01' + "
 	set queries=100
 	for queries=queries:-1:1 do
 	. ; Consider the simple addition operator for this test
@@ -357,7 +357,7 @@ getDate(mysqlOrPostgres)
 	. if (31=lclD) do
 	. . set lclD=$select(4=month:30,6=month:30,9=month:30,11=month:30,1:30)
 	. set day=lclD
-	. set result=month_"-"_day_"-"_year
+	. set result=year_"-"_month_"-"_day
 	set result="date'"_result_"'"
 	quit result
 

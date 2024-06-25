@@ -10,19 +10,19 @@
 #								#
 #################################################################
 
-select date'01-01-2222' + interval '-1-1';
-select date'01-01-2023' + interval'-1:1:1';
-select date'01-01-2023' + interval'-1:1:1.1';
-select date'01-01-2023' + interval'-1:1:1.999999';
-select date'01-01-2023' + interval'1 day -1:1:1.999999';
-select date'01-01-2023' + interval'-1-1 1 day -1:1:1.999999';
+select date'2222-01-01' + interval '-1-1';
+select date'2023-01-01' + interval'-1:1:1';
+select date'2023-01-01' + interval'-1:1:1.1';
+select date'2023-01-01' + interval'-1:1:1.999999';
+select date'2023-01-01' + interval'1 day -1:1:1.999999';
+select date'2023-01-01' + interval'-1-1 1 day -1:1:1.999999';
 
-select date'01-01-2023' + interval '1:-1'year;
-select date'01-01-2023' + interval '1:-1'year to month;
-select date'01-01-2023' + interval '1:-1'day;
+select date'2023-01-01' + interval '1:-1'year;
+select date'2023-01-01' + interval '1:-1'year to month;
+select date'2023-01-01' + interval '1:-1'day;
 
-select date'01-01-2023' + interval '1:-1'month;
-select date'01-01-2023' + interval '1:1:-1'year;
-select date'01-01-2023' + interval '1:1:-1'year to month;
-select date'01-01-2023' + interval '1:1:-1'day;
-select date'01-01-2023' + interval '1:1:-1'month;
+select date'2023-01-01' + interval '1:-1'month;
+select date'2023-01-01' + interval '1:1:-1'year;
+select date'2023-01-01' + interval '1:1:-1'year to month;
+select date'2023-01-01' + interval '1:1:-1'day;
+select date'2023-01-01' + interval '1:1:-1'month;

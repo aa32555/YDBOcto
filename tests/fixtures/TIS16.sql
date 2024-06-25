@@ -10,10 +10,10 @@
 #								#
 #################################################################
 
-create view v1 as select date '01-01-2023'+interval '1 year';
-create view v2 as select date'01-01-2023'- interval '1 year';
-create view v3 as select date_add(date'01-01-2023',interval '1 year');
-create view v4 as select date_sub(date'01-01-2023',interval '1 year');
+create view v1 as select date '2023-01-01'+interval '1 year';
+create view v2 as select date'2023-01-01'- interval '1 year';
+create view v3 as select date_add(date'2023-01-01',interval '1 year');
+create view v4 as select date_sub(date'2023-01-01',interval '1 year');
 select * from v1;
 select * from v2;
 select * from v3;

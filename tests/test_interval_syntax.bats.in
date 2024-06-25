@@ -197,7 +197,7 @@ teardown() {
 
 @test "TIS10 : OCTO845 : Ensure invalid interval literals usages in expressions generate error" {
 	load_fixture TIS10.sql subtest novv
-	verify_output TIS10 output.txt noinfo nodebug
+	verify_output TIS10 output.txt nodatetimefilter noinfo nodebug
 	[[ "$(grep -i -c ERR_TYPE_NOT_COMPATIBLE output.txt)" == "0" ]]
 }
 
@@ -224,7 +224,7 @@ teardown() {
 	# This is to avoid verbose output of each query in "octo-seed.sql" which would otherwise pollute the reference file.
 	octo < /dev/null
 	load_fixture TIS14.sql subtest
-	verify_output TIS14 output.txt noinfo
+	verify_output TIS14 output.txt nodatetimefilter noinfo
 }
 
 @test "TIS15 : OCTO845 : Validate interval usage in extract, constraints and views" {

@@ -10,15 +10,15 @@
 #								#
 #################################################################
 
-select date'01-01-2023' + interval'1-11';
-select date'01-01-2023' + interval'1-12';
-select date'01-01-2023' + interval'1-13';
-select date'01-01-2023' + interval'1 1:59:00';
-select date'01-01-2023' + interval'1 1:60:00';
-select date'01-01-2023' + interval'1 1:59:60';
-select date'01-01-2023' + interval'1 1:59:61';
-select date'01-01-2023' + interval'1 1:59:62';
-select date'01-01-2023' + interval'1 999:59:60';
-select date'01-01-2023' + interval'1-12 999 999:59:60';
-select date'01-01-2023' + interval'1-11 999 999:59:60';
-select date'01-01-2023' + interval'69:56.11';
+select date'2023-01-01' + interval'1-11';
+select date'2023-01-01' + interval'1-12';
+select date'2023-01-01' + interval'1-13';
+select date'2023-01-01' + interval'1 1:59:00';
+select date'2023-01-01' + interval'1 1:60:00';
+select date'2023-01-01' + interval'1 1:59:60';
+select date'2023-01-01' + interval'1 1:59:61';
+select date'2023-01-01' + interval'1 1:59:62';
+select date'2023-01-01' + interval'1 999:59:60';
+select date'2023-01-01' + interval'1-12 999 999:59:60';
+select date'2023-01-01' + interval'1-11 999 999:59:60';
+select date'2023-01-01' + interval'69:56.11';
