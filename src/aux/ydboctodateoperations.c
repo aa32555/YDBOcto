@@ -1088,8 +1088,22 @@ time_t convertToLocalTimezone(SqlValueType type, time_t val) {
 		tm2 = localtime(&current_time);
 		gmtoff = tm2->__tm_gmtoff;
 	} else {
+		/* Cannot use localtime() alone here as it doesn't convert to current local time in all cases
+		 * For example:
+		 *
+		 * 	Consider the query:
+		 *		select timestamp with time zone'2194-11-02 01:49:19-04' = timestamp with time zone'2194-11-02
+		 *01:49:19-05';
+		 *
+		 *	7095188959 (2194-11-02 01:49:19-04) has gmtoff -14400 and 7095192559 (2194-11-02 01:49:19-05) has gmtoff
+		 *-18000 but when same dates with 2024 as year is passed to localtime() the returned gmtoff is -14400 in both cases.
+		 *	calling mktime() with tm_isdst set to -1 ensures that daylight savings is considered if present at that
+		 *time.
+		 */
 		tm1 = localtime(&op1_time);
-		gmtoff = (*tm1).__tm_gmtoff;
+		tm1->tm_isdst = -1;
+		mktime(tm1);
+		gmtoff = tm1->__tm_gmtoff;
 	}
 	return op1_time + gmtoff;
 }
@@ -1227,7 +1241,6 @@ ydb_string_t *ydboctoDateTimeInternalFormat2TextC(int count, ydb_long_t value, y
 	if ((DATE_LITERAL == date_time_type) || (TIMESTAMP_LITERAL == date_time_type) || (TIME_LITERAL == date_time_type)) {
 		tm1 = gmtime(&date_time_value);
 	} else {
-		// date_time_value = convertToLocalTimezone(date_time_value);
 		if (TIME_WITH_TIME_ZONE_LITERAL == date_time_type) {
 			/* Following code is to bring the time with time zone value to present time zone. This
 			 * helps to consider daylight savings. Date at the time of execution is considered to be the date

@@ -24,6 +24,8 @@ teardown() {
 
 @test "TDTT001 : OCTO382 : Validate that timezone information input and output is correct in select cases" {
 	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TDTT001.sql
+	load_fixture TDTT001_octo.sql subtest novv
+	verify_output TDTT001_octo output.txt nodatetimefilter noinfo nodebug
 }
 
 @test "TDTT002 : OCTO382 : Validate that date and time text format input to a date/time column in a readwrite table works" {
