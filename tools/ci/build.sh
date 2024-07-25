@@ -1154,8 +1154,8 @@ else
 				else
 					# shellcheck disable=SC2001
 					basename=$(echo $sqlfile | sed 's/\.sql//g')
-					if [[ -e $basename ]]; then
-						octooutfile=$basename
+					if [[ -e "$basename.octo.out" ]]; then
+						octooutfile="$basename.octo.out.tmp"
 					fi
 					usedjdbcdriver=0
 				fi
@@ -1202,6 +1202,13 @@ else
 						fi
 						mv $outfile.tmp $outfile
 					fi
+					if grep -q "randclient:PSQL" dbg_env.out; then
+						sed 's/ : \(Failing.*\)//;s/ : \(Key .*\)//;/WARN/d;s/\(Duplicate Key Value violates UNIQUE constraint\).*/\[ERROR\]: ERR_DUPLICATE_KEY_VALUE: \1/;s/^ERROR:  New row for table \(.*\) violates CHECK constraint.*/\[ERROR\]: ERR_CHECK_CONSTRAINT_VIOLATION: New row for table \U\1\E violates check constraint/;/LINE/d;/\^/d;/%YDB-I-DBFILEXT/d;' $octooutfile &> "autoupgrade.$octooutfile.filtered"
+						octooutfile="autoupgrade.$octooutfile.filtered"
+					elif grep -q "randclient:OCTO" dbg_env.out; then
+						sed 's/ : \(Failing.*\)//;s/ : \(Key .*\)//;/WARN/d;s/\(Duplicate Key Value violates UNIQUE constraint\).*/\1/;s/^\[ERROR\]: ERR_CHECK_CONSTRAINT_VIOLATION: New row for table \(.*\) violates CHECK constraint.*/\[ERROR\]: ERR_CHECK_CONSTRAINT_VIOLATION: New row for table \U\1\E violates check constraint/;/LINE/d;/\^/d;/%YDB-I-DBFILEXT/d;' $octooutfile &> $octooutfile.filtered
+						octooutfile="autoupgrade.$octooutfile.filtered"
+					fi
 					# TEST2
 					# $sqlfile.log is Octo's output for the same query using the older commit build
 					# It could contain "null" references if it was run through the JDBC driver.
@@ -1222,7 +1229,15 @@ else
 					# This is deduced from the presence of *.diff files. If it is present, then a diff was done.
 					# If it is not, a rowcount check was done when the original test ran. Do the same thing below
 					# with the newer build of Octo.
-					if [[ -e $sqlfile.diff ]]; then
+					if [[ 0 -eq $usedjdbcdriver ]]; then
+						# Octo or PSQL client results
+						olddifffile="$basename.diff"
+					else
+						# JDBC client results
+						olddifffile="$sqlfile.diff"
+					fi
+
+					if [[ -e $olddifffile ]]; then
 						# .diff file exists. This means an actual diff was done. Do a diff in the new Octo build too.
 						difffile="autoupgrade.$sqlfile.diff"
 						diff $reffile $logfile > $difffile || true
