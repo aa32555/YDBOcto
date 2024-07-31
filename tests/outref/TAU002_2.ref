@@ -22,7 +22,7 @@ absf
 ???
 2
 (1 row)
-[ERROR]: ERR_DROP_TABLE_DEPENDS_ON_VIEW: Cannot Drop table "octoonerowtable" because view "a" depends on it
+[ERROR]: ERR_INVALID_DROP: Dropping "octoonerowtable" is disallowed as it is a system object
 [ERROR]: ERR_DROP_VIEW_DEPENDS_ON_VIEW: Cannot Drop view "b1" because view "a1" depends on it
 id|firstname|lastname
 0|Zero|Cool
