@@ -12,3 +12,9 @@
 
 -- https://gitlab.com/YottaDB/DBMS/YDBOcto/-/merge_requests/1404#note_1875565109
 select * from names where firstname = (select firstname from names order by firstname limit 1);
+
+-- New format checks
+select timestamp'2023-01-01T01:01:01'=timestamp'2023-01-01 01:01:01';
+select timestamp'2023-01-01T01:01:01'<date'2023-01-01';
+select timestamp'2023-01-01T01:01:01'<date'2023-01-02';
+select timestamp'2023-01-01T01:01:01'>date'2023-01-01';
