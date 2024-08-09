@@ -43,6 +43,7 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 	SqlTable	     *table;
 	SqlColumn	     *cur_column, *start_column;
 	SqlValue	     *value;
+	SqlInterval	     *interval;
 	SqlOptionalKeyword   *start_keyword, *cur_keyword;
 	SqlFunction	     *function;
 	SqlParameterTypeList *cur_parameter_type_list, *start_parameter_type_list;
@@ -317,6 +318,10 @@ void *decompress_statement_helper(SqlStatement *stmt, char *out, int out_length)
 			return NULL;
 			break;
 		}
+		break;
+	case interval_STATEMENT:
+		UNPACK_SQL_STATEMENT(interval, stmt, interval);
+		UNUSED(interval);
 		break;
 	case column_STATEMENT:
 		UNPACK_SQL_STATEMENT(cur_column, stmt, column);

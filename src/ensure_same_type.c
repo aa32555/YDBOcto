@@ -28,6 +28,15 @@ int ensure_same_type(SqlValueType *left_type, SqlValueType *right_type, SqlState
 	if (result) {
 		return result;
 	}
+	if ((INTERVAL_LITERAL == *left_type) || (INTERVAL_LITERAL == *right_type)) {
+		ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+		if (INTERVAL_LITERAL == *left_type) {
+			yyerror(NULL, NULL, &left_stmt, NULL, NULL, NULL);
+		} else {
+			yyerror(NULL, NULL, &right_stmt, NULL, NULL, NULL);
+		}
+		return 1;
+	}
 	if (*left_type != *right_type) {
 		if (BOOLEAN_OR_STRING_LITERAL == *left_type) {
 			FIX_TYPE_TO_STRING_LITERAL(*left_type);

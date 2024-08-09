@@ -176,10 +176,14 @@ int qualify_view_dependency(SqlStatement *stmt, SqlView *view) {
 		case DELIM_VALUE:
 		case IS_NULL_LITERAL:
 		case INVALID_SqlValueType:
+		case INTERVAL_LITERAL:
 		case UNKNOWN_SqlValueType:
 			assert(FALSE);
 			break;
 		}
+		break;
+	case interval_STATEMENT:
+		// Nothing to qualify here, this is an interval literal
 		break;
 	case binary_STATEMENT:;
 		SqlBinaryOperation *binary;

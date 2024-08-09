@@ -272,7 +272,16 @@ derived_column
   ;
 
 derived_column_expression
-  : value_expression { $$ = $value_expression; }
+  : value_expression {
+  	SqlStatement *ret = $value_expression;
+	if (interval_STATEMENT == ret->type) {
+		ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+		yyerror(NULL, NULL, &ret, NULL, NULL, NULL);
+		YYABORT;
+	} else {
+		$$ = ret;
+	}
+    }
   ;
 
 from_clause

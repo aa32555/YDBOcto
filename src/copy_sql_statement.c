@@ -28,6 +28,7 @@ SqlStatement *copy_sql_statement(SqlStatement *stmt) {
 	SqlDropTableStatement  *drop_table;
 	SqlValue	       *value;
 	SqlBinaryOperation     *binary;
+	SqlInterval	       *interval;
 	SqlUnaryOperation      *unary;
 	SqlOptionalKeyword     *cur_keyword, *start_keyword, *new_keyword;
 	SqlColumnListAlias     *new_cl_alias, *cur_cl_alias, *start_cl_alias;
@@ -136,6 +137,8 @@ SqlStatement *copy_sql_statement(SqlStatement *stmt) {
 			ret->v.value->v.reference = octo_cmalloc(memory_chunks, len);
 			memcpy(ret->v.value->v.reference, value->v.reference, len);
 			break;
+		case INTERVAL_LITERAL:
+			// Do not expect a value_STATEMENT with this type
 		case UNKNOWN_SqlValueType:
 		case INVALID_SqlValueType:
 			/* Do not add "default:" case as we want to enumerate each explicit case here instead of having a
@@ -145,6 +148,11 @@ SqlStatement *copy_sql_statement(SqlStatement *stmt) {
 			FATAL(ERR_UNKNOWN_KEYWORD_STATE, "");
 			break;
 		}
+		break;
+	case interval_STATEMENT:
+		interval = stmt->v.interval;
+		MALLOC_STATEMENT(ret, interval, SqlInterval);
+		*ret->v.interval = *interval;
 		break;
 	case binary_STATEMENT:
 		binary = stmt->v.binary;

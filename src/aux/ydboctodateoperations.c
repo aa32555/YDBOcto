@@ -1075,6 +1075,14 @@ ydb_long_t ydboctoZutC(int count, ydb_long_t secs, ydb_int_t microsec, ydb_strin
 	return ret;
 }
 
+int getCurrentTimeZoneOffset(struct tm *tm1) {
+	struct tm tm2;
+	memcpy(&tm2, tm1, sizeof(struct tm));
+	tm2.tm_isdst = -1;
+	mktime(&tm2);
+	return (-1) * tm2.__tm_gmtoff;
+}
+
 time_t convertToLocalTimezone(SqlValueType type, time_t val) {
 	time_t	   op1_time = val;
 	struct tm *tm1;
@@ -1482,12 +1490,7 @@ ydb_string_t *ydboctoText2InternalFormatC(int count, ydb_string_t *op1, ydb_stri
 			tm2 = localtime(&current_time);
 			gmtoff = (-1) * tm2->__tm_gmtoff;
 		} else {
-			// Factor in local timezone value
-			struct tm tm2;
-			memcpy(&tm2, &tm1, sizeof(struct tm));
-			tm2.tm_isdst = -1;
-			mktime(&tm2);
-			gmtoff = (-1) * tm2.__tm_gmtoff;
+			gmtoff = getCurrentTimeZoneOffset(&tm1);
 		}
 		tm1.tm_sec += gmtoff; // Local time zone to UTC
 	}
@@ -1743,5 +1746,210 @@ ydb_int_t ydboctoValidateDateTimeValueC(int count, ydb_string_t *value, ydb_int_
 	if (NULL != text_format_str) {
 		ydb_free(text_format_str);
 	}
+	return ret;
+}
+
+int getCurrentTimeZoneOffset2(struct tm *tm1) {
+	// tm1->tm_isdst = -1;
+	mktime(tm1);
+	return (-1) * tm1->__tm_gmtoff;
+}
+#define IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(VAL) ((60 < VAL) || (0 > VAL))
+
+// year is tm_year from struct tm
+// month is tm_mon from struct tm
+// day is tm_mday from struct tm
+int handle_feb_date(int year, int month, int day) {
+	// get actual year
+	year = year + 1900;
+	// Increment year if month is greater than 12
+	if (12 < (month + 1)) {
+		// Considering month+1 as tm_mon represents months as 0-11
+		year += ((month + 1) / 12);
+	}
+	// Check is month is FEB
+	if ((1 == month) || (2 == ((month + 1) % 12))) {
+		// Check if the given year is a leap year
+		boolean_t is_leap_year = FALSE;
+		if (0 == (year % 4)) {
+			is_leap_year = TRUE;
+			if (0 == (year % 100)) {
+				if (0 != (year % 400)) {
+					is_leap_year = FALSE;
+				} else {
+					is_leap_year = TRUE;
+				}
+			}
+		}
+		if (is_leap_year) {
+			// February 29th is the last day of the month
+			// Update day to 29 if the value is 30
+			if (30 == day) {
+				day = 29;
+			}
+		} else if ((29 == day) || (30 == day)) {
+			// February 28th is the last day of the month
+			// Update day to 28 if the value is 29 or 30
+			day = 28;
+		}
+	}
+	return day;
+}
+/* Following function assumes `op1` is `date` or `timestamp and subtracts the given interval values from the given `date` or
+ * `timestamp` or `time`. mktime() is expected to normalize the result.
+ */
+ydb_long_t ydboctoSubIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, ydb_int_t year, ydb_int_t month, ydb_int_t day,
+			       ydb_int_t hour, ydb_int_t minute, ydb_int_t second, ydb_long_t microseconds) {
+	ydb_long_t ret;
+	UNUSED(count);
+	// Before calling time function remove the micro second portion in value
+	// micro = last 6 digits
+	long int micro_op1;
+	REMOVE_MICRO_SECONDS(op1, micro_op1);
+	// Convert op1 to tm structure
+	struct tm *static_tm;
+	struct tm  tm1;
+	boolean_t  convert_to_utc = FALSE;
+	if ((TIMESTAMP_WITH_TIME_ZONE_LITERAL == op1_type) || (TIME_WITH_TIME_ZONE_LITERAL == op1_type)) {
+		static_tm = localtime(&op1);
+		convert_to_utc = TRUE;
+	} else {
+		static_tm = gmtime(&op1);
+	}
+	memcpy(&tm1, static_tm, sizeof(struct tm));
+	tm1.tm_year -= year;
+	tm1.tm_mon -= month;
+	tm1.tm_mday -= day;
+	tm1.tm_hour -= hour;
+	tm1.tm_min -= minute;
+	tm1.tm_sec -= second;
+
+	tm1.tm_mday = handle_feb_date(tm1.tm_year, tm1.tm_mon, tm1.tm_mday);
+
+	boolean_t is_time_modified = FALSE;
+	if (0 != hour) {
+		if (IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_hour) || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_min)
+		    || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_sec)) {
+			/* Consolidate the time information to seconds because mktime doesn't normalize correctly in dst boundaries
+			 * For example:
+			 *	select timestamp with time zone'10-8-2024 00:00:00' - interval'-626 hours';
+			 *	The result needs to be `2024-11-03 01:00:00-05` but will be `2024-11-03 02:00:00-05` without this
+			 *step.
+			 */
+			tm1.tm_min += (tm1.tm_hour * 60);
+			tm1.tm_sec += (tm1.tm_min * 60);
+			tm1.tm_hour = tm1.tm_min = 0;
+		}
+		is_time_modified = TRUE;
+	}
+
+	long int micro_op2 = microseconds;
+	micro_op1 -= micro_op2;
+	// + - + -> value has to be > 0  and < 1 (left greater)
+	// + - + -> value has to be > -1 and < 0 (right greater)
+	// - - + -> value has to be > -1.999998 and < 0 (left greater)
+	// - - + -> value has to be > 0 and < 1 (right greater)
+	// - - - -> value has to be > -1.999998 and < 0 (doesn't matter which is greater)
+	float micro_op_result = (float)micro_op1 / 1000000;
+	assert(1.999999 > micro_op_result);
+	if ((0 > micro_op_result) && (-1 < micro_op_result)) {
+		tm1.tm_sec -= 1;
+		micro_op1 += 1000000;
+	} else if (1.0 < micro_op_result) {
+		tm1.tm_sec += 1;
+		micro_op1 -= 1000000;
+	}
+	if (convert_to_utc) {
+		/* Timezone info available by localtime() invocation cannot be used because the expression evaluation done above
+		 * might change the date/time value such that daylight savings might change the original timezone info. So recompute
+		 * timezone value here.
+		 */
+		// if (0 == hour) {
+		//		tm1.tm_isdst = -1;
+		//}
+		if (!is_time_modified) {
+			tm1.tm_isdst = -1;
+		}
+		tm1.tm_sec += getCurrentTimeZoneOffset2(&tm1);
+	}
+	ret = utc_mktime(&tm1);
+	ADD_MICRO_SECONDS(ret, micro_op1);
+	// Return the result
+	return ret;
+}
+
+/* Following function assumes `op1` is `date` or `timestamp` and adds the given interval values to the given `date` or `timestamp`
+ * or `time`. mktime() is expected to normalize the result.
+ */
+ydb_long_t ydboctoAddIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, ydb_int_t year, ydb_int_t month, ydb_int_t day,
+			       ydb_int_t hour, ydb_int_t minute, ydb_int_t second, ydb_long_t microseconds) {
+	ydb_long_t ret;
+	UNUSED(count);
+	// Before calling time function remove the micro second portion in value
+	// micro = last 6 digits
+	long int micro_op1;
+	REMOVE_MICRO_SECONDS(op1, micro_op1);
+	// Convert op1 to tm structure
+	struct tm *static_tm;
+	struct tm  tm1;
+	int	   gmtoff;
+	boolean_t  convert_to_utc = FALSE;
+	if ((TIMESTAMP_WITH_TIME_ZONE_LITERAL == op1_type) || (TIME_WITH_TIME_ZONE_LITERAL == op1_type)) {
+		static_tm = localtime(&op1);
+		convert_to_utc = TRUE;
+	} else {
+		static_tm = gmtime(&op1);
+	}
+	memcpy(&tm1, static_tm, sizeof(struct tm));
+	tm1.tm_year += year;
+	tm1.tm_mon += month;
+	tm1.tm_mday += day;
+	tm1.tm_hour += hour;
+	tm1.tm_min += minute;
+	tm1.tm_sec += second;
+
+	tm1.tm_mday = handle_feb_date(tm1.tm_year, tm1.tm_mon, tm1.tm_mday);
+
+	boolean_t is_time_modified = FALSE;
+	if (0 != hour) {
+		if (IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_hour) || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_min)
+		    || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_sec)) {
+			/* Consolidate the time information to seconds because mktime doesn't normalize correctly in dst boundaries
+			 * For example:
+			 *	select timestamp with time zone'10-8-2024 00:00:00' - interval'-626 hours';
+			 *	The result needs to be `2024-11-03 01:00:00-05` but will be `2024-11-03 02:00:00-05` without this
+			 *step.
+			 */
+			tm1.tm_min += (tm1.tm_hour * 60);
+			tm1.tm_sec += (tm1.tm_min * 60);
+			tm1.tm_hour = tm1.tm_min = 0;
+		}
+		is_time_modified = TRUE;
+	}
+
+	long int micro_op2 = microseconds;
+	micro_op1 += micro_op2;
+	float micro_op_result = (float)micro_op1 / 1000000;
+	assert(1.999999 > micro_op_result);
+	if ((0 > micro_op_result) && (-1 < micro_op_result)) {
+		tm1.tm_sec -= 1;
+		micro_op1 += 1000000;
+	} else if (1.0 < micro_op_result) {
+		tm1.tm_sec += 1;
+		micro_op1 -= 1000000;
+	}
+	if (convert_to_utc) {
+		/* Timezone info available by localtime() invocation cannot be used because the expression evaluation done above
+		 * might change the date/time value such that daylight savings might change the original timezone info. So recompute
+		 * timezone value here.
+		 */
+		if (!is_time_modified) {
+			tm1.tm_isdst = -1;
+		}
+		tm1.tm_sec += getCurrentTimeZoneOffset2(&tm1);
+	}
+	ret = utc_mktime(&tm1);
+	ADD_MICRO_SECONDS(ret, micro_op1);
+	// Return the result
 	return ret;
 }

@@ -38,6 +38,22 @@ int binary_operation_data_type_check(SqlBinaryOperation *binary, SqlValueType ch
 		}
 		return result;
 	}
+	// Do not allow interval operation unless its + or - and with a date/time type operand
+	// Its possible for  the operation to be DATE_TIME_OPERATION if the expression being evaluated is from a view
+	if (INTERVAL_LITERAL == child_type[0] || INTERVAL_LITERAL == child_type[1]) {
+		if (((DATE_TIME_ADDITION != binary->operation) && (DATE_TIME_SUBTRACTION != binary->operation)
+		     && (ADDITION != binary->operation) && (SUBTRACTION != binary->operation))
+		    || !((IS_DATE_TIME_TYPE(child_type[0]) || IS_DATE_TIME_TYPE(child_type[1]))
+			 && (INTERVAL_LITERAL == child_type[0] || INTERVAL_LITERAL == child_type[1]))) {
+			// ERROR feature not implemented
+			ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+			result = 1;
+			for (int i = 0; i < 2; i++) {
+				yyerror(&binary->operands[i]->loc, NULL, NULL, NULL, NULL, NULL);
+			}
+			return result;
+		}
+	}
 	/* Note: The below "switch" is mirrored in a switch in "populate_data_type.c" under "case binary_STATEMENT:".
 	 * Any additions to binary operations will involve a new "case" block below since there is
 	 * no "default:" case block (intentionally not there so compiler warns about new missing cases
@@ -51,28 +67,34 @@ int binary_operation_data_type_check(SqlBinaryOperation *binary, SqlValueType ch
 	case MODULO:;
 		int	  i;
 		boolean_t is_date_time_operation = FALSE;
-		for (i = 0; i < 2; i++) {
-			switch (child_type[i]) {
-			case INTEGER_LITERAL:
-			case NUMERIC_LITERAL:
-			case NUL_VALUE:
-				/* These types are acceptable for arithmetic operations */
-				break;
-			case DATE_LITERAL:
-			case TIME_LITERAL:
-			case TIME_WITH_TIME_ZONE_LITERAL:
-			case TIMESTAMP_LITERAL:
-			case TIMESTAMP_WITH_TIME_ZONE_LITERAL:
-				is_date_time_operation = TRUE;
-				if ((ADDITION != binary->operation) && (SUBTRACTION != binary->operation)) {
-					// ERROR feature not implemented
-					ERROR(ERR_FEATURE_NOT_IMPLEMENTED, "Date/time arithmetic operations");
-					result = 1;
+		if ((IS_DATE_TIME_TYPE(child_type[0]) || IS_DATE_TIME_TYPE(child_type[1]))
+		    && (INTERVAL_LITERAL == child_type[0] || INTERVAL_LITERAL == child_type[1])) {
+			is_date_time_operation = TRUE;
+			assert((ADDITION == binary->operation) || (SUBTRACTION == binary->operation));
+		} else {
+			for (i = 0; i < 2; i++) {
+				switch (child_type[i]) {
+				case INTEGER_LITERAL:
+				case NUMERIC_LITERAL:
+				case NUL_VALUE:
+					/* These types are acceptable for arithmetic operations */
+					break;
+				case DATE_LITERAL:
+				case TIME_LITERAL:
+				case TIME_WITH_TIME_ZONE_LITERAL:
+				case TIMESTAMP_LITERAL:
+				case TIMESTAMP_WITH_TIME_ZONE_LITERAL:
+					is_date_time_operation = TRUE;
+					if ((ADDITION != binary->operation) && (SUBTRACTION != binary->operation)) {
+						// ERROR feature not implemented
+						ERROR(ERR_FEATURE_NOT_IMPLEMENTED, "Date/time arithmetic operations");
+						result = 1;
+					}
+					break;
+				default:
+					ISSUE_TYPE_COMPATIBILITY_ERROR(child_type[i], "arithmetic operations", &binary->operands[i],
+								       result);
 				}
-				break;
-			default:
-				ISSUE_TYPE_COMPATIBILITY_ERROR(child_type[i], "arithmetic operations", &binary->operands[i],
-							       result);
 			}
 		}
 		if (result) {
@@ -157,6 +179,34 @@ int binary_operation_data_type_check(SqlBinaryOperation *binary, SqlValueType ch
 				} else if ((TIMESTAMP_LITERAL == orig_child_type[0]) && (NUL_VALUE == orig_child_type[1])) {
 					// TIMESTAMP NULL
 					*type = TIMESTAMP_LITERAL;
+				} else if ((IS_DATE_TIME_TYPE(orig_child_type[0])) && (INTERVAL_LITERAL == orig_child_type[1])) {
+					// DATE INTERVAL
+					// TIMESTAMP INTERVAL
+					// TIMESTAMPWITHTIMEZONE INTERVAL
+					// TIME INTERVAL
+					// TIMEWITHTIMEZONE INTERVAL
+					if (TIME_LITERAL == orig_child_type[0]) {
+						*type = TIME_LITERAL;
+						child_type[0] = child_type[1] = TIME_LITERAL;
+					} else if (TIME_WITH_TIME_ZONE_LITERAL == orig_child_type[0]) {
+						*type = TIME_WITH_TIME_ZONE_LITERAL;
+						child_type[0] = child_type[1] = TIME_WITH_TIME_ZONE_LITERAL;
+					} else if (TIMESTAMP_WITH_TIME_ZONE_LITERAL == orig_child_type[0]) {
+						*type = TIMESTAMP_WITH_TIME_ZONE_LITERAL;
+						child_type[0] = child_type[1] = TIMESTAMP_WITH_TIME_ZONE_LITERAL;
+					} else {
+						*type = TIMESTAMP_LITERAL;
+						child_type[0] = child_type[1] = TIMESTAMP_LITERAL;
+					}
+				} else if ((IS_DATE_TIME_TYPE(orig_child_type[1])) && (INTERVAL_LITERAL == orig_child_type[0])) {
+					// INTERVAL DATE
+					// INTERVAL TIMESTAMP
+					// INTERVAL TIMESTAMPWITHTIMEZONE
+					// INTERVAL TIME
+					// INTERVAL TIMEWITHTIMEZONE
+					// This order of operand is incorrect
+					ERROR(ERR_INVALID_INTERVAL_SUBTRACTION, "");
+					result = 1;
 				} else {
 					ISSUE_TYPE_COMPATIBILITY_ERROR(orig_child_type[0], "subtraction operation",
 								       &binary->operands[0], result);
@@ -219,6 +269,34 @@ int binary_operation_data_type_check(SqlBinaryOperation *binary, SqlValueType ch
 					// TIMESTAMP NULL
 					*type = TIMESTAMP_LITERAL;
 					// No reason to worry about child_type setting as it would have been cast to non-NULL type
+				} else if (((IS_DATE_TIME_TYPE(orig_child_type[0])) && (INTERVAL_LITERAL == orig_child_type[1]))
+					   || ((IS_DATE_TIME_TYPE(orig_child_type[1]))
+					       && (INTERVAL_LITERAL == orig_child_type[0]))) {
+					// DATE INTERVAL
+					// INTERVAL DATE
+					// TIMESTAMP INTERVAL
+					// INTERVAL TIMESTAMP
+					// TIMESTAMPWITHTIMEZONE INTERVAL
+					// INTERVAL TIMESTAMPWITHTIMEZONE
+					// TIME INTERVAL
+					// INTERVAL TIME
+					// TIMEWITHTIMEZONE INTERVAL
+					// INTERVAL TIMEWITHTIMEZONE
+					if ((TIME_LITERAL == orig_child_type[0]) || (TIME_LITERAL == orig_child_type[1])) {
+						*type = TIME_LITERAL;
+						child_type[0] = child_type[1] = TIME_LITERAL;
+					} else if ((TIME_WITH_TIME_ZONE_LITERAL == orig_child_type[0])
+						   || (TIME_WITH_TIME_ZONE_LITERAL == orig_child_type[1])) {
+						*type = TIME_WITH_TIME_ZONE_LITERAL;
+						child_type[0] = child_type[1] = TIME_WITH_TIME_ZONE_LITERAL;
+					} else if ((TIMESTAMP_WITH_TIME_ZONE_LITERAL == orig_child_type[0])
+						   || (TIMESTAMP_WITH_TIME_ZONE_LITERAL == orig_child_type[1])) {
+						*type = TIMESTAMP_WITH_TIME_ZONE_LITERAL;
+						child_type[0] = child_type[1] = TIMESTAMP_WITH_TIME_ZONE_LITERAL;
+					} else {
+						*type = TIMESTAMP_LITERAL;
+						child_type[0] = child_type[1] = TIMESTAMP_LITERAL;
+					}
 				} else {
 					/* Following are invalid types:
 					 * DATE DATE

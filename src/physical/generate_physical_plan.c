@@ -702,6 +702,7 @@ LogicalPlan *sub_query_check_and_generate_physical_plan(PhysicalPlanOptions *opt
 			}
 			/* No action */
 			break;
+		case LP_INTERVAL:
 		case LP_VALUE:
 			/* No action */
 			break;

@@ -190,6 +190,17 @@ int get_user_visible_data_type_string(SqlDataTypeStruct *data_type_ptr, char *re
 			return -1;
 		}
 		break;
+	case INTERVAL_TYPE:
+		/* For interval, neither PRECISION nor SCALE apply. Assert that. */
+		/* Interval is only needed for extract, date_add and date_sub functions */
+		assert(SIZE_OR_PRECISION_UNSPECIFIED == data_type_ptr->size_or_precision);
+		assert(SCALE_UNSPECIFIED == data_type_ptr->scale);
+		len = snprintf(ptr, avail, "%s", "INTERVAL");
+		if ((0 > len) || (len >= avail)) {
+			assert(FALSE);
+			return -1;
+		}
+		break;
 	case UNKNOWN_SqlDataType:
 	case NUL_TYPE:
 		ERROR(ERR_UNKNOWN_KEYWORD_STATE, "");

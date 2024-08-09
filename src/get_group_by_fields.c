@@ -87,6 +87,10 @@ group_by_fields_t *get_group_by_fields(SqlStatement *stmt) {
 			assert(FALSE);
 			ret = NULL;
 			break;
+		case INTERVAL_LITERAL:
+			// Do not expect a value_STATEMENT with this type
+			assert(FALSE);
+			break;
 		}
 		break;
 	case column_alias_STATEMENT:
@@ -96,6 +100,7 @@ group_by_fields_t *get_group_by_fields(SqlStatement *stmt) {
 		 */
 		ret = NULL;
 		break;
+	case interval_STATEMENT:
 	case function_call_STATEMENT:;
 	case coalesce_STATEMENT:;
 	case null_if_STATEMENT:;

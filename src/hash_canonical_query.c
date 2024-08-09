@@ -752,6 +752,21 @@ void hash_canonical_query(hash128_state_t *state, SqlStatement *stmt, int *statu
 		 *	Nothing to hash
 		 */
 		break;
+	case interval_STATEMENT:;
+		SqlInterval *interval;
+		UNPACK_SQL_STATEMENT(interval, stmt, interval);
+		ADD_INT_HASH(state, interval_STATEMENT);
+
+		ADD_INT_HASH(state, interval->type);
+
+		ADD_INT_HASH(state, interval->year);
+		ADD_INT_HASH(state, interval->month);
+		ADD_INT_HASH(state, interval->day);
+		ADD_INT_HASH(state, interval->hour);
+		ADD_INT_HASH(state, interval->minute);
+		ADD_INT_HASH(state, interval->second);
+		ADD_INT_HASH(state, interval->microsecond);
+		break;
 	default:
 		assert(FALSE);
 		ERROR(ERR_UNKNOWN_KEYWORD_STATE, "");

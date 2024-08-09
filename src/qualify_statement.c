@@ -349,6 +349,7 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 		case DELIM_VALUE:
 		case IS_NULL_LITERAL:
 		case SELECT_ASTERISK:
+		case INTERVAL_LITERAL:
 		case INVALID_SqlValueType:
 		case UNKNOWN_SqlValueType:
 			assert(FALSE);
@@ -357,6 +358,9 @@ int qualify_statement(SqlStatement *stmt, SqlJoin *tables, SqlStatement *table_a
 			 * general purpose bucket where all types not listed above fall into as that could hide subtle bugs.
 			 */
 		}
+		break;
+	case interval_STATEMENT:
+		// Nothing to qualify here, this is an interval literal
 		break;
 	case binary_STATEMENT:
 		UNPACK_SQL_STATEMENT(table_alias, table_alias_stmt, table_alias);

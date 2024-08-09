@@ -56,6 +56,7 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 	SqlFunction	     *function, *new_function;
 	SqlParameterTypeList *new_parameter_type_list, *cur_parameter_type_list, *start_parameter_type_list;
 	SqlValue	     *value, *new_value;
+	SqlInterval	     *interval;
 	int		      len;
 	void		     *r, *ret;
 	// Following code is to prevent [-Wmaybe-uninitialized] compiler warning from gcc 7.5.0
@@ -467,6 +468,16 @@ void *compress_statement_helper(SqlStatement *stmt, char *out, int *out_length, 
 			return NULL;
 			break;
 		}
+		break;
+	case interval_STATEMENT:
+		UNPACK_SQL_STATEMENT(interval, stmt, interval);
+		if (NULL != out) {
+			new_value = ((void *)&out[*out_length]);
+			memcpy(new_value, interval, sizeof(SqlInterval));
+		} else {
+			new_value = NULL; /* Needed to avoid false [-Wmaybe-uninitialized] warnings from compiler */
+		}
+		*out_length += sizeof(SqlInterval);
 		break;
 	case column_STATEMENT:
 		UNPACK_SQL_STATEMENT(cur_column, stmt, column);

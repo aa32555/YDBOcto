@@ -37,6 +37,8 @@ char *get_type_string_from_sql_data_type(SqlDataType type) {
 		return "TIMESTAMP";
 	case TIMESTAMP_WITH_TIME_ZONE_TYPE:
 		return "TIMESTAMP WITH TIME ZONE";
+	case INTERVAL_TYPE:
+		return "INTERVAL";
 	case UNKNOWN_SqlDataType:
 	default:
 		assert(FALSE);

@@ -688,6 +688,145 @@ Note
     User defined functions with date/time parameters will receive date/time values in the format specified. Also, when text format input is expected, date/time value passed to
     the function implementation will be in the input form seen in datestyle. The output of the function is expected to be in the output form seen in datestyle.
 
+++++++++++++++++
+Interval Syntax
+++++++++++++++++
+
+  Octo implements interval syntax for certain date/time functions and operations.
+
+~~~~~~
+Input
+~~~~~~
+
+  Interval literal can have
+
+  * year-month (YEAR and/or MONTH fields)
+  * day-second (DAY, HOUR, MINUTE and SECOND)
+
+  Syntax of an interval literal
+
+  .. code-block::
+
+     INTERVAL '<value string>' [<interval qualifier>]
+
+     where <value string>:
+
+              'quantity unit [quantity unit..]' -> example: '1 year 1 month 1 day 1 hour'
+
+              or
+
+              'quantity-quantity' -> example: '1-1' which is 1 Year and 1 Month
+              'quantity quantity:quantity:quantity' -> example: '1 1:0:0' which is 1 day, 1 hour, 0 minutes and 0 seconds
+              'quantity quantity:quantity:quantity.quantity' -> example: '1 1:0:0.9' which is 1 day, 1 hour, 0 minutes, 0 seconds and .9 fraction of a second
+              'quantity' -> example: '1' which is a second
+
+          `quantity`:
+
+              a number (can be signed) and `unit` can be second, minute, hour, day, year or plurals of these units
+
+     <interval qualifier>:
+
+              <start field> [TO <end field>] or <start field>[_<end field>]
+
+              where <start field> and <end field>
+
+                        YEAR, MONTH, DAY, HOUR, MINUTE and SECOND
+
+              If <end field> is present it must be different than <start field> and the sub-list from <start field> to <end field> inclusive must not have both MONTH and DAY.
+
+  * When ``interval qualifier`` is present, value string fields which are unmatched and are present after the last matched field are ignored
+  * Interval values in long form will normalize field values such that field values exceeding its type limit will be carried forward to the higher field.
+    For example consider ``interval '1 minute 61 seconds'``, the seconds field has a value greater than 60 in this case values are normalized such that the interval
+    will look like ``interval '2 minute 1 second'``. All fields except ``day`` goes through this process.
+  * In case of the second format of literals a sign before year-month applies to both year and month. Similarly sign before time applies all its fields
+    i.e. sign before hour applies to hour, minute and second. In the first format, a sign appearing before a unit applies to the field the unit belongs to.
+  * A units quantities are normalized. For example, ``'1 year 12 months'year`` is '2 year' and ``'1 year -1 month'year`` is '0 year'.
+
+  .. code-block::
+
+  Example
+
+  .. code-block:: SQL
+
+     INTERVAL '1-1' YEAR TO MONTH
+     INTERVAL '1-1'
+     INTERVAL '1 YEAR 1 MONTH'
+     INTERVAL '1 1:0:0' DAY TO SECOND
+     INTERVAL '1 1:0:0'
+     INTERVAL '1 DAY 1 HOUR 0 MINUTE 0 SECOND'
+     INTERVAL '12' DAY
+     INTERVAL '12 DAYS';
+     INTERVAL '2' MONTH
+     INTERVAL '2 MONTHS';
+     INTERVAL '2 MONTH';
+     INTERVAL '5' MINUTE
+     INTERVAL '5 MINUTES';
+     INTERVAL '5.44' SECOND
+     INTERVAL '5.44 SECONDS'
+     INTERVAL '1-1' YEAR_MONTH
+     INTERVAL '1 1:0:0' DAY_SECOND
+     INTERVAL '12' DAY
+     INTERVAL '2' MONTH
+     INTERVAL '5' MINUTE
+     INTERVAL '5.44' SECOND
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Operations and allowed operand types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  ``+``
+
+    * Interval literal can be present on either side of the operator as long as the other
+      operand is a date/time value
+    * Return type
+      * time when the expression involves only time
+      * timestamp or timestamp with time zone when time zone is present in the operand
+
+  ``-``
+    * Interval literal can be present as the right operand with left operand being a
+      date/time value
+    * Return type
+      * time when the expression involves only time
+      * timestamp or timestamp with time zone when time zone is present in the operand
+
+~~~~~~~
+Note
+~~~~~~~
+
+   Octo truncates sub-second values greater than 6 decimal places.
+
+~~~~~~~~~~~
+Functions
+~~~~~~~~~~~
+
+  ``DATE_ADD``
+
+    Increaments date/time values by a certain period of time.
+
+    Syntax:
+
+    .. code-block::
+
+      DATE_ADD(value, INTERVAL)
+
+    Return type
+    * time when the expression involves only time
+    * timestamp or timestamp with time zone when time zone is present in the operand
+
+  ``DATE_SUB``
+
+    Decrements date/time values by a certain period of time.
+
+    Syntax:
+
+    .. code-block::
+
+      DATE_SUB(value, INTERVAL)
+
+    Return type
+    * time when the expression involves only time
+    * timestamp or timestamp with time zone when time zone is present in the operand
+
 +++++++++++++++++++++++++
 Casting between SQL types
 +++++++++++++++++++++++++

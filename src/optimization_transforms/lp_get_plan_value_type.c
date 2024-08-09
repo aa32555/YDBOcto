@@ -46,6 +46,10 @@ SqlValueType lp_get_plan_value_type(LogicalPlan *plan) {
 			return_type = cur_plan->v.lp_value.value->type;
 			loop_done = TRUE;
 			break;
+		case LP_INTERVAL:
+			return_type = INTERVAL_LITERAL;
+			loop_done = TRUE;
+			break;
 		case LP_COERCE_TYPE:
 			return_type
 			    = get_sqlvaluetype_from_sqldatatype(cur_plan->extra_detail.lp_coerce_type.coerce_type.data_type, FALSE);

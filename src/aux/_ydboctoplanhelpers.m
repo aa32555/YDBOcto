@@ -63,6 +63,18 @@ SubDateTime(op1,op1type,op2,op2type)
 	QUIT result
 
 
+; For input and output details refer to ydboctoDateIntervalC documentation
+; This function is responsible for only checking and returning ZYSQLNULL if date operand is ZYSQLNULL
+SubInterval(op1,op1type,year,month,day,hour,minute,second,microsecond)
+	QUIT:($ZYISSQLNULL(op1)) $ZYSQLNULL
+	QUIT $&octo.ydboctoSubIntervalM(op1,op1type,year,month,day,hour,minute,second,microsecond)
+
+; For input and output details refer to ydboctoAddIntervalC documentation
+; This function is responsible for only checking and returning ZYSQLNULL if date operand is ZYSQLNULL
+AddInterval(op1,op1type,year,month,day,hour,minute,second,microsecond)
+	QUIT:($ZYISSQLNULL(op1)) $ZYSQLNULL
+	QUIT $&octo.ydboctoAddIntervalM(op1,op1type,year,month,day,hour,minute,second,microsecond)
+
 ; For input and output details refer to ydboctoAddDateTimeM documentation.
 ; This function is responsible for only checking and return ZYSQLNULL if any operand is ZYSQLNULL
 AddDateTime(op1,op1type,op2,op2type)
