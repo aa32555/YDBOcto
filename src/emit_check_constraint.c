@@ -178,6 +178,8 @@ int emit_check_constraint(char **buffer, int *buffer_size, char **buff_ptr, stru
 		case NUL_VALUE:
 			INVOKE_SNPRINTF_AND_EXPAND_BUFFER_IF_NEEDED(buffer, buffer_size, buff_ptr, "NULL");
 			break;
+		case INTERVAL_LITERAL:
+			// Do not expect a value_STATEMENT with this type
 		case TABLE_ASTERISK:
 		case SELECT_ASTERISK:
 		case PARAMETER_VALUE:
@@ -191,6 +193,19 @@ int emit_check_constraint(char **buffer, int *buffer_size, char **buff_ptr, stru
 			return -1;
 			break;
 		}
+		break;
+	case interval_STATEMENT:;
+		SqlInterval *interval;
+		UNPACK_SQL_STATEMENT(interval, stmt, interval);
+		INVOKE_SNPRINTF_AND_EXPAND_BUFFER_IF_NEEDED(buffer, buffer_size, buff_ptr, "INTERVAL'");
+		INVOKE_SNPRINTF_AND_EXPAND_BUFFER_IF_NEEDED(buffer, buffer_size, buff_ptr, "%d year", interval->year);
+		INVOKE_SNPRINTF_AND_EXPAND_BUFFER_IF_NEEDED(buffer, buffer_size, buff_ptr, "%d month", interval->month);
+		INVOKE_SNPRINTF_AND_EXPAND_BUFFER_IF_NEEDED(buffer, buffer_size, buff_ptr, "%d day", interval->day);
+		INVOKE_SNPRINTF_AND_EXPAND_BUFFER_IF_NEEDED(buffer, buffer_size, buff_ptr, "%d hour", interval->hour);
+		INVOKE_SNPRINTF_AND_EXPAND_BUFFER_IF_NEEDED(buffer, buffer_size, buff_ptr, "%d minute", interval->minute);
+		INVOKE_SNPRINTF_AND_EXPAND_BUFFER_IF_NEEDED(buffer, buffer_size, buff_ptr, "%d.%d second", interval->second,
+							    interval->microsecond);
+		INVOKE_SNPRINTF_AND_EXPAND_BUFFER_IF_NEEDED(buffer, buffer_size, buff_ptr, "'");
 		break;
 	case unary_STATEMENT:;
 		SqlUnaryOperation *unary;

@@ -93,6 +93,45 @@ typedef void* yyscan_t;
 		SET_INTERNAL_FORMAT_FOR_DATA_TYPE(RET,FORMAT);\
 	}
 
+#define INTERVAL_STMT(RET, KIND)\
+{ \
+	SqlInterval *interval;\
+\
+	SQL_STATEMENT(RET, interval_STATEMENT);\
+	MALLOC_STATEMENT(RET, interval, SqlInterval);\
+	UNPACK_SQL_STATEMENT(interval, RET, interval);\
+	interval->type = KIND;\
+}\
+
+#define DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL(RET, FIELD, VAL, LOC)\
+	{\
+		/* Define argument list for the function */\
+		SqlStatement *field;\
+		SQL_VALUE_STATEMENT(field, STRING_LITERAL, FIELD);\
+		INVOKE_PARSE_LITERAL_TO_PARAMETER(parse_context, field->v.value, FALSE);\
+		SqlStatement *tail = create_sql_column_list(VAL, NULL, NULL);\
+		SqlStatement *list = create_sql_column_list(field, tail, NULL);\
+		/*RET->loc = LOC;*/\
+		/* Define this as a function call */\
+		SQL_STATEMENT(RET, value_STATEMENT);\
+		MALLOC_STATEMENT(RET, value, SqlValue);\
+		SqlStatement *fc_statement;\
+		SqlFunctionCall *fc;\
+		SqlValue *value;\
+		UNPACK_SQL_STATEMENT(value, RET, value);\
+		value->type = CALCULATED_VALUE;\
+		SQL_STATEMENT(fc_statement, function_call_STATEMENT);\
+		MALLOC_STATEMENT(fc_statement, function_call, SqlFunctionCall);\
+		UNPACK_SQL_STATEMENT(fc, fc_statement, function_call);\
+		/* Form the function name */\
+		SqlStatement *fc_name;\
+		SQL_VALUE_STATEMENT(fc_name, FUNCTION_NAME, "extract");\
+		fc->function_name = fc_name;\
+		/* Form the parameter list */\
+		fc->parameters = list;\
+		value->v.calculated = fc_statement;\
+	}
+
 extern int yylex(YYSTYPE * yylval_param, YYLTYPE *llocp, yyscan_t yyscanner);
 extern int yyparse(yyscan_t scan, SqlStatement **out, int *plan_id, ParseContext *parse_context);
 extern void yyerror(YYLTYPE *llocp, yyscan_t scan, SqlStatement **out, int *plan_id, ParseContext *parse_context, char const *s);
@@ -244,6 +283,29 @@ extern void yyerror(YYLTYPE *llocp, yyscan_t scan, SqlStatement **out, int *plan
 %token WHERE
 %token WITH_TIME_ZONE
 %token WITHOUT_TIME_ZONE
+%token INTERVAL
+%token YEAR
+%token MONTH
+%token DAY
+%token HOUR
+%token MINUTE
+%token SECOND
+%token YEAR_MONTH
+%token DAY_HOUR
+%token DAY_MINUTE
+%token DAY_SECOND
+%token HOUR_MINUTE
+%token HOUR_SECOND
+%token MINUTE_SECOND
+%token YEARTOMONTH
+%token DAYTOHOUR
+%token DAYTOMINUTE
+%token DAYTOSECOND
+%token HOURTOMINUTE
+%token HOURTOSECOND
+%token MINUTETOSECOND
+%token TIMEZONE_HOUR
+%token TIMEZONE_MINUTE
 
 %token TRUE_TOKEN
 %token FALSE_TOKEN
@@ -288,6 +350,9 @@ extern void yyerror(YYLTYPE *llocp, yyscan_t scan, SqlStatement **out, int *plan
 %left PREC1
 %left CROSS FULL INNER JOIN LEFT NATURAL RIGHT
 %left COMMA COLLATE RIGHT_PAREN
+
+%left PREC2
+%left DAY YEAR LEFT_PAREN
 
 %%
 
@@ -696,10 +761,22 @@ not_insensitive_like_predicate
 
 between_predicate
   : row_value_constructor BETWEEN comparison_predicate AND comparison_predicate {
-	$$ = between_predicate($row_value_constructor, $3, $5, FALSE);
+  	SqlStatement *ret;
+	ret = between_predicate($row_value_constructor, $3, $5, FALSE);
+        if (NULL == ret) {
+		yyerror(&yyloc, NULL, NULL, NULL, NULL, NULL);
+		YYERROR;
+        }
+        $$ = ret;
     }
   | row_value_constructor NOT BETWEEN comparison_predicate AND comparison_predicate {
-	$$ = between_predicate($row_value_constructor, $4, $6, TRUE);
+  	SqlStatement *ret;
+	ret = between_predicate($row_value_constructor, $4, $6, TRUE);
+        if (NULL == ret) {
+		yyerror(&yyloc, NULL, NULL, NULL, NULL, NULL);
+		YYERROR;
+        }
+        $$ = ret;
     }
   ;
 
@@ -1104,7 +1181,42 @@ numeric_primary
       }
       $$->loc = @1;
     }
-//  | numeric_value_function
+  | numeric_value_function
+  ;
+
+numeric_value_function
+  : extract_expression { $$ = $extract_expression; }
+  ;
+
+extract_expression
+  : EXTRACT LEFT_PAREN YEAR FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "year", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN MONTH FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "month", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN DAY FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "day", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN HOUR FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "hour", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN MINUTE FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "minute", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN SECOND FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "second", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN TIMEZONE_HOUR FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "timezone_hour", $extract_source, yyloc);
+    }
+  | EXTRACT LEFT_PAREN TIMEZONE_MINUTE FROM extract_source RIGHT_PAREN {
+	DEFINE_INTERVAL_EXTRACT_FUNCTION_CALL($$, "timezone_minute", $extract_source, yyloc);
+    }
+  ;
+
+extract_source
+  : value_expression { $$ = $value_expression; }
   ;
 
 value_expression_primary
@@ -1124,11 +1236,17 @@ cast_expression
   : CAST LEFT_PAREN search_condition AS data_type RIGHT_PAREN {
       SqlStatement	*ret;
 
-      ret = cast_specification($data_type, $search_condition);
-      if (NULL == ret) {
-        YYERROR;
+      if (INTERVAL_TYPE == $data_type->v.data_type_struct.data_type) {
+      	ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+	$$ = NULL;
+	YYERROR;
+      } else {
+        ret = cast_specification($data_type, $search_condition);
+        if (NULL == ret) {
+          YYERROR;
+        }
+        $$ = ret;
       }
-      $$ = ret;
     }
   ;
 
@@ -1142,6 +1260,11 @@ conditional_expression
 
 cast_specification
   : COLON COLON data_type {
+      if (INTERVAL_TYPE == $data_type->v.data_type_struct.data_type) {
+      	ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+	$$ = NULL;
+	YYERROR;
+      }
       $$ = (SqlStatement *)$data_type;
     }
   | COLON COLON REGCLASS {
@@ -1834,6 +1957,11 @@ unique_column_list
 /// TODO: not complete
 column_definition
   : column_name data_type column_definition_tail {
+      if (INTERVAL_TYPE == $data_type->v.data_type_struct.data_type) {
+      	ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+	$$ = NULL;
+	YYERROR;
+      }
 	SQL_STATEMENT($$, column_STATEMENT);
 	MALLOC_STATEMENT($$, column, SqlColumn);
 	dqinit(($$)->v.column);
@@ -2233,7 +2361,9 @@ data_type
 	$$ = $datetime_type;
 	$$->loc = yyloc;
     }
-//  | interval_type
+  | INTERVAL interval_type_tail_tail {
+  	$$ = data_type(INTERVAL_TYPE, NULL, NULL);
+    }
   ;
 
 // These should be implemented as constraints
@@ -2501,6 +2631,61 @@ literal_value
 	INVOKE_PARSE_LITERAL_TO_PARAMETER(parse_context, value, FALSE);
 	$$ = ret;
     }
+  | interval_type { $$ = $interval_type; }
+  ;
+
+interval_type
+  : INTERVAL interval_type_tail { $$ = $interval_type_tail; }
+  ;
+
+interval_type_tail
+  : LITERAL interval_type_tail_tail {
+	SqlStatement *interval_stmt;
+	SqlStatement *interval_value_stmt;
+	interval_stmt = $interval_type_tail_tail;
+	interval_value_stmt = $LITERAL;
+	interval_value_stmt->loc = yyloc;
+  	if (NULL == interval_stmt) {
+		INTERVAL_STMT(interval_stmt, INTERVAL_NO_TYPE);
+	}
+	int ret = qualify_interval(interval_value_stmt, interval_stmt);
+	if (ret) {
+		// Invalid interval
+		// Error is already thrown
+		// Exit processing
+		YYERROR;
+	} else {
+		$$ = interval_stmt;
+	}
+    }
+  ;
+
+interval_type_tail_tail
+  : /* Empty */ { $$ = NULL; }		%prec PREC2
+  | interval_type_tail_tail_term { $$ = $interval_type_tail_tail_term; }
+  ;
+
+interval_type_tail_tail_term
+  : YEAR { INTERVAL_STMT($$, INTERVAL_YEAR); }
+  | MONTH { INTERVAL_STMT($$, INTERVAL_MONTH); }
+  | DAY { INTERVAL_STMT($$, INTERVAL_DAY); }
+  | HOUR { INTERVAL_STMT($$, INTERVAL_HOUR); }
+  | MINUTE { INTERVAL_STMT($$, INTERVAL_MINUTE); }
+  | SECOND { INTERVAL_STMT($$, INTERVAL_SECOND); }
+  | YEAR_MONTH { INTERVAL_STMT($$, INTERVAL_YEAR_MONTH); }
+  | DAY_HOUR { INTERVAL_STMT($$, INTERVAL_DAY_HOUR); }
+  | DAY_MINUTE { INTERVAL_STMT($$, INTERVAL_DAY_MINUTE); }
+  | DAY_SECOND { INTERVAL_STMT($$, INTERVAL_DAY_SECOND); }
+  | HOUR_MINUTE { INTERVAL_STMT($$, INTERVAL_HOUR_MINUTE); }
+  | HOUR_SECOND { INTERVAL_STMT($$, INTERVAL_HOUR_SECOND); }
+  | MINUTE_SECOND { INTERVAL_STMT($$, INTERVAL_MINUTE_SECOND); }
+  | YEARTOMONTH { INTERVAL_STMT($$, INTERVAL_YEAR_MONTH); }
+  | DAYTOHOUR { INTERVAL_STMT($$, INTERVAL_DAY_HOUR); }
+  | DAYTOMINUTE { INTERVAL_STMT($$, INTERVAL_DAY_MINUTE); }
+  | DAYTOSECOND { INTERVAL_STMT($$, INTERVAL_DAY_SECOND); }
+  | HOURTOMINUTE { INTERVAL_STMT($$, INTERVAL_HOUR_MINUTE); }
+  | HOURTOSECOND { INTERVAL_STMT($$, INTERVAL_HOUR_SECOND); }
+  | MINUTETOSECOND { INTERVAL_STMT($$, INTERVAL_MINUTE_SECOND); }
   ;
 
 date_time_literal
@@ -2645,6 +2830,19 @@ sql_keyword
       SQL_VALUE_STATEMENT($$, FUNCTION_NAME, "regproc");
       $$->loc = yyloc;
     }
+  | DAY {
+      SQL_VALUE_STATEMENT($$, FUNCTION_NAME, "day");
+      $$->loc = yyloc;
+    }
+  | YEAR {
+      SQL_VALUE_STATEMENT($$, COLUMN_REFERENCE, "year");
+      $$->loc = yyloc;
+    }
+  | EXTRACT {
+      SQL_VALUE_STATEMENT($$, FUNCTION_NAME, "extract");
+      $$->loc = yyloc;
+    }	%prec PREC2
+
   ;
 
 function_parameter_type_list

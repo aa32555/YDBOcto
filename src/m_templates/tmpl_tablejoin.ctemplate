@@ -363,6 +363,7 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 						case STRING_TYPE:
 							is_string = TRUE;
 							break;
+						case INTERVAL_TYPE:
 						case UNKNOWN_SqlDataType:
 						case NUL_TYPE:
 							assert(FALSE);

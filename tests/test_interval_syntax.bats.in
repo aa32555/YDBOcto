@@ -1,0 +1,320 @@
+#################################################################
+#								#
+# Copyright (c) 2024 YottaDB LLC and/or its subsidiaries.	#
+# All rights reserved.						#
+#								#
+#	This source code contains the intellectual property	#
+#	of its copyright holder(s), and is made available	#
+#	under a license.  If you do not know the terms of	#
+#	the license, please stop and do not read further.	#
+#								#
+#################################################################
+
+load test_helpers
+
+setup() {
+	init_test
+	createdb
+}
+
+teardown() {
+  stop_rocto
+  corecheck
+}
+
+# In the following subtests we cannot make use of mysql cross check interface as the return types of interval
+# expressions differ. This is because Octo's behavior is modeled to be similar to Postgres.
+# The queries which are generated specifically for mysql are ensured to not generate errors in mysql and then
+# run using the postgres cross check interface. This validates the result values of the mysql specific queries.
+@test "TIS01 : OCTO845 : Validate different INTERVAL literal usages" {
+	$ydb_dist/yottadb -r getIntervalSyntaxValidationQueries^intervalsyntax "postgres">> input.sql
+	mv input.sql postgres_input.sql
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names postgres_input.sql
+	$ydb_dist/yottadb -r getIntervalSyntaxValidationQueries^intervalsyntax "mysql" >> input.sql
+	run_mysql names input.sql >& output.txt
+	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
+	mv input.sql mysql_input.sql
+	mv output.txt mysql_output.txt
+	echo "datestyle = \"YMD\"" > octo.conf
+	sed 's/_/ to /g' mysql_input.sql >> mysql_postgres_input.sql
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names mysql_postgres_input.sql
+}
+
+@test "TIS02 : OCTO845 : Validate different + operation with INTERVAL" {
+	$ydb_dist/yottadb -r getAdditionQueries^intervalsyntax "postgres">> input.sql
+	mv input.sql postgres_input.sql
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names postgres_input.sql
+	$ydb_dist/yottadb -r getAdditionQueries^intervalsyntax "mysql">> input.sql
+	run_mysql names input.sql >& output.txt
+	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
+	mv input.sql mysql_input.sql
+	mv output.txt mysql_output.txt
+	echo "datestyle = \"YMD\"" > octo.conf
+	sed 's/_/ to /g' mysql_input.sql >> mysql_postgres_input.sql
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names mysql_postgres_input.sql
+}
+
+@test "TIS03 : OCTO845 : Validate different - operation with INTERVAL" {
+	$ydb_dist/yottadb -r getSubtractionQueries^intervalsyntax "postgres">> input.sql
+	mv input.sql postgres_input.sql
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names postgres_input.sql
+	$ydb_dist/yottadb -r getSubtractionQueries^intervalsyntax "mysql">> input.sql
+	run_mysql names input.sql >& output.txt
+	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
+	mv input.sql mysql_input.sql
+	mv output.txt mysql_output.txt
+	echo "datestyle = \"YMD\"" > octo.conf
+	sed 's/_/ to /g' mysql_input.sql >> mysql_postgres_input.sql
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names mysql_postgres_input.sql
+}
+
+@test "TIS04 : OCTO845 : Validate different DATE_ADD function usages with INTERVAL" {
+	# Generate Postgres specific test input
+	$ydb_dist/yottadb -r getDateAddQueries^intervalsyntax "postgres">> input.sql
+	mv input.sql postgres_input.sql
+	# Make a copy of the input with + instead of DATE_ADD and run it in Postgres
+	sed 's/date_add(\(.*\),\(.*\))/\1 + \2/g' postgres_input.sql >> postgres_operator_input.sql
+	psql names -f postgres_operator_input.sql &> postgres_operator_output.txt
+	# Run the queries with DATE_ADD in Octo
+	octo -p -f postgres_input.sql 2>&1 | tee -a octo_postgres_queries_output.txt
+	[[ "$(grep -i -c ERROR octo_postgres_queries_output.txt)" == "0" ]]
+	# Compare Postgres + operator results with Octo's DATE_ADD results
+	sed '/^OCTO/d;/^(/d;/^date_add/d' octo_postgres_queries_output.txt >> octo_postgres_queries_output_only.txt
+	sed '/.*?column/d;/^--/d;s/^ //g;/^(/d;/^$/d' postgres_operator_output.txt >> postgres_operator_output.log2
+	sed 's/\([0-9]\{,2\}:[0-9]\{,2\}:[0-9]\{,2\}\)\([.]*[0-9]*\)\([+-]\)\([0-9]\{,2\}:[0-9]\{,2\}\):[0-9]\{,2\}/\1\2\3\4/g' postgres_operator_output.log2 >> postgres_operator_output.log
+	diff postgres_operator_output.log octo_postgres_queries_output_only.txt
+	# If right Postgres version is available run the test queries through cross check
+	postgres_version="$(psql --command='show server_version;' --no-align --tuples-only postgres)"
+	postgres_version="$(echo "$postgres_version" | cut -d . -f 1)"
+	if [[ $postgres_version -ge 16 ]]; then
+		# Postgres 16 has date_sub and date_add skip this part of test if version is less
+		run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names postgres_input.sql
+	fi
+	# Generate MySQL specific test input
+	$ydb_dist/yottadb -r getDateAddQueries^intervalsyntax "mysql">> input.sql
+	# Check there are no errors
+	run_mysql names input.sql >& output.txt
+	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
+	mv input.sql mysql_input.sql
+	mv output.txt mysql_output.txt
+	echo "datestyle = \"YMD\"" > octo.conf
+	octo -p -f mysql_input.sql 2>&1 | tee -a octo_mysql_queries_output.txt
+	[[ "$(grep -i -c ERROR octo_mysql_queries_output.txt)" == "0" ]]
+	# Make a copy of the input with + instead of DATE_ADD and run it in Postgres
+	sed 's/date_add(\(.*\),\(.*\))/\1 + \2/g;s/_/ to /g' mysql_input.sql >> mysql_postgres_operator_input.sql
+	psql names -f mysql_postgres_operator_input.sql &> mysql_postgres_operator_output.txt
+	# Compare Postgres + operator results with Octo's DATE_ADD results
+	sed '/^OCTO/d;/^(/d;/^date_add/d' octo_mysql_queries_output.txt >> octo_mysql_queries_output_only.txt
+	sed '/.*?column/d;/^--/d;s/^ //g;/^(/d;/^$/d' mysql_postgres_operator_output.txt >> mysql_postgres_operator_output.log
+	diff mysql_postgres_operator_output.log octo_mysql_queries_output_only.txt
+	# If the right Postgres version is available run the test queries through cross check
+	if [[ $postgres_version -ge 16 ]]; then
+		# Postgres 16 has date_sub and date_add skip this part of test if version is less
+		sed 's/_/ to /g' mysql_input.sql >> mysql_postgres_func_input.sql
+		run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names mysql_postgres_func_input.sql
+	fi
+}
+
+@test "TIS05 : OCTO845 : Validate different DATE_SUB function usages with INTERVAL" {
+	# Generate Postgres specific test input
+	$ydb_dist/yottadb -r getDateSubQueries^intervalsyntax "postgres">> input.sql
+	mv input.sql postgres_input.sql
+	# Make a copy of the input with - instead of DATE_SUB and run it in Postgres
+	sed 's/date_sub(\(.*\),\(.*\))/\1 - \2/g' postgres_input.sql >> postgres_operator_input.sql
+	psql names -f postgres_operator_input.sql &> postgres_operator_output.txt
+	# Run the queries with DATE_SUB in Octo
+	octo -p -f postgres_input.sql 2>&1 | tee -a octo_postgres_queries_output.txt
+	[[ "$(grep -i -c ERROR octo_postgres_queries_output.txt)" == "0" ]]
+	# Compare Postgres + operator results with Octo's DATE_ADD results
+	sed '/^OCTO/d;/^(/d;/^date_sub/d' octo_postgres_queries_output.txt >> octo_postgres_queries_output_only.txt
+	sed '/.*?column/d;/^--/d;s/^ //g;/^(/d;/^$/d' postgres_operator_output.txt >> postgres_operator_output.log2
+	sed 's/\([0-9]\{,2\}:[0-9]\{,2\}:[0-9]\{,2\}\)\([.]*[0-9]*\)\([+-]\)\([0-9]\{,2\}:[0-9]\{,2\}\):[0-9]\{,2\}/\1\2\3\4/g' postgres_operator_output.log2 >> postgres_operator_output.log
+	diff postgres_operator_output.log octo_postgres_queries_output_only.txt
+	# If right Postgres version is available run the test queries through cross check
+	postgres_version="$(psql --command='show server_version;' --no-align --tuples-only postgres)"
+	postgres_version="$(echo "$postgres_version" | cut -d . -f 1)"
+	if [[ $postgres_version -ge 16 ]]; then
+		# Postgres 16 has date_sub and date_add skip this part of test if version is less
+		run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names postgres_input.sql
+	fi
+	# Generate MySQL specific test input
+	$ydb_dist/yottadb -r getDateSubQueries^intervalsyntax "mysql">> input.sql
+	# Check there are no errors
+	run_mysql names input.sql >& output.txt
+	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
+	mv input.sql mysql_input.sql
+	mv output.txt mysql_output.txt
+	echo "datestyle = \"YMD\"" > octo.conf
+	octo -p -f mysql_input.sql 2>&1 | tee -a octo_mysql_queries_output.txt
+	[[ "$(grep -i -c ERROR octo_mysql_queries_output.txt)" == "0" ]]
+	# Make a copy of the input with - instead of DATE_SUB and run it in Postgres
+	sed 's/date_sub(\(.*\),\(.*\))/\1 - \2/g;s/_/ to /g' mysql_input.sql >> mysql_postgres_operator_input.sql
+	psql names -f mysql_postgres_operator_input.sql &> mysql_postgres_operator_output.txt
+	# Compare Postgres - operator results with Octo's DATE_ADD results
+	sed '/^OCTO/d;/^(/d;/^date_sub/d' octo_mysql_queries_output.txt >> octo_mysql_queries_output_only.txt
+	sed '/.*?column/d;/^--/d;s/^ //g;/^(/d;/^$/d' mysql_postgres_operator_output.txt >> mysql_postgres_operator_output.log
+	diff mysql_postgres_operator_output.log octo_mysql_queries_output_only.txt
+	# If the right Postgres version is available run the test queries through cross check
+	if [[ $postgres_version -ge 16 ]]; then
+		# Postgres 16 has date_sub and date_add skip this part of test if version is less
+		sed 's/_/ to /g' mysql_input.sql >> mysql_postgres_func_input.sql
+		run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names mysql_postgres_func_input.sql
+	fi
+}
+
+@test "TIS06 : OCTO845 : Validate different EXTRACT function usages with Date/Time argument" {
+	$ydb_dist/yottadb -r getExtractQueries^intervalsyntax "postgres">> input.sql
+	psql names -f input.sql >& output.txt
+	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
+	mv output.txt postgres_output.txt
+	octo -f input.sql >& output.txt
+	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
+	mv input.sql postgres_input.sql
+	mv output.txt octo_postgres_output.txt
+	sed '/.*extract/d;/^--/d;s/^ //g;/^(/d;/^$/d;s/ //g' postgres_output.txt >> postgres_output.log
+	sed '/^OCTO/d;/^(/d;/^extract/d' octo_postgres_output.txt >> octo_postgres_output_only.txt
+	diff postgres_output.log octo_postgres_output_only.txt
+	$ydb_dist/yottadb -r getExtractQueries^intervalsyntax "mysql">> input.sql
+	run_mysql names input.sql >& output.txt
+	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
+	mv output.txt mysql_output.txt
+	echo "datestyle = \"YMD\"" > octo.conf
+	octo --emulate=MYSQL -f input.sql >& output.txt
+	[[ "$(grep -i -c ERROR output.txt)" == "0" ]]
+	mv input.sql mysql_input.sql
+	mv output.txt octo_mysql_output.txt
+	sed '/^extract/d;/^$/d' mysql_output.txt >> mysql_output.log
+	sed '/^OCTO/d;/^(/d;/^extract/d' octo_mysql_output.txt >> octo_mysql_output_only.ref1
+	# Remove decimal value as mysql doesn't output any
+	sed 's/\..*//g;s/ //g' octo_mysql_output_only.ref1 >> octo_mysql_output_only.ref
+	diff mysql_output.log octo_mysql_output_only.ref
+}
+
+@test "TIS07 : OCTO845 : Validate that interval expression evaluation consider FEB month end date correctly" {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS07.sql
+}
+
+@test "TIS08 : OCTO845 : Validate error cases" {
+	# validates invalid date and time result after an interval operation
+	# validates invalid interval field value
+	load_fixture TIS08.sql subtest novv
+	verify_output TIS08 output.txt nodatetimefilter noinfo nodebug
+}
+
+@test "TIS09 : OCTO845 : Ensure error is generated for using interval syntax in clauses that are not supported" {
+	$ydb_dist/yottadb -r generateAllUsages^intervalsyntax >> input.sql
+	octo -p -f input.sql 2>&1 | tee -a output.txt
+	verify_output TIS09 output.txt noinfo nodebug
+	[[ "$(grep -i -c ERR_INVALID_INTERVAL_OPERATION output.txt)" == "123" ]]
+}
+
+@test "TIS10 : OCTO845 : Ensure invalid interval literals usages in expressions generate error" {
+	load_fixture TIS10.sql subtest novv
+	verify_output TIS10 output.txt nodatetimefilter noinfo nodebug
+	[[ "$(grep -i -c ERR_TYPE_NOT_COMPATIBLE output.txt)" == "0" ]]
+}
+
+@test "TIS11 : OCTO845 : Ensure valid intervals are parsed correctly" {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS11.sql
+}
+
+@test "TIS12 : OCTO845 : Ensure invalid interval operations generate ERR_INVALID_INTERVAL_OPERATION error" {
+	# This is similar to TIS09, tests cases which are not in TIS09
+	load_fixture TIS12.sql subtest novv
+	verify_output TIS12 output.txt noinfo nodebug
+	[[ "$(grep -i -c ERR_INVALID_INTERVAL_OPERATION output.txt)" == "94" ]]
+}
+
+@test "TIS13 : OCTO845 : Ensure sub-seconds greater than 6 precision are ignored" {
+	# Postgres rounds values where as MYSQL truncates. Octo at present truncates.
+	# https://gitlab.com/YottaDB/DBMS/YDBOcto/-/merge_requests/1496#note_1795922307
+	load_fixture TIS13.sql subtest novv
+	verify_output TIS13 output.txt nodatetimefilter noinfo nodebug
+}
+
+@test "TIS14 : OCTO845 : Validate the logical plan of interval syntax" {
+	# Invoke octo to finish auto load of octo-seed.sql before "load_fixture ... subtest" invocation.
+	# This is to avoid verbose output of each query in "octo-seed.sql" which would otherwise pollute the reference file.
+	octo < /dev/null
+	load_fixture TIS14.sql subtest
+	verify_output TIS14 output.txt nodatetimefilter noinfo
+}
+
+@test "TIS15 : OCTO845 : Validate interval usage in extract, constraints and views" {
+	yottadb -run %XCMD 'SET ^test(1)=""'
+	load_fixture TIS15.sql subtest novv
+	verify_output TIS15 output.txt nodatetimefilter noinfo nodebug
+}
+
+@test "TIS16 : OCTO845 : Validate auto-upgrade of intervals" {
+	octo < /dev/null
+	load_fixture TIS16.sql subtest novv
+	mv output.txt output1.txt
+	echo 'seedreload = "TRUE"' > octo.conf
+	# auto-upgrade but no need to check the output if there is any error we will exit immediately
+	octo < /dev/null
+	rm octo.conf
+	load_fixture TIS16_with_upgrade.sql subtest novv
+	mv output.txt output2.txt
+	cat output*.txt >> output.txt
+	verify_output TIS16 output.txt nodatetimefilter noinfo nodebug
+}
+
+@test "TIS17 : OCTO845 : Validate interval short form field value range" {
+	load_fixture TIS17.sql subtest novv
+	sed '/^#/d' TIS17.sql &> postgres_input.sql
+	psql names -f postgres_input.sql &> postgres_output.txt
+	verify_output TIS17 output.txt nodatetimefilter noinfo nodebug
+	# Following check validates that the number of valid queries are same in Postgres and Octo
+	[[ "$(grep -i -c '?column' postgres_output.txt)" == "$(grep -i -c '???' clean_output.txt)" ]]
+}
+
+@test "TIS18 : OCTO845 : Validate that interval values are normalized based on field value irrespective of what the field specification is" {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS18.sql
+}
+
+@test "TIS19 : OCTO845 : Validate the working of signed field values" {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS19.sql
+	load_fixture TIS19_errors.sql subtest novv
+	verify_output TIS19_errors output.txt nodatetimefilter noinfo nodebug
+}
+
+@test "TIS20 : OCTO845 : Validate that floating point values are only allowed for seconds field" {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS20.sql
+	load_fixture TIS20_errors.sql subtest novv
+	verify_output TIS20_errors output.txt nodatetimefilter noinfo nodebug
+}
+
+@test "TIS21 : OCTO845 : Validate edge cases of interval syntax" {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS21.sql
+}
+
+@test "TIS22 : OCTO845 : Validate date/time function usage with intervals" {
+	$ydb_dist/yottadb -r getFuncQueries^intervalsyntax "postgres">> input.sql
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names input.sql
+}
+
+@test "TIS23 : OCTO845 : Validate extract function with interval argument" {
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS23.sql
+	$ydb_dist/yottadb -r getExtractIntervalQueries^intervalsyntax "postgres">> input.sql
+	mv input.sql postgres_input.sql
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names postgres_input.sql
+	$ydb_dist/yottadb -r getExtractIntervalQueries^intervalsyntax "mysql">> input.sql
+	echo "datestyle = \"YMD\"" > octo.conf
+	mv input.sql mysql_input.sql.tmp
+	sed 's/_/ to /g' mysql_input.sql.tmp >> mysql_input.sql
+	# Cannot cross check with mysql as interval is not allowed as extract argument in it but do validate the queries
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names mysql_input.sql
+}
+
+@test "TIS24 : OCTO845 : Validate extract function with timezone_hour and timezone_minute field" {
+	load_fixture TIS24_errors.sql subtest novv
+	verify_output TIS24_errors output.txt nodatetimefilter noinfo nodebug
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS24.sql
+}
+
+@test "TIS25 : OCTO845 : Validate extract function edge cases" {
+	load_fixture TIS25_errors.sql subtest novv
+	verify_output TIS25_errors output.txt nodatetimefilter noinfo nodebug
+	run_query_in_octo_and_postgres_and_crosscheck_multiple_queries names TIS25.sql
+}

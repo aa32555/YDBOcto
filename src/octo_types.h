@@ -210,6 +210,7 @@ typedef enum SqlStatementType {
 	drop_view_STATEMENT,
 	dynamic_sql_STATEMENT,
 	discard_xrefs_STATEMENT,
+	interval_STATEMENT,
 	invalid_STATEMENT, // Keep invalid_STATEMENT at the end
 } SqlStatementType;
 
@@ -297,6 +298,7 @@ typedef enum SqlValueType {
 	TIME_WITH_TIME_ZONE_LITERAL,
 	TIMESTAMP_LITERAL,
 	TIMESTAMP_WITH_TIME_ZONE_LITERAL,
+	INTERVAL_LITERAL,
 	INVALID_SqlValueType
 } SqlValueType;
 
@@ -317,7 +319,8 @@ typedef enum SqlDataType {
 	TIME_TYPE,
 	TIME_WITH_TIME_ZONE_TYPE,
 	TIMESTAMP_TYPE,
-	TIMESTAMP_WITH_TIME_ZONE_TYPE
+	TIMESTAMP_WITH_TIME_ZONE_TYPE,
+	INTERVAL_TYPE,
 } SqlDataType;
 
 /* Note: Additions of keywords in the middle of the table can cause SIG-11s because the actual binary value
@@ -421,6 +424,7 @@ typedef enum {
 	PSQL_TypeOid_timetz = 1266,
 	PSQL_TypeOid_timestamp = 1114,
 	PSQL_TypeOid_timestamptz = 1184,
+	PSQL_TypeOid_interval = 1186,
 } PSQL_TypeOid;
 
 // Values for this enum are derived from the PostgreSQL catalog and
@@ -1141,6 +1145,34 @@ typedef struct SqlDisplayRelation {
 	struct SqlStatement   *table_name; /* Used by `\d tablename` command */
 } SqlDisplayRelation;
 
+typedef enum SqlIntervalType {
+	INTERVAL_NO_TYPE,
+	INTERVAL_YEAR,
+	INTERVAL_MONTH,
+	INTERVAL_DAY,
+	INTERVAL_HOUR,
+	INTERVAL_MINUTE,
+	INTERVAL_SECOND,
+	INTERVAL_YEAR_MONTH,
+	INTERVAL_DAY_SECOND,
+	INTERVAL_DAY_MINUTE,
+	INTERVAL_DAY_HOUR,
+	INTERVAL_HOUR_SECOND,
+	INTERVAL_HOUR_MINUTE,
+	INTERVAL_MINUTE_SECOND,
+} SqlIntervalType;
+
+typedef struct SqlInterval {
+	enum SqlIntervalType type; /* Field specification */
+	int		     year;
+	int		     month;
+	int		     day;
+	int		     hour;
+	int		     minute;
+	int		     second;
+	int		     microsecond;
+} SqlInterval;
+
 typedef struct SqlStatement {
 	enum SqlStatementType type;
 	struct YYLTYPE	      loc;
@@ -1188,6 +1220,7 @@ typedef struct SqlStatement {
 		struct SqlDataTypeStruct	  data_type_struct;
 		struct SqlDisplayRelation	 *display_relation;
 		enum SqlJoinType		  join_type;
+		struct SqlInterval		 *interval;
 		/* Below SqlStatementType types do not have any parameters so they do not have corresponding members here.
 		 *	discard_all_STATEMENT
 		 */

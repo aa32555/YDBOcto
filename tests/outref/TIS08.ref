@@ -1,0 +1,44 @@
+
+-- All are expected to generate ERR_INTERVAL_FIELD_OUT_OF_RANGE
+select date'0001-01-01' + interval'999999999999999 year';
+select date'0001-01-01' + interval'999999999999999 month';
+select date'0001-01-01' + interval'999999999999999 hour';
+select date'0001-01-01' + interval'999999999999999 minute';
+select date'0001-01-01' + interval'999999999999999 second';
+select date'0001-01-01' + interval'999999999999999 day';
+
+-- All are expected to generate ERR_INVALID_DATE_TIME_VALUE
+select date'0001-01-01' - interval'1000000 year';
+select date'0001-01-01' - interval'999999 year';
+select date'0001-01-01' - interval'99999 year';
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 2:1: select date'0001-01-01' + interval'999999999999999 year';
+                                            ^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'0001-01-01' + interval'999999999999999 year';
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 3:1: select date'0001-01-01' + interval'999999999999999 month';
+                                            ^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'0001-01-01' + interval'999999999999999 month';
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 4:1: select date'0001-01-01' + interval'999999999999999 hour';
+                                            ^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'0001-01-01' + interval'999999999999999 hour';
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 5:1: select date'0001-01-01' + interval'999999999999999 minute';
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'0001-01-01' + interval'999999999999999 minute';
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 6:1: select date'0001-01-01' + interval'999999999999999 second';
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'0001-01-01' + interval'999999999999999 second';
+[ERROR]: ERR_INTERVAL_FIELD_OUT_OF_RANGE: Interval field value 999999999999999 is out of range
+LINE 7:1: select date'0001-01-01' + interval'999999999999999 day';
+                                            ^^^^^^^^^^^^^^^^^^^^^
+OCTO> select date'0001-01-01' + interval'999999999999999 day';
+OCTO> select date'0001-01-01' - interval'1000000 year';
+[ERROR]: ERR_INVALID_DATE_TIME_VALUE: "169109-02-06 16:03:39.10323" is invalid for type "TIMESTAMP", format "TEXT" and datestyle "ISO, YMD"
+OCTO> select date'0001-01-01' - interval'999999 year';
+[ERROR]: ERR_INVALID_DATE_TIME_VALUE: "169110-02-06 16:03:39.10323" is invalid for type "TIMESTAMP", format "TEXT" and datestyle "ISO, YMD"
+OCTO> select date'0001-01-01' - interval'99999 year';
+[ERROR]: ERR_INVALID_DATE_TIME_VALUE: "-99998-01-01 00:00:00" is invalid for type "TIMESTAMP", format "TEXT" and datestyle "ISO, YMD"
+OCTO> 

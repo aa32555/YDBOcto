@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;								;
-; Copyright (c) 2019-2023 YottaDB LLC and/or its subsidiaries.	;
+; Copyright (c) 2019-2024 YottaDB LLC and/or its subsidiaries.	;
 ; All rights reserved.						;
 ;								;
 ;	This source code contains the intellectual property	;
@@ -45,4 +45,18 @@ DATEFORMAT(date,format)
 	quit:$ZYISSQLNULL(date)!$ZYISSQLNULL(date) $ZYSQLNULL
 	set result=$&octo.ydboctoDateFormatM(date,format)
 	set:""=result result=$ZYSQLNULL
+	quit result
+
+EXTRACT(field,value,format)
+	; field -> year, month, day, hour, minute, second, timezone_hour, timezone_minute
+	; value -> date, time, time with time zone, timestamp with time zone
+	new result
+	set result=$&octo.ydboctoExtractDateTimeM(field,value,format)
+	quit result
+
+EXTRACTINTERVAL(field,year,month,day,hour,minute,second,microsecond)
+	; field -> year, month, day, hour, minute, second, timezone_hour, timezone_minute
+	; value -> interval
+	new result
+	set result=$&octo.ydboctoExtractIntervalM(field,year,month,day,hour,minute,second,microsecond)
 	quit result

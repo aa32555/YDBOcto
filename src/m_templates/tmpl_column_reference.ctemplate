@@ -196,8 +196,11 @@ TEMPLATE(tmpl_column_reference, PhysicalPlan *pplan, SqlColumnAlias *column_alia
 			/* FALSE to indicate this is not a derived column */
 	}
 	if (is_date_time_column) {
-		if (table->readwrite) {
-			// The value will be in internal format no need to do anything
+		if (table->readwrite || (is_extract && (NULL != column_alias->extract_lp))) {
+			/* If table is readwrite the value will be in internal format no need to do anything.
+			 * If this is an extract then LP_FUNCTION case in tmpl_print_expression will decide whether to add
+			 * conversion function or not. So no additional processing needed.
+			 */
 		} else {
 			// GLOBAL or EXTRACT was specified
 			// The value will be in a format different from the internal format expected

@@ -224,6 +224,8 @@ int copied_so_far;
 (?i:THEN) { return THEN; }
 (?i:TIME) { return TIME; }
 (?i:TIMESTAMP) { return TIMESTAMP; }
+(?i:TIMEZONE_HOUR) { return TIMEZONE_HOUR; }
+(?i:TIMEZONE_MINUTE) { return TIMEZONE_MINUTE; }
 (?i:TO) { return TO; }
 (?i:TRUNCATE) { return TRUNCATE; }
 (?i:UNION) { return UNION; }
@@ -245,6 +247,28 @@ int copied_so_far;
 (?i:XREFS) { return XREFS; }
 (?i:ZHOROLOG) { return DATE_TIME_ZHOROLOG; }
 (?i:ZUT) { return DATE_TIME_ZUT; }
+(?i:INTERVAL) { return INTERVAL; }
+(?i:YEAR) { return YEAR; }
+(?i:MONTH) { return MONTH; }
+(?i:DAY) { return DAY; }
+(?i:HOUR) { return HOUR; }
+(?i:MINUTE) { return MINUTE; }
+(?i:SECOND) { return SECOND; }
+(?i:YEAR_MONTH) { return YEAR_MONTH; }
+(?i:DAY_HOUR) { return DAY_HOUR; }
+(?i:DAY_MINUTE) { return DAY_MINUTE; }
+(?i:DAY_SECOND) { return DAY_SECOND; }
+(?i:HOUR_MINUTE) { return HOUR_MINUTE; }
+(?i:HOUR_SECOND) { return HOUR_SECOND; }
+(?i:MINUTE_SECOND) { return MINUTE_SECOND; }
+(?i:YEAR[ ]+TO+[ ]MONTH) { return YEARTOMONTH; }
+(?i:DAY[ ]+TO+[ ]HOUR) { return DAYTOHOUR; }
+(?i:DAY[ ]+TO+[ ]MINUTE) { return DAYTOMINUTE; }
+(?i:DAY[ ]+TO+[ ]SECOND) { return DAYTOSECOND; }
+(?i:HOUR[ ]+TO+[ ]MINUTE) { return HOURTOMINUTE; }
+(?i:HOUR[ ]+TO+[ ]SECOND) { return HOURTOSECOND; }
+(?i:MINUTE[ ]+TO+[ ]SECOND) { return MINUTETOSECOND; }
+
 
 (?i:NULL) { return NULL_TOKEN; }
 (?i:FALSE) { return FALSE_TOKEN; }

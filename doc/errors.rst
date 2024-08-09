@@ -642,6 +642,14 @@ ERR_INSERT_TYPE_MISMATCH
 
   Description/Action: This error is generated when the :code:`INSERT INTO` command specifies a target column whose type is different from the corresponding source column expression. PSQL Error Code: 42804
 
+++++++++++++++++++++++++++++++++
+ERR_INTERVAL_FIELD_OUT_OF_RANGE
+++++++++++++++++++++++++++++++++
+
+  Text: Interval field value xxx is out of range
+
+  Description/Action: This error is generated when an interval field value is exceeding the allowed value range. PSQL Error Code: 22015
+
 ++++++++++++++++++++++++++++++
 ERR_INVALID_BOOLEAN_SYNTAX
 ++++++++++++++++++++++++++++++
@@ -713,6 +721,30 @@ ERR_INVALID_INTEGER_SYNTAX
   Text: Invalid input syntax for type integer: 'xxx'
 
   Description/Action: This error indicates that an integer was expected in this context, but a non-integer value was specified. PSQL Error Code: 22P02
+
++++++++++++++++++++++++++++++++
+ERR_INVALID_INTERVAL_OPERATION
++++++++++++++++++++++++++++++++
+
+  Text: Interval literal syntax not allowed for this operation
+
+  Description/Action: This error indicates that the expression doesn't allow interval syntax. PSQL Error Code: 22P02
+
++++++++++++++++++++++++++++++++++
+ERR_INVALID_INTERVAL_SUBTRACTION
++++++++++++++++++++++++++++++++++
+
+  Text: Cannot subtract a date/time operand from an interval
+
+  Description/Action: This error indicates that the order of the operand is incorrect, correct it and try again. Date/time operand can subtract an interval not the other way. PSQL Error Code: 22P02
+
++++++++++++++++++++++++++++++
+ERR_INVALID_INTERVAL_SYNTAX
++++++++++++++++++++++++++++++
+
+  Text: Interval literal syntax is invalid: 'xxx'
+
+  Description/Action: This error indicates that the given interval literal has invalid syntax. PSQL Error Code: 22007
 
 +++++++++++++++++++++++++++++
 ERR_INVALID_NUMERIC_SYNTAX

@@ -23,7 +23,7 @@ OCTO> create table TDTT057 (dob date(zut zut) zut);
 LINE 5:1: select 'text' zut;
                         ^^^
 OCTO> select 'text' zut;
-[ERROR]: ERR_PARSE_FAILED: syntax error, unexpected DATE_TIME_ZUT, expecting DATE or TIME or TIMESTAMP or LITERAL
+[ERROR]: ERR_PARSE_FAILED: syntax error, unexpected DATE_TIME_ZUT
 LINE 6:1: ...function TDTT057_func(varchar(zut)) RETURNS VARCHAR as $$^extri...
                                            ^^^
 OCTO> create function TDTT057_func(varchar(zut)) RETURNS VARCHAR as $$^extrinsic;
@@ -31,7 +31,7 @@ OCTO> create function TDTT057_func(varchar(zut)) RETURNS VARCHAR as $$^extrinsic
 LINE 7:1: ...function TDTT057_func(varchar zut zut) RETURNS VARCHAR as $$^ex...
                                            ^^^
 OCTO> create function TDTT057_func(varchar zut zut) RETURNS VARCHAR as $$^extrinsic;
-[ERROR]: ERR_PARSE_FAILED: syntax error, unexpected DATE_TIME_ZUT, expecting DATE or TIME or TIMESTAMP or LITERAL
+[ERROR]: ERR_PARSE_FAILED: syntax error, unexpected DATE_TIME_ZUT
 LINE 8:1: ...nction TDTT057_func(DATE) RETURNS VARCHAR(zut) as $$^extrinsic;
                                                        ^^^
 OCTO> create function TDTT057_func(DATE) RETURNS VARCHAR(zut) as $$^extrinsic;

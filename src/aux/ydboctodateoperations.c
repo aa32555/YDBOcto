@@ -1075,6 +1075,14 @@ ydb_long_t ydboctoZutC(int count, ydb_long_t secs, ydb_int_t microsec, ydb_strin
 	return ret;
 }
 
+int getCurrentTimeZoneOffset(struct tm *tm1) {
+	struct tm tm2;
+	memcpy(&tm2, tm1, sizeof(struct tm));
+	tm2.tm_isdst = -1;
+	mktime(&tm2);
+	return (-1) * tm2.__tm_gmtoff;
+}
+
 time_t convertToLocalTimezone(SqlValueType type, time_t val) {
 	time_t	   op1_time = val;
 	struct tm *tm1;
@@ -1482,12 +1490,7 @@ ydb_string_t *ydboctoText2InternalFormatC(int count, ydb_string_t *op1, ydb_stri
 			tm2 = localtime(&current_time);
 			gmtoff = (-1) * tm2->__tm_gmtoff;
 		} else {
-			// Factor in local timezone value
-			struct tm tm2;
-			memcpy(&tm2, &tm1, sizeof(struct tm));
-			tm2.tm_isdst = -1;
-			mktime(&tm2);
-			gmtoff = (-1) * tm2.__tm_gmtoff;
+			gmtoff = getCurrentTimeZoneOffset(&tm1);
 		}
 		tm1.tm_sec += gmtoff; // Local time zone to UTC
 	}
@@ -1743,5 +1746,380 @@ ydb_int_t ydboctoValidateDateTimeValueC(int count, ydb_string_t *value, ydb_int_
 	if (NULL != text_format_str) {
 		ydb_free(text_format_str);
 	}
+	return ret;
+}
+
+int getCurrentTimeZoneOffset2(struct tm *tm1) {
+	// tm1->tm_isdst = -1;
+	mktime(tm1);
+	return (-1) * tm1->__tm_gmtoff;
+}
+#define IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(VAL) ((60 < VAL) || (0 > VAL))
+
+// year is tm_year from struct tm
+// month is tm_mon from struct tm
+// day is tm_mday from struct tm
+int handle_feb_date(int year, int month, int day) {
+	// get actual year
+	year = year + 1900;
+	// Increment year if month is greater than 12
+	if (12 < (month + 1)) {
+		// Considering month+1 as tm_mon represents months as 0-11
+		year += ((month + 1) / 12);
+	}
+	// Check is month is FEB
+	if ((1 == month) || (2 == ((month + 1) % 12))) {
+		// Check if the given year is a leap year
+		boolean_t is_leap_year = FALSE;
+		if (0 == (year % 4)) {
+			is_leap_year = TRUE;
+			if (0 == (year % 100)) {
+				if (0 != (year % 400)) {
+					is_leap_year = FALSE;
+				} else {
+					is_leap_year = TRUE;
+				}
+			}
+		}
+		if (is_leap_year) {
+			// February 29th is the last day of the month
+			// Update day to 29 if the value is 30
+			if (30 == day) {
+				day = 29;
+			}
+		} else if ((29 == day) || (30 == day)) {
+			// February 28th is the last day of the month
+			// Update day to 28 if the value is 29 or 30
+			day = 28;
+		}
+	}
+	return day;
+}
+/* Following function assumes `op1` is `date` or `timestamp and subtracts the given interval values from the given `date` or
+ * `timestamp` or `time`. mktime() is expected to normalize the result.
+ */
+ydb_long_t ydboctoSubIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, ydb_int_t year, ydb_int_t month, ydb_int_t day,
+			       ydb_int_t hour, ydb_int_t minute, ydb_int_t second, ydb_long_t microseconds) {
+	ydb_long_t ret;
+	UNUSED(count);
+	// Before calling time function remove the micro second portion in value
+	// micro = last 6 digits
+	long int micro_op1;
+	REMOVE_MICRO_SECONDS(op1, micro_op1);
+	// Convert op1 to tm structure
+	struct tm *static_tm;
+	struct tm  tm1;
+	boolean_t  convert_to_utc = FALSE;
+	if ((TIMESTAMP_WITH_TIME_ZONE_LITERAL == op1_type) || (TIME_WITH_TIME_ZONE_LITERAL == op1_type)) {
+		static_tm = localtime(&op1);
+		convert_to_utc = TRUE;
+	} else {
+		static_tm = gmtime(&op1);
+	}
+	memcpy(&tm1, static_tm, sizeof(struct tm));
+	tm1.tm_year -= year;
+	tm1.tm_mon -= month;
+	tm1.tm_mday -= day;
+	tm1.tm_hour -= hour;
+	tm1.tm_min -= minute;
+	tm1.tm_sec -= second;
+
+	tm1.tm_mday = handle_feb_date(tm1.tm_year, tm1.tm_mon, tm1.tm_mday);
+
+	boolean_t is_time_modified = FALSE;
+	if (0 != hour) {
+		if (IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_hour) || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_min)
+		    || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_sec)) {
+			/* Consolidate the time information to seconds because mktime doesn't normalize correctly in dst boundaries
+			 * For example:
+			 *	select timestamp with time zone'10-8-2024 00:00:00' - interval'-626 hours';
+			 *	The result needs to be `2024-11-03 01:00:00-05` but will be `2024-11-03 02:00:00-05` without this
+			 *step.
+			 */
+			tm1.tm_min += (tm1.tm_hour * 60);
+			tm1.tm_sec += (tm1.tm_min * 60);
+			tm1.tm_hour = tm1.tm_min = 0;
+		}
+		is_time_modified = TRUE;
+	}
+
+	long int micro_op2 = microseconds;
+	micro_op1 -= micro_op2;
+	// + - + -> value has to be > 0  and < 1 (left greater)
+	// + - + -> value has to be > -1 and < 0 (right greater)
+	// - - + -> value has to be > -1.999998 and < 0 (left greater)
+	// - - + -> value has to be > 0 and < 1 (right greater)
+	// - - - -> value has to be > -1.999998 and < 0 (doesn't matter which is greater)
+	float micro_op_result = (float)micro_op1 / 1000000;
+	assert(1.999999 > micro_op_result);
+	if ((0 > micro_op_result) && (-1 < micro_op_result)) {
+		tm1.tm_sec -= 1;
+		micro_op1 += 1000000;
+	} else if (1.0 < micro_op_result) {
+		tm1.tm_sec += 1;
+		micro_op1 -= 1000000;
+	}
+	if (convert_to_utc) {
+		/* Timezone info available by localtime() invocation cannot be used because the expression evaluation done above
+		 * might change the date/time value such that daylight savings might change the original timezone info. So recompute
+		 * timezone value here.
+		 */
+		// if (0 == hour) {
+		//		tm1.tm_isdst = -1;
+		//}
+		if (!is_time_modified) {
+			tm1.tm_isdst = -1;
+		}
+		tm1.tm_sec += getCurrentTimeZoneOffset2(&tm1);
+	}
+	ret = utc_mktime(&tm1);
+	ADD_MICRO_SECONDS(ret, micro_op1);
+	// Return the result
+	return ret;
+}
+
+/* Following function assumes `op1` is `date` or `timestamp` and adds the given interval values to the given `date` or `timestamp`
+ * or `time`. mktime() is expected to normalize the result.
+ */
+ydb_long_t ydboctoAddIntervalC(int count, ydb_long_t op1, ydb_int_t op1_type, ydb_int_t year, ydb_int_t month, ydb_int_t day,
+			       ydb_int_t hour, ydb_int_t minute, ydb_int_t second, ydb_long_t microseconds) {
+	ydb_long_t ret;
+	UNUSED(count);
+	// Before calling time function remove the micro second portion in value
+	// micro = last 6 digits
+	long int micro_op1;
+	REMOVE_MICRO_SECONDS(op1, micro_op1);
+	// Convert op1 to tm structure
+	struct tm *static_tm;
+	struct tm  tm1;
+	int	   gmtoff;
+	boolean_t  convert_to_utc = FALSE;
+	if ((TIMESTAMP_WITH_TIME_ZONE_LITERAL == op1_type) || (TIME_WITH_TIME_ZONE_LITERAL == op1_type)) {
+		static_tm = localtime(&op1);
+		convert_to_utc = TRUE;
+	} else {
+		static_tm = gmtime(&op1);
+	}
+	memcpy(&tm1, static_tm, sizeof(struct tm));
+	tm1.tm_year += year;
+	tm1.tm_mon += month;
+	tm1.tm_mday += day;
+	tm1.tm_hour += hour;
+	tm1.tm_min += minute;
+	tm1.tm_sec += second;
+
+	tm1.tm_mday = handle_feb_date(tm1.tm_year, tm1.tm_mon, tm1.tm_mday);
+
+	boolean_t is_time_modified = FALSE;
+	if (0 != hour) {
+		if (IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_hour) || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_min)
+		    || IS_VAL_NOT_BETWEEN_ZERO_AND_SIXTY(tm1.tm_sec)) {
+			/* Consolidate the time information to seconds because mktime doesn't normalize correctly in dst boundaries
+			 * For example:
+			 *	select timestamp with time zone'10-8-2024 00:00:00' - interval'-626 hours';
+			 *	The result needs to be `2024-11-03 01:00:00-05` but will be `2024-11-03 02:00:00-05` without this
+			 *step.
+			 */
+			tm1.tm_min += (tm1.tm_hour * 60);
+			tm1.tm_sec += (tm1.tm_min * 60);
+			tm1.tm_hour = tm1.tm_min = 0;
+		}
+		is_time_modified = TRUE;
+	}
+
+	long int micro_op2 = microseconds;
+	micro_op1 += micro_op2;
+	float micro_op_result = (float)micro_op1 / 1000000;
+	assert(1.999999 > micro_op_result);
+	if ((0 > micro_op_result) && (-1 < micro_op_result)) {
+		tm1.tm_sec -= 1;
+		micro_op1 += 1000000;
+	} else if (1.0 < micro_op_result) {
+		tm1.tm_sec += 1;
+		micro_op1 -= 1000000;
+	}
+	if (convert_to_utc) {
+		/* Timezone info available by localtime() invocation cannot be used because the expression evaluation done above
+		 * might change the date/time value such that daylight savings might change the original timezone info. So recompute
+		 * timezone value here.
+		 */
+		if (!is_time_modified) {
+			tm1.tm_isdst = -1;
+		}
+		tm1.tm_sec += getCurrentTimeZoneOffset2(&tm1);
+	}
+	ret = utc_mktime(&tm1);
+	ADD_MICRO_SECONDS(ret, micro_op1);
+	// Return the result
+	return ret;
+}
+
+ydb_string_t *ydboctoExtractDateTimeC(int count, ydb_string_t *field, ydb_string_t *value, ydb_string_t *format) {
+	// Get field
+	char *field_str;
+	field_str = ydb_malloc(field->length + 1);
+	memcpy(field_str, field->address, field->length);
+	field_str[field->length] = '\0';
+	// Get format
+	char *time_format;
+	time_format = ydb_malloc(format->length + 1);
+	memcpy(time_format, format->address, format->length);
+	time_format[format->length] = '\0';
+	// Convert value to tm structure
+	struct tm tm1;
+	// 0-initialize fields of tm struct
+	memset(&tm1, 0, sizeof(struct tm));
+	/* Null terminate date string for use in strptime. This is needed
+	 * since ydb_string_ts are not guaranteed to be null terminated.
+	 */
+	char *time_str;
+	time_str = ydb_malloc(value->length + 1); // Null terminator
+	memcpy(time_str, value->address, value->length);
+	time_str[value->length] = '\0';
+
+	// Remove microseconds as it is not recognized by srptime
+	char *micro_second_str_ptr = strchr(time_str, '.');
+	char  micro[7] = {'0', '0', '0', '0', '0', '0', '\0'};
+	char *orig_micro_second_str_ptr = micro_second_str_ptr;
+	if (NULL == micro_second_str_ptr) {
+		// Micro seconds not present
+	} else {
+		// Get microseconds
+		micro_second_str_ptr++; // Moving one location next to '.'
+		char *plus_or_minus = micro_second_str_ptr;
+		int   length = 0;
+		// Traverse the string to get only the microsecond part
+		while ('\0' != *plus_or_minus) {
+			if (('+' == *plus_or_minus) || ('-' == *plus_or_minus)) {
+				// Found timezone part
+				break;
+			}
+			micro[length] = *plus_or_minus;
+			length++;
+			plus_or_minus++;
+		}
+		// Pad any remaining locations with 0's
+		while (length < 6) {
+			micro[length++] = '0';
+		}
+		if ('\0' == *plus_or_minus) {
+			// No timezone, add '\0' to the beginning of microseconds so strptime doesn't have to re-parse microseconds
+			*orig_micro_second_str_ptr = '\0';
+		} else {
+			// Copy timezone info in place of microseconds
+			int length = strlen(plus_or_minus);
+			assert(7 > length);
+			char time_zone[6];
+			memcpy(time_zone, plus_or_minus, length); // Avoids memcpy-param-overlap
+			memcpy(orig_micro_second_str_ptr, time_zone, length);
+			*(orig_micro_second_str_ptr + length) = '\0';
+		}
+	}
+	// At this point the time_str will only have date time and timezone, microseconds is extracted to micro
+
+	// Change micro_second_str_ptr to a different name
+	micro_second_str_ptr = strptime(time_str, time_format, &tm1);
+	UNUSED(micro_second_str_ptr);
+	assert(NULL != micro_second_str_ptr);
+	ydb_long_t result;
+	boolean_t  need_to_add_micro = FALSE;
+	if (0 == strcmp("year", field_str)) {
+		result = tm1.tm_year + 1900; // Add 1900 as tm_year value consider this as the 0th year
+	} else if (0 == strcmp("month", field_str)) {
+		result = tm1.tm_mon + 1; // Add one as tm_mon is 0-11
+	} else if (0 == strcmp("day", field_str)) {
+		result = tm1.tm_mday;
+	} else if (0 == strcmp("hour", field_str)) {
+		result = tm1.tm_hour;
+	} else if (0 == strcmp("minute", field_str)) {
+		result = tm1.tm_min;
+	} else if (0 == strcmp("second", field_str)) {
+		result = tm1.tm_sec;
+		need_to_add_micro = TRUE;
+	} else if (0 == strcmp("timezone_hour", field_str)) {
+		/* Ideally parser should have generated an error if when this field is asked for value which doesn't have timezone
+		 * and we could assert(FALSE) here but parser doesn't handle it yet so we return 0 in such cases.
+		 */
+		result = tm1.__tm_gmtoff / 3600;
+	} else if (0 == strcmp("timezone_minute", field_str)) {
+		/* Ideally parser should have generated an error if when this field is asked for value which doesn't have timezone
+		 * and we could assert(FALSE) here but parser doesn't handle it yet so we return 0 in such cases.
+		 */
+		result = tm1.__tm_gmtoff % 3600;
+	} else {
+		assert(FALSE);
+		result = 0;
+	}
+	ydb_string_t *ret;
+	// This allocation will be freed not in Octo but by YottaDB after the external call returns.
+	ret = ydb_malloc(sizeof(ydb_string_t));
+	ret->address = ydb_malloc(sizeof(char) * 19); // Null terminator included
+	if (need_to_add_micro) {
+		ret->length = sprintf(ret->address, "%ld.%s", result, micro);
+	} else {
+		ret->length = sprintf(ret->address, "%ld", result);
+	}
+	ret->address[ret->length] = '\0';
+	ydb_free(field_str);
+	ydb_free(time_format);
+	ydb_free(time_str);
+	return ret;
+}
+
+ydb_string_t *ydboctoExtractIntervalC(int count, ydb_string_t *field, ydb_int_t year, ydb_int_t month, ydb_int_t day,
+				      ydb_int_t hour, ydb_int_t minute, ydb_int_t second, ydb_long_t microseconds) {
+	// Get field
+	ydb_long_t result;
+	char	  *field_str;
+	field_str = ydb_malloc(field->length + 1);
+	memcpy(field_str, field->address, field->length);
+	field_str[field->length] = '\0';
+	boolean_t need_to_add_micro = FALSE;
+	if (0 == strcmp("year", field_str)) {
+		result = year;
+	} else if (0 == strcmp("month", field_str)) {
+		result = month;
+	} else if (0 == strcmp("day", field_str)) {
+		result = day;
+	} else if (0 == strcmp("hour", field_str)) {
+		result = hour;
+	} else if (0 == strcmp("minute", field_str)) {
+		result = minute;
+	} else if (0 == strcmp("second", field_str)) {
+		result = second;
+		need_to_add_micro = TRUE;
+	} else if (0 == strcmp("timezone_hour", field_str)) {
+		/* Ideally parser should have generated an error for this type and we could assert(FALSE) here but parser doesn't
+		 * handle this yet so just return 0.
+		 */
+		result = 0;
+	} else if (0 == strcmp("timezone_minute", field_str)) {
+		/* Ideally parser should have generated an error for this type and we could assert(FALSE) here but parser doesn't
+		 * handle this yet so just return 0.
+		 */
+		result = 0;
+	} else {
+		assert(FALSE);
+		result = 0;
+	}
+	ydb_string_t *ret;
+	// This allocation will be freed not in Octo but by YottaDB after the external call returns.
+	ret = ydb_malloc(sizeof(ydb_string_t));
+	ret->address = ydb_malloc(sizeof(char) * 19); // Null terminator included
+	if (need_to_add_micro) {
+		if (0 > microseconds) {
+			/* Following query will reach here
+			 * select extract(second FROM interval'-323:42:4.774');
+			 */
+			assert(0 > second);
+			assert((microseconds < 1000000) || (microseconds > -1000000));
+			microseconds = abs((int)microseconds);
+		}
+		ret->length = sprintf(ret->address, "%ld.%06ld", result, microseconds);
+	} else {
+		ret->length = sprintf(ret->address, "%ld", result);
+	}
+	ret->address[ret->length] = '\0';
+	ydb_free(field_str);
 	return ret;
 }

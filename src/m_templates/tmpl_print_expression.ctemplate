@@ -1551,20 +1551,38 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 				if (NULL == cur_plan) {
 					break;
 				}
-				TMPL(tmpl_print_expression, cur_plan->v.lp_default.operand[0], pplan, dot_count, depth);
-				TMPL(tmpl_print_dots, dot_count);
-				%{}SET {{ PP_YDB_OCTO_EXPR }}({{ depth|%d }},{{ numargs|%d }})={{ PP_YDB_OCTO_EXPR }}{}%
-				%{}`n{{ PLAN_LINE_START }}{}%
-				numargs++;
+				if (LP_INTERVAL == cur_plan->v.lp_default.operand[0]->type) {
+					// Do not print it here, we will directly add this value later
+				} else {
+					TMPL(tmpl_print_expression, cur_plan->v.lp_default.operand[0], pplan, dot_count, depth);
+					TMPL(tmpl_print_dots, dot_count);
+					%{}SET {{ PP_YDB_OCTO_EXPR }}({{ depth|%d }},{{ numargs|%d }})={{ PP_YDB_OCTO_EXPR }}{}%
+					%{}`n{{ PLAN_LINE_START }}{}%
+					numargs++;
+				}
 			}
 			cur_plan = t_operand;
 			TMPL(tmpl_print_dots, dot_count);
 			%{}SET {{ PP_YDB_OCTO_EXPR }}={}%
 		}
+		boolean_t is_date_add = FALSE;
+		boolean_t is_extract_only = FALSE;
+		if ((0 == strcmp(second_operand->v.lp_default.operand[0]->v.lp_value.value->v.string_literal,"$$^%ydboctofDATEADD"))
+		    || (0 == strcmp(second_operand->v.lp_default.operand[0]->v.lp_value.value->v.string_literal,
+		    		    "$$^%ydboctofDATESUB"))
+		    || (0 == strcmp(second_operand->v.lp_default.operand[0]->v.lp_value.value->v.string_literal,
+		    		    "$$EXTRACTINTERVAL^%ydboctosqlfunctions"))) {
+			// function name
+			is_date_add = TRUE;
+		} else if (0 == strcmp(second_operand->v.lp_default.operand[0]->v.lp_value.value->v.string_literal,
+		    		    "$$EXTRACT^%ydboctosqlfunctions")) {
+			is_extract_only = TRUE;
+		}
+
 		boolean_t text_format = FALSE;
 		if (BOOLEAN_VALUE == return_type) {
 			%{}$$String2Boolean^%%ydboctoplanhelpers({}%
-		} else if (IS_DATE_TIME_TYPE(return_type)) {
+		} else if (!is_date_add && IS_DATE_TIME_TYPE(return_type)) {
 			// Output processing
 			// See the format in which it is return and add appropriate conversion
 			switch(format_type) {
@@ -1601,24 +1619,38 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		GET_LP(extrinsic_function_name, second_operand, 0, LP_VALUE);
 		SqlValue *value = extrinsic_function_name->v.lp_value.value;
 		boolean_t is_concat_func = (0 == strncmp("$$^%ydboctofCONCAT", value->v.string_literal,(sizeof("$$^%ydboctofCONCAT")-1)));
+		SqlInterval *interval;
 		while (NULL != cur_plan->v.lp_default.operand[1]) {
 			if (cur_plan != t_operand) {
 				%{},{}%
 			}
 			GET_LP(cur_plan, cur_plan, 1, LP_COLUMN_LIST);
 			if (cur_parm != NULL) {
-				if (IS_DATE_TIME_DATA_TYPE(cur_parm->data_type_struct->v.data_type_struct.data_type)) {
+				if (!is_date_add && IS_DATE_TIME_DATA_TYPE(cur_parm->data_type_struct->v.data_type_struct.data_type)) {
 					%{}$$PrintDateTimeResultColumnValue^%%ydboctoplanhelpers({}%
+				} else if (INTERVAL_TYPE == cur_parm->data_type_struct->v.data_type_struct.data_type) {
+					interval = cur_plan->v.lp_default.operand[0]->v.lp_interval.interval;
+					%{}{{ interval->year|%d }},{{ interval->month|%d }},{{ interval->day|%d }},{}%
+					%{}{{ interval->hour|%d }},{{ interval->minute|%d }},{{ interval->second|%d }}{}%
+					%{},{{ interval->microsecond|%d }}{}%
 				}
 			}
 			if (dot_count) {
-				%{}{{ PP_YDB_OCTO_EXPR }}({{ depth|%d}},{{ numargs|%d }}){}%
-				numargs++;
+				if (INTERVAL_TYPE == cur_parm->data_type_struct->v.data_type_struct.data_type) {
+					// Skip it as we already added the values directly
+				} else {
+					%{}{{ PP_YDB_OCTO_EXPR }}({{ depth|%d}},{{ numargs|%d }}){}%
+					numargs++;
+				}
 			} else {
-				TMPL(tmpl_print_expression, cur_plan->v.lp_default.operand[0], pplan, dot_count, depth);
+				if (INTERVAL_TYPE == cur_parm->data_type_struct->v.data_type_struct.data_type) {
+					// Skip it as we already added the values directly
+				} else {
+					TMPL(tmpl_print_expression, cur_plan->v.lp_default.operand[0], pplan, dot_count, depth);
+				}
 			}
 			if (cur_parm != NULL) {
-				if (IS_DATE_TIME_DATA_TYPE(cur_parm->data_type_struct->v.data_type_struct.data_type)) {
+				if (!is_date_add && IS_DATE_TIME_DATA_TYPE(cur_parm->data_type_struct->v.data_type_struct.data_type)) {
 					// Input processing
 					SqlValueType date_time_operand_type = get_sqlvaluetype_from_sqldatatype(cur_parm->data_type_struct->v.data_type_struct.data_type, FALSE);
 					const char *datetime_text_format_specifier;
@@ -1641,6 +1673,13 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 						}
 					}
 					%{},{{ date_time_operand_type|%d }},{{ cur_parm->data_type_struct->v.data_type_struct.format|%d }},"{{ datetime_text_format_specifier }}"){}%
+					if (is_extract_only) {
+						// Add the format also as it is used to process further
+						%{},"{{ datetime_text_format_specifier }}"{}%
+					}
+				} else if (is_date_add && IS_DATE_TIME_DATA_TYPE(cur_parm->data_type_struct->v.data_type_struct.data_type)) {
+					SqlValueType op_type = get_sqlvaluetype_from_sqldatatype(cur_parm->data_type_struct->v.data_type_struct.data_type, FALSE);
+					%{},{{ op_type|%d }}{}%
 				}
 				cur_parm = cur_parm->next;
 			}
@@ -1648,8 +1687,7 @@ TEMPLATE(tmpl_print_expression, LogicalPlan *plan, PhysicalPlan *pplan, int dot_
 		%{}){}%
 		if (BOOLEAN_VALUE == return_type) {
 			%{}){}%
-		} else if (IS_DATE_TIME_TYPE(return_type)) {
-			// Output processing
+		} else if (!is_date_add && IS_DATE_TIME_TYPE(return_type)) {
 			// Close the function
 			%{},{{ return_type|%d }}{}%
 			if (text_format) {

@@ -30,6 +30,11 @@ int unary_operation_data_type_check(SqlUnaryOperation *unary, SqlValueType child
 	int result;
 	result = 0;
 	/* Check for type mismatches */
+	if (INTERVAL_LITERAL == child_type[0]) {
+		ERROR(ERR_INVALID_INTERVAL_OPERATION, "");
+		yyerror(NULL, NULL, &unary->operand, NULL, NULL, NULL);
+		return 1;
+	}
 	switch (unary->operation) {
 	case FORCE_NUM:
 	case NEGATIVE:
@@ -77,6 +82,7 @@ int unary_operation_data_type_check(SqlUnaryOperation *unary, SqlValueType child
 		case FUNCTION_HASH:
 		case DELIM_VALUE:
 		case IS_NULL_LITERAL:
+		case INTERVAL_LITERAL:
 		case INVALID_SqlValueType:
 		case UNKNOWN_SqlValueType:
 			assert(FALSE);
@@ -125,6 +131,7 @@ int unary_operation_data_type_check(SqlUnaryOperation *unary, SqlValueType child
 			*type = child_type[0];
 			break;
 		case SELECT_ASTERISK:
+		case INTERVAL_LITERAL:
 			assert(FALSE);
 			break;
 		}

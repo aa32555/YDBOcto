@@ -161,6 +161,13 @@ LogicalPlan *lp_generate_where(SqlStatement *stmt, SqlStatement *root_stmt) {
 		ret->v.lp_default.group_by_column_num = binary->group_by_fields.group_by_column_num;
 		ret->extra_detail.lp_date_time_operation.return_type = binary->date_time_return_type;
 		break;
+	case interval_STATEMENT:;
+		SqlInterval *interval;
+		UNPACK_SQL_STATEMENT(interval, stmt, interval);
+		type = LP_INTERVAL;
+		MALLOC_LP_2ARGS(ret, type);
+		ret->v.lp_interval.interval = interval;
+		break;
 	case unary_STATEMENT:
 		UNPACK_SQL_STATEMENT(unary, stmt, unary);
 		// WARNING: We simply add the enum offset to find the type

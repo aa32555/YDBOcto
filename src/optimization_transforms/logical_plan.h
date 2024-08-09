@@ -139,6 +139,10 @@ typedef struct LpInsertIntoCol {
 	SqlColumnAlias *column_alias;
 } LpInsertIntoCol;
 
+typedef struct LpInterval {
+	SqlInterval *interval;
+} LpInterval;
+
 typedef struct LpUpdateCol {
 	SqlColumnAlias *column_alias;
 } LpUpdateCol;
@@ -322,6 +326,7 @@ typedef struct LogicalPlan {
 		LpKeywords	  lp_keywords;		// To be used if type == LP_KEYWORDS
 		LpPieceNumber	  lp_piece_number;	// To be used if type == LP_PIECE_NUMBER
 		LpInsertIntoCol	  lp_insert_into_col;	// To be used if type == LP_INSERT_INTO_COL
+		LpInterval	  lp_interval;		// To be used if type == LP_INTERVAL
 		LpUpdateCol	  lp_update_col;	// To be used if type == LP_UPDATE_COL
 		LpDefault	  lp_default;		// To be used for all other LP_* types
 	} v;

@@ -131,8 +131,24 @@ timestamp_to_zhorolog|1|1043|1114|null|null|null
 timestamptz_to_zhorolog|1|1043|1184|null|null|null
 date_to_zut|1|23|1082|null|null|null
 timestamp_to_zut|1|23|1114|null|null|null
+extract|2|1700|1043 1082|null|null|null
+extract|2|1700|1043 1083|null|null|null
+extract|2|1700|1043 1266|null|null|null
+extract|2|1700|1043 1114|null|null|null
+extract|2|1700|1043 1184|null|null|null
+extract|2|1700|1043 1186|null|null|null
 dayofmonth|1|1043|1082|null|null|null
 dayofmonth|1|1043|1043|null|null|null
+date_add|2|1114|1082 1186|null|null|null
+date_add|2|1114|1114 1186|null|null|null
+date_add|2|1184|1184 1186|null|null|null
+date_add|2|1083|1083 1186|null|null|null
+date_add|2|1266|1266 1186|null|null|null
+date_sub|2|1114|1082 1186|null|null|null
+date_sub|2|1114|1114 1186|null|null|null
+date_sub|2|1184|1184 1186|null|null|null
+date_sub|2|1083|1083 1186|null|null|null
+date_sub|2|1266|1266 1186|null|null|null
 lpad|2|1043|1043 23|null|null|null
 lpad|3|1043|1043 23 1043|null|null|null
 replace|3|1043|1043 1043 1043|null|null|null

@@ -46,6 +46,9 @@ SqlValueType get_sqlvaluetype_from_sqldatatype(SqlDataType type, boolean_t is_un
 	case TIMESTAMP_WITH_TIME_ZONE_TYPE:
 		return TIMESTAMP_WITH_TIME_ZONE_LITERAL;
 		break;
+	case INTERVAL_TYPE:
+		return INTERVAL_LITERAL;
+		break;
 	case UNKNOWN_SqlDataType:
 		if (is_unknown_type_okay) {
 			return UNKNOWN_SqlValueType;

@@ -132,6 +132,7 @@ int emit_plan_helper(char *buffer, size_t buffer_len, int depth, LogicalPlan *pl
 	boolean_t	    skip_emit;
 	SqlColumnAlias	   *column_alias;
 	SqlStatement	   *column;
+	SqlInterval	   *interval;
 
 	if (NULL == plan)
 		return 0;
@@ -210,6 +211,12 @@ int emit_plan_helper(char *buffer, size_t buffer_len, int depth, LogicalPlan *pl
 	case LP_VALUE:
 		value = plan->v.lp_value.value;
 		EMIT_SNPRINTF(written, buff_ptr, buffer, buffer_len, "'%s'\n", value->v.string_literal);
+		break;
+	case LP_INTERVAL:
+		interval = plan->v.lp_interval.interval;
+		EMIT_SNPRINTF(written, buff_ptr, buffer, buffer_len, "'%d year %d month %d day %d hour %d minute %d.%d second'\n",
+			      interval->year, interval->month, interval->day, interval->hour, interval->minute, interval->second,
+			      interval->microsecond);
 		break;
 	case LP_TABLE:;
 		SqlTableAlias *table_alias;

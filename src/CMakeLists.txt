@@ -314,6 +314,7 @@ add_library(libocto OBJECT
   parser/validate_global_keyword.c
   parser/validate_start_end_keyword.c
   parser/validate_query_expression.c
+  parser/qualify_interval.c
   physical/allocate_physical_plan.c
   physical/emit_physical_or_xref_plan.c
   physical/emit_physical_plan.c
