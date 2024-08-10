@@ -28,3 +28,4 @@ select timestamp with time zone'2023-11-09 12:01:41-05:00';
 select timestamp with time zone'2023-09-11 12:01:41-05:00';
 select timestamp with time zone'2023-12-08 01:38:00+05:30'=timestamp'2023-12-07 15:08:00';
 select timestamp with time zone'2023-04-08 01:38:00+05:30'=timestamp'2023-04-07 16:08:00';
+select timestamp with time zone'2194-11-02 01:49:19-04' = timestamp with time zone'2194-11-02 01:49:19-05';

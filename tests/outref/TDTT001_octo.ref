@@ -1,0 +1,7 @@
+
+select timestamp with time zone '2194-11-02 01:49:19-05'=timestamp(horolog) with time zone '129237,6559';
+OCTO> select timestamp with time zone '2194-11-02 01:49:19-05'=timestamp(horolog) with time zone '129237,6559';
+???
+0
+(1 row)
+OCTO> 
