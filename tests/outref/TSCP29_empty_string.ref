@@ -1,0 +1,27 @@
+
+select replace('abca','c','');
+select replace('abca','','b');
+select replace('ABCA','C','');
+select replace('ABCA','','B');
+select replace('','ABCB','B');
+OCTO> select replace('abca','c','');
+replace
+
+(1 row)
+OCTO> select replace('abca','','b');
+replace
+
+(1 row)
+OCTO> select replace('ABCA','C','');
+replace
+
+(1 row)
+OCTO> select replace('ABCA','','B');
+replace
+
+(1 row)
+OCTO> select replace('','ABCB','B');
+replace
+
+(1 row)
+OCTO> 
