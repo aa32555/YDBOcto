@@ -29,8 +29,10 @@ TDTT087	;
 	. set dateZHorolog=$$genDateZHorolog
 	. set dateZUT=$$genDateZUT
 	. set time=$$genTime
+	. set:($random(2)=1) time="T"_time
 	. set timeHorolog=$$genTimeHorolog
 	. set timeWithTimeZone=$$genTimeWithTimeZone
+	. set:($random(2)=1) timeWithTimeZone="T"_timeWithTimeZone
 	. set timeWithTimeZoneZHorolog=$$genTimeWithTimeZoneZHorolog
 	. set timeZHorolog=$$genTimeZHorolog
 	. set timestamp=$$genTimestamp
@@ -98,7 +100,7 @@ genTimeWithTimeZone();
 	quit $$genTime_$$genTimeZone
 genTimestamp();
 	; 0000-01-01 00:00:00.000000 to 9999-12-31 23:59:59.999999
-	quit $$genDate_" "_$$genTime
+	quit $$genDate_$select(($random(2)=1):" ",1:"T")_$$genTime
 genTimestampWithTimeZone();
 	; 0000-01-01 00:00:00.000000-15:59 to 9999-12-31 23:59:59.999999+15:59 (01-JAN-0000 00:00:00.000000-15:59 to 31-DEC-9999 23:59:59.999999+15:59)
 	quit $$genTimestamp_$$genTimeZone

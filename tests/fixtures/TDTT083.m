@@ -23,11 +23,13 @@ TDTT083	;
 	. write "select date_to_zut(date '"_date_"');",!
 	. ;
 	. set time=$$genTime
+	. set:($random(2)=1) time="T"_time
 	. write "select time '"_time_"';",!
 	. write "select time_to_horolog(time '"_time_"');",!
 	. write "select time_to_zhorolog(time '"_time_"');",!
 	. ;
 	. set timeWithTimeZone=$$genTimeWithTimeZone
+	. set:($random(2)=1) timeWithTimeZone="T"_timeWithTimeZone
 	. write "select time with time zone '"_timeWithTimeZone_"';",!
 	. write "select timetz_to_horolog(time with time zone '"_timeWithTimeZone_"');",!
 	. ;
@@ -293,7 +295,8 @@ genTimeWithTimeZone();
 	quit $$genTime_$$genTimeZone
 genTimestamp();
 	; 0000-01-01 00:00:00.000000 to 9999-12-31 23:59:59.999999
-	quit $$genDate_" "_$$genTime
+	; Randomely T is used as the separator between date and time
+	quit $$genDate_$select(($random(2)=1):" ",1:"T")_$$genTime
 genTimestampWithTimeZone();
 	; 0000-01-01 00:00:00.000000-15:59 to 9999-12-31 23:59:59.999999+15:59 (01-JAN-0000 00:00:00.000000-15:59 to 31-DEC-9999 23:59:59.999999+15:59)
 	quit $$genTimestamp_$$genTimeZone

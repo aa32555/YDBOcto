@@ -15,6 +15,15 @@ select * from testrtexttz;
 select * from testrtexttz where dob > date'02-01-2023';
 select * from testrtexttz where dob between date'02-01-2023' and date(fileman)'3230301';
 
+create table testrtexttziso(id int primary key, dob timestamp with time zone) GLOBAL "^tstexttziso" readonly;
+select * from testrtexttziso;
+select * from testrtexttziso where dob > date'02-01-2023';
+select * from testrtexttziso where dob between date'02-01-2023' and date(fileman)'3230301';
+select * from testrtexttziso where dob > timestamp with time zone'03-01-2023T01:01:01-05';
+select * from testrtexttziso where dob = timestamp with time zone'03-01-2023T01:01:01-05';
+select * from testrtexttziso where dob > timestamp with time zone'03-01-2023 01:01:01-05';
+select * from testrtexttziso where dob = timestamp with time zone'03-01-2023 01:01:01-05';
+
 set datestyle='YMD';
 drop table if exists txt;
 create table txt (id integer primary key, firstname varchar, lastname varchar, dateofbirth date) GLOBAL "^text" READONLY;
@@ -97,6 +106,44 @@ id|dob
 0|2023-02-01 01:01:01-05
 4|2023-02-01 01:00:00-05
 (2 rows)
+OCTO> create table testrtexttziso(id int primary key, dob timestamp with time zone) GLOBAL "^tstexttziso" readonly;
+CREATE TABLE
+OCTO> select * from testrtexttziso;
+id|dob
+0|2023-02-01 01:01:01-05
+1|2023-03-01 01:01:01-05
+2|2023-04-01 02:01:01-04
+3|2023-01-31 19:00:00-05
+4|2023-02-01 01:00:00-05
+(5 rows)
+OCTO> select * from testrtexttziso where dob > date'02-01-2023';
+id|dob
+0|2023-02-01 01:01:01-05
+1|2023-03-01 01:01:01-05
+2|2023-04-01 02:01:01-04
+4|2023-02-01 01:00:00-05
+(4 rows)
+OCTO> select * from testrtexttziso where dob between date'02-01-2023' and date(fileman)'3230301';
+id|dob
+0|2023-02-01 01:01:01-05
+4|2023-02-01 01:00:00-05
+(2 rows)
+OCTO> select * from testrtexttziso where dob > timestamp with time zone'03-01-2023T01:01:01-05';
+id|dob
+2|2023-04-01 02:01:01-04
+(1 row)
+OCTO> select * from testrtexttziso where dob = timestamp with time zone'03-01-2023T01:01:01-05';
+id|dob
+1|2023-03-01 01:01:01-05
+(1 row)
+OCTO> select * from testrtexttziso where dob > timestamp with time zone'03-01-2023 01:01:01-05';
+id|dob
+2|2023-04-01 02:01:01-04
+(1 row)
+OCTO> select * from testrtexttziso where dob = timestamp with time zone'03-01-2023 01:01:01-05';
+id|dob
+1|2023-03-01 01:01:01-05
+(1 row)
 OCTO> set datestyle='YMD';
 OCTO> drop table if exists txt;
 DROP TABLE
@@ -376,6 +423,105 @@ octoPlan1(cursorId)
     QUIT
 ;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
 ;; ---------------------------------------------------------
+;  select * from testrtexttziso;
+;; ---------------------------------------------------------
+
+octoPlan0(cursorId,wrapInTp)
+    NEW %ydboctop,%ydboctoexpr
+    TSTART:wrapInTp ():(serial)
+    DO octoPlan1(cursorId)
+    TCOMMIT:wrapInTp
+    QUIT
+
+octoPlan1(cursorId)
+    NEW %ydboctoz,%ydboctoexpr KILL %ydboctocursor(cursorId,"keys",3,"","")
+    SET %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")=""
+    FOR  SET %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")=$ORDER(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")="")  DO
+    . SET %ydboctoexpr=1
+    . DO:%ydboctoexpr
+    . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
+    . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr(0)=%ydboctoexpr
+    . . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))),21,"%m-%d-%Y %H:%M:%S%z") SET:(""=%ydboctoexpr) %ydboctoexpr=$ZYSQLNULL
+    . . SET %ydboctoexpr=$$PrintDateTimeResultColumnValue^%ydboctoplanhelpers(%ydboctoexpr,21,%ydboctodatetimeoutputformat,"%Y-%m-%d %H:%M:%S%z")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr=%ydboctoexpr(0)_%ydboctoexpr
+    . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")
+    QUIT
+;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
+;; ---------------------------------------------------------
+;  select * from testrtexttziso where dob > date'02-01-2023';
+;; ---------------------------------------------------------
+
+octoPlan0(cursorId,wrapInTp)
+    NEW %ydboctop,%ydboctoexpr
+    TSTART:wrapInTp ():(serial)
+    DO octoPlan1(cursorId)
+    TCOMMIT:wrapInTp
+    QUIT
+
+octoPlan1(cursorId)
+    NEW %ydboctoz,%ydboctoexpr KILL %ydboctocursor(cursorId,"keys",3,"","")
+    SET %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")=""
+    FOR  SET %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")=$ORDER(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")="")  DO
+    . SET %ydboctoexpr=1
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))),21,"%m-%d-%Y %H:%M:%S%z") SET:(""=%ydboctoexpr) %ydboctoexpr=$ZYSQLNULL
+    . SET %ydboctoexpr=$$ConvertToLocalTimezone^%ydboctoplanhelpers(21,%ydboctoexpr)
+    . SET %ydboctoexpr(1)=%ydboctoexpr
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(%ydboctocursor(cursorId,"parameters",1)),17,"%m-%d-%Y")
+    . SET %ydboctoexpr=%ydboctoexpr(1)>%ydboctoexpr
+    . DO:%ydboctoexpr
+    . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
+    . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr(0)=%ydboctoexpr
+    . . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))),21,"%m-%d-%Y %H:%M:%S%z") SET:(""=%ydboctoexpr) %ydboctoexpr=$ZYSQLNULL
+    . . SET %ydboctoexpr=$$PrintDateTimeResultColumnValue^%ydboctoplanhelpers(%ydboctoexpr,21,%ydboctodatetimeoutputformat,"%Y-%m-%d %H:%M:%S%z")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr=%ydboctoexpr(0)_%ydboctoexpr
+    . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")
+    QUIT
+;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
+;; ---------------------------------------------------------
+;  select * from testrtexttziso where dob = timestamp with time zone'03-01-2023T01:01:01-05';
+;; ---------------------------------------------------------
+
+octoPlan0(cursorId,wrapInTp)
+    NEW %ydboctop,%ydboctoexpr
+    TSTART:wrapInTp ():(serial)
+    DO octoPlan1(cursorId)
+    TCOMMIT:wrapInTp
+    QUIT
+
+octoPlan1(cursorId)
+    NEW %ydboctoz,%ydboctoexpr KILL %ydboctocursor(cursorId,"keys",3,"","")
+    SET %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")=""
+    FOR  SET %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")=$ORDER(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")="")  DO
+    . SET %ydboctoexpr=1
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))),21,"%m-%d-%Y %H:%M:%S%z") SET:(""=%ydboctoexpr) %ydboctoexpr=$ZYSQLNULL
+    . SET %ydboctoexpr=$$ConvertToLocalTimezone^%ydboctoplanhelpers(21,%ydboctoexpr)
+    . SET %ydboctoexpr(1)=$$ForceNumeric^%ydboctoplanhelpers(%ydboctoexpr)
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(%ydboctocursor(cursorId,"parameters",1)),21,"%m-%d-%Y %H:%M:%S%z")
+    . SET %ydboctoexpr=$$ForceNumeric^%ydboctoplanhelpers(%ydboctoexpr)
+    . SET %ydboctoexpr=$$ConvertToLocalTimezone^%ydboctoplanhelpers(21,%ydboctoexpr)
+    . SET %ydboctoexpr=%ydboctoexpr(1)=%ydboctoexpr
+    . DO:%ydboctoexpr
+    . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
+    . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr(0)=%ydboctoexpr
+    . . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))),21,"%m-%d-%Y %H:%M:%S%z") SET:(""=%ydboctoexpr) %ydboctoexpr=$ZYSQLNULL
+    . . SET %ydboctoexpr=$$PrintDateTimeResultColumnValue^%ydboctoplanhelpers(%ydboctoexpr,21,%ydboctodatetimeoutputformat,"%Y-%m-%d %H:%M:%S%z")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr=%ydboctoexpr(0)_%ydboctoexpr
+    . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")
+    QUIT
+;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
+;; ---------------------------------------------------------
 ;  select * from testrtext;
 ;; ---------------------------------------------------------
 
@@ -579,6 +725,82 @@ octoPlan1(cursorId)
     . . SET %ydboctoexpr=%ydboctoexpr(0)_%ydboctoexpr
     . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
     ZKILL %ydboctocursor(cursorId,"keys",1,"testrtext","id")
+    QUIT
+;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
+;; ---------------------------------------------------------
+;  select * from testrtexttziso where dob > timestamp with time zone'03-01-2023T01:01:01-05';
+;; ---------------------------------------------------------
+
+octoPlan0(cursorId,wrapInTp)
+    NEW %ydboctop,%ydboctoexpr
+    TSTART:wrapInTp ():(serial)
+    DO octoPlan1(cursorId)
+    TCOMMIT:wrapInTp
+    QUIT
+
+octoPlan1(cursorId)
+    NEW %ydboctoz,%ydboctoexpr KILL %ydboctocursor(cursorId,"keys",3,"","")
+    SET %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")=""
+    FOR  SET %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")=$ORDER(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")="")  DO
+    . SET %ydboctoexpr=1
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))),21,"%m-%d-%Y %H:%M:%S%z") SET:(""=%ydboctoexpr) %ydboctoexpr=$ZYSQLNULL
+    . SET %ydboctoexpr=$$ConvertToLocalTimezone^%ydboctoplanhelpers(21,%ydboctoexpr)
+    . SET %ydboctoexpr(1)=%ydboctoexpr
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(%ydboctocursor(cursorId,"parameters",1)),21,"%m-%d-%Y %H:%M:%S%z")
+    . SET %ydboctoexpr=$$ConvertToLocalTimezone^%ydboctoplanhelpers(21,%ydboctoexpr)
+    . SET %ydboctoexpr=%ydboctoexpr(1)>%ydboctoexpr
+    . DO:%ydboctoexpr
+    . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
+    . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr(0)=%ydboctoexpr
+    . . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))),21,"%m-%d-%Y %H:%M:%S%z") SET:(""=%ydboctoexpr) %ydboctoexpr=$ZYSQLNULL
+    . . SET %ydboctoexpr=$$PrintDateTimeResultColumnValue^%ydboctoplanhelpers(%ydboctoexpr,21,%ydboctodatetimeoutputformat,"%Y-%m-%d %H:%M:%S%z")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr=%ydboctoexpr(0)_%ydboctoexpr
+    . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")
+    QUIT
+;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
+;; ---------------------------------------------------------
+;  select * from testrtexttziso where dob between date'02-01-2023' and date(fileman)'3230301';
+;; ---------------------------------------------------------
+
+octoPlan0(cursorId,wrapInTp)
+    NEW %ydboctop,%ydboctoexpr
+    TSTART:wrapInTp ():(serial)
+    DO octoPlan1(cursorId)
+    TCOMMIT:wrapInTp
+    QUIT
+
+octoPlan1(cursorId)
+    NEW %ydboctoz,%ydboctoexpr KILL %ydboctocursor(cursorId,"keys",3,"","")
+    SET %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")=""
+    FOR  SET %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")=$ORDER(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")="")  DO
+    . SET %ydboctoexpr=1
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))),21,"%m-%d-%Y %H:%M:%S%z") SET:(""=%ydboctoexpr) %ydboctoexpr=$ZYSQLNULL
+    . SET %ydboctoexpr=$$ConvertToLocalTimezone^%ydboctoplanhelpers(21,%ydboctoexpr)
+    . SET %ydboctoexpr(2)=%ydboctoexpr
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(%ydboctocursor(cursorId,"parameters",1)),17,"%m-%d-%Y")
+    . SET %ydboctoexpr=%ydboctoexpr(2)'<%ydboctoexpr
+    . SET %ydboctoexpr(1)=%ydboctoexpr
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))),21,"%m-%d-%Y %H:%M:%S%z") SET:(""=%ydboctoexpr) %ydboctoexpr=$ZYSQLNULL
+    . SET %ydboctoexpr=$$ConvertToLocalTimezone^%ydboctoplanhelpers(21,%ydboctoexpr)
+    . SET %ydboctoexpr(2)=%ydboctoexpr
+    . SET %ydboctoexpr=$$Fileman2UnixTime^%ydboctoplanhelpers($GET(%ydboctocursor(cursorId,"parameters",2)),17)
+    . SET %ydboctoexpr=%ydboctoexpr(2)'>%ydboctoexpr
+    . SET %ydboctoexpr=%ydboctoexpr(1)&%ydboctoexpr
+    . DO:%ydboctoexpr
+    . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
+    . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr(0)=%ydboctoexpr
+    . . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(^tstexttziso(%ydboctocursor(cursorId,"keys",1,"testrtexttziso","id"))),21,"%m-%d-%Y %H:%M:%S%z") SET:(""=%ydboctoexpr) %ydboctoexpr=$ZYSQLNULL
+    . . SET %ydboctoexpr=$$PrintDateTimeResultColumnValue^%ydboctoplanhelpers(%ydboctoexpr,21,%ydboctodatetimeoutputformat,"%Y-%m-%d %H:%M:%S%z")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr=%ydboctoexpr(0)_%ydboctoexpr
+    . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrtexttziso","id")
     QUIT
 ;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
 ;; ---------------------------------------------------------
@@ -934,6 +1156,20 @@ insert into flmn values (5, 'a9', 'b9', '7180309');
 select t.id as t_id, t.dateofbirth as t_dateofbirth from txt t order by dateofbirth;
 select f.id as f_id, f.dateofbirth as f_dateofbirth from flmn f order by dateofbirth;
 select t.id as t_id,f.id as f_id,t.dateofbirth,f.dateofbirth from txt t, flmn f where t.dateofbirth = f.dateofbirth;
+
+create table testrwtexttziso(id int primary key, dob timestamp with time zone);
+insert into testrwtexttziso values(0, timestamp with time zone'2023-02-01T01:01:01-05:00');
+insert into testrwtexttziso values(1, timestamp with time zone'2023-03-01T01:01:01-05:00');
+insert into testrwtexttziso values(2, timestamp with time zone'2023-04-01T01:01:01-05:00');
+insert into testrwtexttziso values(3, timestamp with time zone'2023-02-01T00:00:00+00:00');
+insert into testrwtexttziso values(4, timestamp with time zone'2023-02-01T00:00:00-06:00');
+select * from testrwtexttziso;
+select * from testrwtexttziso where dob > date'2023-02-01';
+select * from testrwtexttziso where dob between date'2023-02-01' and date(fileman)'3230301';
+select * from testrwtexttziso where dob > timestamp with time zone'2023-03-01T01:01:01-05';
+select * from testrwtexttziso where dob = timestamp with time zone'2023-03-01T01:01:01-05';
+select * from testrwtexttziso where dob > timestamp with time zone'2023-03-01 01:01:01-05';
+select * from testrwtexttziso where dob = timestamp with time zone'2023-03-01 01:01:01-05';
 OCTO> set datestyle='MDY';
 OCTO> create table testrw (id int,dob date);
 CREATE TABLE
@@ -1011,6 +1247,54 @@ t_id|f_id|dateofbirth|dateofbirth
 3|3|2195-08-16|2195-08-16
 5|5|2418-03-09|2418-03-09
 (4 rows)
+OCTO> create table testrwtexttziso(id int primary key, dob timestamp with time zone);
+CREATE TABLE
+OCTO> insert into testrwtexttziso values(0, timestamp with time zone'2023-02-01T01:01:01-05:00');
+INSERT 0 1
+OCTO> insert into testrwtexttziso values(1, timestamp with time zone'2023-03-01T01:01:01-05:00');
+INSERT 0 1
+OCTO> insert into testrwtexttziso values(2, timestamp with time zone'2023-04-01T01:01:01-05:00');
+INSERT 0 1
+OCTO> insert into testrwtexttziso values(3, timestamp with time zone'2023-02-01T00:00:00+00:00');
+INSERT 0 1
+OCTO> insert into testrwtexttziso values(4, timestamp with time zone'2023-02-01T00:00:00-06:00');
+INSERT 0 1
+OCTO> select * from testrwtexttziso;
+id|dob
+0|2023-02-01 01:01:01-05
+1|2023-03-01 01:01:01-05
+2|2023-04-01 02:01:01-04
+3|2023-01-31 19:00:00-05
+4|2023-02-01 01:00:00-05
+(5 rows)
+OCTO> select * from testrwtexttziso where dob > date'2023-02-01';
+id|dob
+4|2023-02-01 01:00:00-05
+0|2023-02-01 01:01:01-05
+1|2023-03-01 01:01:01-05
+2|2023-04-01 02:01:01-04
+(4 rows)
+OCTO> select * from testrwtexttziso where dob between date'2023-02-01' and date(fileman)'3230301';
+id|dob
+4|2023-02-01 01:00:00-05
+0|2023-02-01 01:01:01-05
+(2 rows)
+OCTO> select * from testrwtexttziso where dob > timestamp with time zone'2023-03-01T01:01:01-05';
+id|dob
+2|2023-04-01 02:01:01-04
+(1 row)
+OCTO> select * from testrwtexttziso where dob = timestamp with time zone'2023-03-01T01:01:01-05';
+id|dob
+1|2023-03-01 01:01:01-05
+(1 row)
+OCTO> select * from testrwtexttziso where dob > timestamp with time zone'2023-03-01 01:01:01-05';
+id|dob
+2|2023-04-01 02:01:01-04
+(1 row)
+OCTO> select * from testrwtexttziso where dob = timestamp with time zone'2023-03-01 01:01:01-05';
+id|dob
+1|2023-03-01 01:01:01-05
+(1 row)
 OCTO> 
 # ----------------------------------------------------------------------------
 # Include generated M code in reference file to verify all optimizations there
@@ -1070,6 +1354,88 @@ octoPlan2(cursorId)
 
 ;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
 ;; ---------------------------------------------------------
+;  insert into testrwtexttziso values(0, timestamp with time zone'2023-02-01T01:01:01-05:00');
+;; ---------------------------------------------------------
+
+octoPlan0(cursorId,wrapInTp)
+    NEW %ydboctop,%ydboctoexpr
+    TSTART:wrapInTp ():(serial)
+    DO octoPlan1(cursorId)
+    DO octoPlan2(cursorId)
+    TCOMMIT:wrapInTp
+    QUIT
+
+octoPlan1(cursorId)
+    NEW %ydboctoz,%ydboctoexpr KILL %ydboctocursor(cursorId,"keys",1,"","")
+    IF $INCREMENT(%ydboctocursor(cursorId,"keys",1,"","")) DO
+    . SET %ydboctoexpr=$GET(%ydboctocursor(cursorId,"parameters",1))
+    . SET %ydboctocursor(cursorId,"keys",1,"","",%ydboctocursor(cursorId,"keys",1,"",""),1)=%ydboctoexpr
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(%ydboctocursor(cursorId,"parameters",2)),21,"%Y-%m-%d %H:%M:%S%z")
+    . SET %ydboctocursor(cursorId,"keys",1,"","",%ydboctocursor(cursorId,"keys",1,"",""),2)=%ydboctoexpr
+    QUIT
+
+octoPlan2(cursorId)
+    SET %ydboctocursor(cursorId,"RowCount")=0 ; Initialize count of inserted records
+    SET %ydboctocursor(cursorId,"keys",1,"","")=""
+    FOR  SET %ydboctocursor(cursorId,"keys",1,"","")=$ORDER(%ydboctocursor(cursorId,"keys",1,"","",%ydboctocursor(cursorId,"keys",1,"",""))) QUIT:(%ydboctocursor(cursorId,"keys",1,"","")="")  DO
+    . NEW col,colMetaData
+    . SET col(1)=%ydboctocursor(cursorId,"keys",1,"","",%ydboctocursor(cursorId,"keys",1,"",""),1)
+    . SET col(1)=+col(1)
+    . DO:$ZYISSQLNULL(col(1)) NullColValue^%ydboctoplanhelpers("id")
+    . 
+    . SET colMetaData(2,1)=21
+    . SET colMetaData(2,2)=%ydboctodatetimeoutputformat
+    . SET colMetaData(2,3)="%Y-%m-%d %H:%M:%S%z"
+    . SET col(2)=%ydboctocursor(cursorId,"keys",1,"","",%ydboctocursor(cursorId,"keys",1,"",""),2)
+    . ; --------------------------------------
+    . ; UNIQUE constraints enforcement section
+    . ; --------------------------------------
+    . ; Emit code for PRIMARY KEY constraint testrwtexttziso_pkey
+    . DO:$DATA(^%ydboctoDLx11XrPku7QbnRXvLepo11(col(1)))
+    . . DO DuplicateKeyValue^%ydboctoplanhelpers("testrwtexttziso_pkey","Key ("_"id"_")=("_col(1)_")")
+    . ; END of UNIQUE constraint enforcement section
+    . SET ^%ydboctoDLx11XrPku7QbnRXvLepo11(col(1))=$$colvalue2piecevalue^%ydboctoplanhelpers(col(2))
+    . IF $INCREMENT(%ydboctocursor(cursorId,"RowCount")) ; Increment count of inserted records
+    QUIT
+
+;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
+;; ---------------------------------------------------------
+;  select * from testrwtexttziso where dob > timestamp with time zone'2023-03-01T01:01:01-05';
+;; ---------------------------------------------------------
+
+octoPlan0(cursorId,wrapInTp)
+    DO:'$GET(^%ydbAIMOctoCache("testrwtexttziso","dob","completed?")) xrefPlan^%ydboctoXxZP8PCaOV3cemQ30qQ4qEF(cursorId)
+    NEW %ydboctop,%ydboctoexpr
+    TSTART:wrapInTp ():(serial)
+    DO octoPlan1(cursorId)
+    TCOMMIT:wrapInTp
+    QUIT
+
+octoPlan1(cursorId)
+    NEW %ydboctoz,%ydboctoexpr KILL %ydboctocursor(cursorId,"keys",3,"","")
+    DO
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(%ydboctocursor(cursorId,"parameters",1)),21,"%Y-%m-%d %H:%M:%S%z")
+    SET %ydboctozkeyfix(1,0)=%ydboctoexpr
+    IF '$ZYISSQLNULL(%ydboctozkeyfix(1,0)) FOR  SET %ydboctozkeyfix(1,0)=$ORDER(^%ydbAIMDDSLLtuKkqAmKJMAnZBo57F(0,%ydboctozkeyfix(1,0))) QUIT:(%ydboctozkeyfix(1,0)="")!(%ydboctozkeyfix(1,0)="")  DO
+    . SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")=%ydboctozkeyfix(1,0) IF '$ZYISSQLNULL(%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")) IF $DATA(^%ydbAIMDDSLLtuKkqAmKJMAnZBo57F(0,%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob"))) DO
+    . . SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")=""
+    . . FOR  SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")=$ORDER(^%ydbAIMDDSLLtuKkqAmKJMAnZBo57F(0,%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob"),%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")="")  DO
+    . . . SET %ydboctoexpr=1
+    . . . DO:%ydboctoexpr
+    . . . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
+    . . . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")
+    . . . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . . . SET %ydboctoexpr(0)=%ydboctoexpr
+    . . . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")
+    . . . . SET %ydboctoexpr=$$PrintDateTimeResultColumnValue^%ydboctoplanhelpers(%ydboctoexpr,21,%ydboctodatetimeoutputformat,"%Y-%m-%d %H:%M:%S%z")
+    . . . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . . . SET %ydboctoexpr=%ydboctoexpr(0)_%ydboctoexpr
+    . . . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")  KILL %ydboctozkeyfix(1)
+    QUIT
+;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
+;; ---------------------------------------------------------
 ;  insert into txt values (1, 'a8', 'b8', '1729-11-24');
 ;; ---------------------------------------------------------
 
@@ -1121,6 +1487,35 @@ octoPlan2(cursorId)
     . IF $INCREMENT(%ydboctocursor(cursorId,"RowCount")) ; Increment count of inserted records
     QUIT
 
+;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
+;; ---------------------------------------------------------
+;  select * from testrwtexttziso;
+;; ---------------------------------------------------------
+
+octoPlan0(cursorId,wrapInTp)
+    NEW %ydboctop,%ydboctoexpr
+    TSTART:wrapInTp ():(serial)
+    DO octoPlan1(cursorId)
+    TCOMMIT:wrapInTp
+    QUIT
+
+octoPlan1(cursorId)
+    NEW %ydboctoz,%ydboctoexpr KILL %ydboctocursor(cursorId,"keys",3,"","")
+    SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")=""
+    FOR  SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")=$ORDER(^%ydboctoDLx11XrPku7QbnRXvLepo11(%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")="")  DO
+    . SET %ydboctoexpr=1
+    . DO:%ydboctoexpr
+    . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
+    . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr(0)=%ydboctoexpr
+    . . SET %ydboctoexpr=$GET(^%ydboctoDLx11XrPku7QbnRXvLepo11(%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id"))) SET:(""=%ydboctoexpr) %ydboctoexpr=$ZYSQLNULL
+    . . SET %ydboctoexpr=$$PrintDateTimeResultColumnValue^%ydboctoplanhelpers(%ydboctoexpr,21,%ydboctodatetimeoutputformat,"%Y-%m-%d %H:%M:%S%z")
+    . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . SET %ydboctoexpr=%ydboctoexpr(0)_%ydboctoexpr
+    . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")
+    QUIT
 ;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
 ;; ---------------------------------------------------------
 ;  insert into testrw values(1,date(fileman)'3230201');
@@ -1237,6 +1632,82 @@ octoPlan2(cursorId)
 
 ;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
 ;; ---------------------------------------------------------
+;  select * from testrwtexttziso where dob = timestamp with time zone'2023-03-01T01:01:01-05';
+;; ---------------------------------------------------------
+
+octoPlan0(cursorId,wrapInTp)
+    DO:'$GET(^%ydbAIMOctoCache("testrwtexttziso","dob","completed?")) xrefPlan^%ydboctoXxZP8PCaOV3cemQ30qQ4qEF(cursorId)
+    NEW %ydboctop,%ydboctoexpr
+    TSTART:wrapInTp ():(serial)
+    DO octoPlan1(cursorId)
+    TCOMMIT:wrapInTp
+    QUIT
+
+octoPlan1(cursorId)
+    NEW %ydboctoz,%ydboctoexpr KILL %ydboctocursor(cursorId,"keys",3,"","")
+    DO
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(%ydboctocursor(cursorId,"parameters",1)),21,"%Y-%m-%d %H:%M:%S%z")
+    SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")=%ydboctoexpr IF '$ZYISSQLNULL(%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")) IF $DATA(^%ydbAIMDDSLLtuKkqAmKJMAnZBo57F(0,%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob"))) DO
+    . SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")=""
+    . FOR  SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")=$ORDER(^%ydbAIMDDSLLtuKkqAmKJMAnZBo57F(0,%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob"),%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")="")  DO
+    . . SET %ydboctoexpr=1
+    . . DO:%ydboctoexpr
+    . . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
+    . . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")
+    . . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . . SET %ydboctoexpr(0)=%ydboctoexpr
+    . . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")
+    . . . SET %ydboctoexpr=$$PrintDateTimeResultColumnValue^%ydboctoplanhelpers(%ydboctoexpr,21,%ydboctodatetimeoutputformat,"%Y-%m-%d %H:%M:%S%z")
+    . . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . . SET %ydboctoexpr=%ydboctoexpr(0)_%ydboctoexpr
+    . . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")
+    QUIT
+;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
+;; ---------------------------------------------------------
+;  select * from testrwtexttziso where dob between date'2023-02-01' and date(fileman)'3230301';
+;; ---------------------------------------------------------
+
+octoPlan0(cursorId,wrapInTp)
+    DO:'$GET(^%ydbAIMOctoCache("testrwtexttziso","dob","completed?")) xrefPlan^%ydboctoXxZP8PCaOV3cemQ30qQ4qEF(cursorId)
+    NEW %ydboctop,%ydboctoexpr
+    TSTART:wrapInTp ():(serial)
+    DO octoPlan1(cursorId)
+    TCOMMIT:wrapInTp
+    QUIT
+
+octoPlan1(cursorId)
+    NEW %ydboctoz,%ydboctoexpr KILL %ydboctocursor(cursorId,"keys",3,"","")
+    DO
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(%ydboctocursor(cursorId,"parameters",1)),17,"%Y-%m-%d")
+    SET %ydboctoexpr=$$DateTimeCast^%ydboctoplanhelpers(%ydboctoexpr,17,10)
+    SET %ydboctozkeyfix(1,0)=%ydboctoexpr
+    DO  IF '$ZYISSQLNULL(%ydboctozkeyfix(1,0)) FOR  SET %ydboctozkeyfix(1,0)=$ORDER(^%ydbAIMDDSLLtuKkqAmKJMAnZBo57F(0,%ydboctozkeyfix(1,0))) QUIT:(%ydboctozkeyfix(1,0)="")!(%ydboctozkeyfix(1,0)="")  DO
+    . SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")=%ydboctozkeyfix(1,0) IF '$ZYISSQLNULL(%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")) IF $DATA(^%ydbAIMDDSLLtuKkqAmKJMAnZBo57F(0,%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob"))) DO
+    . . SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")=""
+    . . FOR  SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")=$ORDER(^%ydbAIMDDSLLtuKkqAmKJMAnZBo57F(0,%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob"),%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")="")  DO
+    . . . SET %ydboctoexpr=1
+    . . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")
+    . . . SET %ydboctoexpr=$$ConvertToLocalTimezone^%ydboctoplanhelpers(21,%ydboctoexpr)
+    . . . SET %ydboctoexpr(1)=%ydboctoexpr
+    . . . SET %ydboctoexpr=$$Fileman2UnixTime^%ydboctoplanhelpers($GET(%ydboctocursor(cursorId,"parameters",2)),17)
+    . . . SET %ydboctoexpr=%ydboctoexpr(1)'>%ydboctoexpr
+    . . . DO:%ydboctoexpr
+    . . . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
+    . . . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")
+    . . . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . . . SET %ydboctoexpr(0)=%ydboctoexpr
+    . . . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")
+    . . . . SET %ydboctoexpr=$$PrintDateTimeResultColumnValue^%ydboctoplanhelpers(%ydboctoexpr,21,%ydboctodatetimeoutputformat,"%Y-%m-%d %H:%M:%S%z")
+    . . . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . . . SET %ydboctoexpr=%ydboctoexpr(0)_%ydboctoexpr
+    . . . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")  KILL %ydboctozkeyfix(1)
+    QUIT
+;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
+;; ---------------------------------------------------------
 ;  select * from testrw where dob between date'01-01-2023' AND date'02-01-2023';
 ;; ---------------------------------------------------------
 
@@ -1310,6 +1781,43 @@ octoPlan1(cursorId)
     . . . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
     ZKILL %ydboctocursor(cursorId,"keys",1,"testrw","%yo_keycol")
     ZKILL %ydboctocursor(cursorId,"keys",1,"testrw","dob")  KILL %ydboctozkeyfix(1)
+    QUIT
+;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
+;; ---------------------------------------------------------
+;  select * from testrwtexttziso where dob > date'2023-02-01';
+;; ---------------------------------------------------------
+
+octoPlan0(cursorId,wrapInTp)
+    DO:'$GET(^%ydbAIMOctoCache("testrwtexttziso","dob","completed?")) xrefPlan^%ydboctoXxZP8PCaOV3cemQ30qQ4qEF(cursorId)
+    NEW %ydboctop,%ydboctoexpr
+    TSTART:wrapInTp ():(serial)
+    DO octoPlan1(cursorId)
+    TCOMMIT:wrapInTp
+    QUIT
+
+octoPlan1(cursorId)
+    NEW %ydboctoz,%ydboctoexpr KILL %ydboctocursor(cursorId,"keys",3,"","")
+    DO
+    . SET %ydboctoexpr=$$Text2UnixTime^%ydboctoplanhelpers($GET(%ydboctocursor(cursorId,"parameters",1)),17,"%Y-%m-%d")
+    SET %ydboctoexpr=$$DateTimeCast^%ydboctoplanhelpers(%ydboctoexpr,17,10)
+    SET %ydboctozkeyfix(1,0)=%ydboctoexpr
+    IF '$ZYISSQLNULL(%ydboctozkeyfix(1,0)) FOR  SET %ydboctozkeyfix(1,0)=$ORDER(^%ydbAIMDDSLLtuKkqAmKJMAnZBo57F(0,%ydboctozkeyfix(1,0))) QUIT:(%ydboctozkeyfix(1,0)="")!(%ydboctozkeyfix(1,0)="")  DO
+    . SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")=%ydboctozkeyfix(1,0) IF '$ZYISSQLNULL(%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")) IF $DATA(^%ydbAIMDDSLLtuKkqAmKJMAnZBo57F(0,%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob"))) DO
+    . . SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")=""
+    . . FOR  SET %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")=$ORDER(^%ydbAIMDDSLLtuKkqAmKJMAnZBo57F(0,%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob"),%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id"))) QUIT:(%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")="")  DO
+    . . . SET %ydboctoexpr=1
+    . . . DO:%ydboctoexpr
+    . . . . SET:1&$INCREMENT(%ydboctocursor(cursorId,"keys",3,"","")) %ydboctoz=42
+    . . . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")
+    . . . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . . . SET %ydboctoexpr(0)=%ydboctoexpr
+    . . . . SET %ydboctoexpr=%ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")
+    . . . . SET %ydboctoexpr=$$PrintDateTimeResultColumnValue^%ydboctoplanhelpers(%ydboctoexpr,21,%ydboctodatetimeoutputformat,"%Y-%m-%d %H:%M:%S%z")
+    . . . . SET %ydboctoexpr=$$str2mval^%ydboctoplanhelpers(%ydboctoexpr)
+    . . . . SET %ydboctoexpr=%ydboctoexpr(0)_%ydboctoexpr
+    . . . . SET %ydboctocursor(cursorId,"keys",3,"","",%ydboctocursor(cursorId,"keys",3,"",""))=%ydboctoexpr
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","id")
+    ZKILL %ydboctocursor(cursorId,"keys",1,"testrwtexttziso","dob")  KILL %ydboctozkeyfix(1)
     QUIT
 ;; This is a generated file; do not modify. Generated M code corresponds to below SQL query
 ;; ---------------------------------------------------------
