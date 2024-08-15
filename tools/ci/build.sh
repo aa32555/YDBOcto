@@ -473,6 +473,83 @@ if [[ ("test-auto-upgrade" == $jobname) && ("force" != $subtaskname) ]]; then
 		sed -i 's/keys(\(""""[A-Za-z_0-9]*""""\))/keys(\U\1\E)/g' $fixtures
 		shopt -u extglob	# reset now that extended pattern matching feature need is done
 	fi
+
+	# is_pre_octo519_commit - used to skip test-auto-upgrade
+	pre_octo519_commit="bee2b104e52874f79d728c98047a1cad2829e25f" # 1 commit before YDBOcto#519 commit
+	# Disable the "set -e" setting temporarily as the "git merge-base" can return exit status 0 or 1
+	set +e
+	git merge-base --is-ancestor $commitsha $pre_octo519_commit
+	is_pre_octo519_commit=$?
+	# Re-enable "set -e" now that "git merge-base" invocation is done.
+	set -e
+
+	pre_octo948_commit="d9e3b29a3a0404315562dcc4c36e915954fbb547"	# 1 commit before YDBOcto#948 commit
+	# Disable the "set -e" setting temporarily as the "git merge-base" can return exit status 0 or 1
+	set +e
+	git merge-base --is-ancestor $commitsha $pre_octo948_commit
+	is_pre_octo948_commit=$?
+	# Re-enable "set -e" now that "git merge-base" invocation is done.
+	set -e
+
+	if [[ -f ../tests/fixtures/TAU001_1.sql ]] && [[ 0 -ne $is_pre_octo519_commit ]]; then
+		# We are sure that the older commit selected is or after 0939090a9a04d99063dec7772afc40379b15388b (YDBOcto#940)
+		# as this is when TAU test was introduced.
+		if [[ (0 == $is_pre_octo948_commit) ]]; then
+			# YDBOcto#948 prevents ABS in TAU001 from being dropped as its an octo-seed function. This prevents auto upgrade
+			# tests which used ABS from testing constraint violations.
+			# Make use of absf instead of ABS in TAU001. This will ensure DROP statement will still work as expected as absf
+			# is not a octo-seed function.
+			# Replace usages of ABS with absf
+			sed -i 's/drop function abs(/drop function \"absf\"(/g' ../tests/fixtures/TAU001_1.sql
+			sed -i 's/check(abs(/check(\"absf\"(/g' ../tests/fixtures/TAU001_1.sql
+			sed -i 's/drop function abs(/drop function \"absf\"(/g' ../tests/outref/TAU001_1.ref
+			sed -i 's/check(abs(/check(\"absf\"(/g' ../tests/outref/TAU001_1.ref
+			sed -i 's/drop function abs(/drop function \"absf\"(/g' ../tests/fixtures/TAU001_2.sql
+			sed -i 's/abs(/absf(/g' ../tests/outref/TAU001_1.ref
+			sed -i 's/abs(/absf(/g' ../tests/outref/TAU001_2.ref
+			sed -i 's/ABS(/absf(/g' ../tests/outref/TAU001_1.ref # Some commits have upper caps function name in reference file
+			sed -i 's/ABS(/absf(/g' ../tests/outref/TAU001_2.ref # Some commits have upper caps function name in reference file
+			# Add create function statements for absf
+			sed -i "/create table/s/^/create function \"absf\"(integer) returns integer as \$\$ABS^%ydboctosqlfunctions;\n/" ../tests/fixtures/TAU001_1.sql
+			# Based on the commit being tested modify TAU001_1.ref to include the CREATE FUNCTION output
+			# commit 0939090a9a04d99063dec7772afc40379b15388b to 14cb254c2e33fe5e3b01ff388903ed88ac8b4b17 add query and output
+			endcommit="14cb254c2e33fe5e3b01ff388903ed88ac8b4b17"
+			# Disable the "set -e" setting temporarily as the "git merge-base" can return exit status 0 or 1
+			set +e
+			git merge-base --is-ancestor $commitsha $endcommit
+			is_or_before_end_commit=$?
+			# Re-enable "set -e" now that "git merge-base" invocation is done.
+			set -e
+			# Following code carefully places certain statements into reference file considering what state the reference file was in
+			# at difference commits.
+			if [[ 0 -eq $is_or_before_end_commit ]]; then
+				# Add create function abs query as the first line
+				sed -i "/create table/s/^/create function \"absf\"(integer) returns integer as \$\$ABS^%ydboctosqlfunctions;\n/" ../tests/outref/TAU001_1.ref
+				# Add output of create function as the first query result
+				sed -i '/CREATE TABLE/s/^/CREATE FUNCTION\n/' ../tests/outref/TAU001_1.ref
+			else
+				# commit 90a266a503930077db8ce62109369ae26bfef319 In addition to above include -p output
+				commitshalong=$(git rev-parse $commitsha)
+				if [[ "90a266a503930077db8ce62109369ae26bfef319" == $commitshalong ]]; then
+					# Add output of create function as the first query result
+					sed -i "/^create table/s/^/create function \"absf\"(integer) returns integer as \$\$ABS^%ydboctosqlfunctions;\n/" ../tests/outref/TAU001_1.ref
+					sed -i "/OCTO> create table/s/^/OCTO> create function \"absf\"(integer) returns integer as \$\$ABS^%ydboctosqlfunctions;\nCREATE FUNCTION\n/" ../tests/outref/TAU001_1.ref
+				fi
+			fi
+		fi
+	fi
+	if [[ -f ../tests/fixtures/TAU002_1.sql ]]; then
+		if [[ (0 == $is_pre_octo948_commit) ]]; then
+			sed -i 's/abs/absf/g' ../tests/outref/TAU002_1.ref
+			sed -i 's/abs/absf/g' ../tests/outref/TAU002_2.ref
+			sed -i 's/abs/absf/g' ../tests/fixtures/TAU002_1.sql
+			sed -i 's/abs/absf/g' ../tests/fixtures/TAU002_2.sql
+			sed -i "/^create view v2/s/^/create function absf(integer) returns integer as \$\$ABS^%ydboctosqlfunctions;\n/" ../tests/fixtures/TAU002_1.sql
+			sed -i "/^create view v2/s/^/create function absf(integer) returns integer as \$\$ABS^%ydboctosqlfunctions;\n/" ../tests/outref/TAU002_1.ref
+			sed -i "/OCTO> create view v2/s/^/OCTO> create function absf(integer) returns integer as \$\$ABS^%ydboctosqlfunctions;\nCREATE FUNCTION\n/" ../tests/outref/TAU002_1.ref
+			sed -i -e '/^CREATE VIEW$/N; /\nabsf$/s/^/CREATE FUNCTION\n/' ../tests/outref/TAU002_1.ref # In some commits query is not printed. This sed will take care of those.
+		fi
+	fi
 	if [ "ALL" != "$autoupgrade_test_to_troubleshoot" ]; then
 		# Run only a random fraction of the bats tests as we will be running an auto upgrade test on the same queries
 		# once more a little later.
@@ -944,6 +1021,13 @@ else
 					# Before "9fe6a0ad1cf9a258171b2e2ec5b18113403656f4", TAU002 subtest ran auto-upgrade test
 					# queries in old commit itself unintentionally. This caused the auto-upgrade test queries
 					# to fail when run by the below code. Therefore skip this subtest.
+					echo "SKIPPED : $tstdir : [subtest : $subtest]" >> ../bats_test.txt
+					cd ..
+					rm -rf $tstdir
+					continue
+				fi
+				if [[ (0 == $is_pre_octo519_commit) ]]; then
+					# drop octo-seed no longer valid and double quote not yet implemented
 					echo "SKIPPED : $tstdir : [subtest : $subtest]" >> ../bats_test.txt
 					cd ..
 					rm -rf $tstdir
