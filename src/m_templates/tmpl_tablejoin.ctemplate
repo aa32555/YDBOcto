@@ -27,7 +27,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 	total_keys = pplan->total_iter_keys;
 	assert(((NULL != tablejoin) && (LP_TABLE_JOIN == tablejoin->type)) || ((NULL == tablejoin) && (cur_key == total_keys)));
 	assert(cur_key < total_keys);
-	key = pplan->iterKeys[cur_key];
+	// key = pplan->iterKeys[cur_key];
+	key = get_iter_key(pplan, cur_key);
 	left_table_id = key->unique_id;
 	nested_call = FALSE;
 	this_join_type = ((NULL == tablejoin) ? NO_JOIN
@@ -47,7 +48,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 		for ( ; cur_key < total_keys; cur_key++) {
 			LogicalPlan	*list;
 
-			key = pplan->iterKeys[cur_key];
+			// key = pplan->iterKeys[cur_key];
+			key = get_iter_key(pplan, cur_key);
 			list = key->fixed_to_value;
 			if (NULL == list) {
 				continue;
@@ -136,7 +138,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 	fixed_xref_key = NULL;
 	for ( ; cur_key < total_keys; cur_key++) {
 		// For each key, output the key start, a FOR loop, QUIT, and increment
-		key = pplan->iterKeys[cur_key];
+		// key = pplan->iterKeys[cur_key];
+		key = get_iter_key(pplan, cur_key);
 		if (key->unique_id != left_table_id) {
 			/* We are done with all key columns in this table; recurse to move on to next table/key */
 			nested_call = TRUE;
@@ -779,7 +782,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 		skip_right_tablejoin = FALSE;
 		if (LEFT_JOIN == next_join_type) {
 
-			assert(key == pplan->iterKeys[cur_key]);
+			// assert(key == pplan->iterKeys[cur_key]);
+			assert(key == get_iter_key(pplan, cur_key));
 			if (!pplan->key_lvn_can_be_zysqlnull) {
 				LogicalPlan	*fixed_to_value;
 
@@ -839,7 +843,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 				}
 			} else {
 				int	right_table_id;
-				right_table_id = pplan->iterKeys[cur_key]->unique_id;
+				// right_table_id = pplan->iterKeys[cur_key]->unique_id;
+				right_table_id = get_iter_key(pplan, cur_key)->unique_id;
 				TMPL(tmpl_print_dots, dot_count);
 				%{}SET {{ PP_YDB_OCTO_Z }}({{ right_table_id|%d }})=0`n{{ PLAN_LINE_START }}{}%
 			}
@@ -849,7 +854,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 		}
 		if (LEFT_JOIN == next_join_type) {
 			int	right_table_id;
-			key = pplan->iterKeys[cur_key];
+			// key = pplan->iterKeys[cur_key];
+			key = get_iter_key(pplan, cur_key);
 			right_table_id = key->unique_id;
 			if (!pplan->key_lvn_can_be_zysqlnull) {
 				if (!skip_right_tablejoin) {
@@ -882,7 +888,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 				unsigned int	cur_key_copy;
 				cur_key_copy = cur_key;
 				for ( ; cur_key_copy < total_keys; cur_key_copy++) {
-					key = pplan->iterKeys[cur_key_copy];
+					// key = pplan->iterKeys[cur_key_copy];
+					key = get_iter_key(pplan, cur_key_copy);
 					if (key->unique_id != right_table_id) {
 						break;
 					}
@@ -909,7 +916,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 				 * LEFT JOIN are done.
 				 */
 				for ( ; cur_key_copy < total_keys; cur_key_copy++) {
-					key = pplan->iterKeys[cur_key_copy];
+					// key = pplan->iterKeys[cur_key_copy];
+					key = get_iter_key(pplan, cur_key_copy);
 					if (key->unique_id != right_table_id) {
 						break;
 					}
@@ -964,7 +972,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 	if (need_tmpl_key_finish) {
 		assert(cur_key > key_start);
 		for ( ; cur_key > key_start; cur_key--) {
-			key = pplan->iterKeys[cur_key - 1];
+			// key = pplan->iterKeys[cur_key - 1];
+			key = get_iter_key(pplan, cur_key - 1);
 			if (key->is_cross_reference_key && (NULL == key->column) && (NULL != key->table)) {
 				/* A cross reference key always has a non-NULL column and table (guaranteed by an assert in
 				 * "lp_alloc_key.c". But this cross reference key has a NULL column and a non-NULL table.
@@ -1008,7 +1017,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 				assert(cur_key < total_keys);
 				cur_tables = 0;
 				do {
-					this_table_id = pplan->iterKeys[cur_key]->unique_id;
+					// this_table_id = pplan->iterKeys[cur_key]->unique_id;
+					this_table_id = get_iter_key(pplan, cur_key)->unique_id;
 					if (!pplan->treat_key_as_null[this_table_id]) {
 						if (cur_tables == num_tables) {
 							break;
@@ -1027,7 +1037,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 				SqlColumn	*save_key_column;
 				save_key_column = NULL;
 				for (right_join_cur_key = cur_key; right_join_cur_key < total_keys; right_join_cur_key++) {
-					key = pplan->iterKeys[right_join_cur_key];
+					// key = pplan->iterKeys[right_join_cur_key];
+					key = get_iter_key(pplan, right_join_cur_key);
 					if (right_join_table_id == key->unique_id) {
 						if (key->is_cross_reference_key) {
 							/* Until now, we would have used "tmpl_key()" to emit code for "key".
@@ -1048,7 +1059,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 				}
 				TMPL(tmpl_tablejoin, pplan, this_table_join, cur_key, TRUE, dot_count, tableName, columnName);
 				for (right_join_cur_key = cur_key; right_join_cur_key < total_keys; right_join_cur_key++) {
-					key = pplan->iterKeys[right_join_cur_key];
+					// key = pplan->iterKeys[right_join_cur_key];
+					key = get_iter_key(pplan, right_join_cur_key);
 					if (right_join_table_id == key->unique_id) {
 						if (key->is_cross_reference_key) {
 							/* Until now, we would have used "tmpl_key()" to emit code for "key".
@@ -1075,7 +1087,8 @@ TEMPLATE(tmpl_tablejoin, PhysicalPlan *pplan, LogicalPlan *tablejoin, unsigned i
 			{
 				int	this_table_id;
 
-				this_table_id = pplan->iterKeys[cur_key]->unique_id;
+				// this_table_id = pplan->iterKeys[cur_key]->unique_id;
+				this_table_id = (get_iter_key(pplan, cur_key)->unique_id);
 				pplan->treat_key_as_null[this_table_id] = FALSE;
 			}
 		}

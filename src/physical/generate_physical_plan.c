@@ -54,16 +54,27 @@ PhysicalPlan *generate_physical_plan(LogicalPlan *plan, PhysicalPlanOptions *opt
 #endif
 		// Save output key of LP_VIEW in the physical plan
 		LogicalPlan *view_key = lp_get_output_key(plan);
-		if (MAX_KEY_COUNT > out->view_total_iter_keys) {
-			out->viewKeys[out->view_total_iter_keys] = view_key->v.lp_key.key;
-			out->view_total_iter_keys++;
-			return out;
-		} else {
-			// MAX_KEY_COUNT <= out->total_iter_keys
-			ERROR(ERR_TOO_MANY_SELECT_KEYCOLS, out->view_total_iter_keys, MAX_KEY_COUNT);
-			return NULL;
-		}
-
+		// Add view_key->v.lp_key.key pointer to viewkeys lvn
+		// varname
+		ydb_buffer_t varname;
+		YDB_LITERAL_TO_BUFFER(OCTOLIT_VIEWKEYS, &varname);
+		// subs out unique id,view_total_iter_keys value, with key pointer being the result
+		ydb_buffer_t subs[2];
+		subs[0].buf_addr = (char *)&out;
+		subs[0].len_used = subs[0].len_alloc = sizeof(void *);
+		char view_keys_iter_str[INT32_TO_STRING_MAX];
+		subs[1].buf_addr = view_keys_iter_str;
+		subs[1].len_alloc = sizeof(view_keys_iter_str);
+		subs[1].len_used = snprintf(subs[1].buf_addr, subs[1].len_alloc, "%d", out->view_total_iter_keys);
+		ydb_buffer_t save_value;
+		save_value.buf_addr = (char *)&view_key->v.lp_key.key;
+		save_value.len_used = save_value.len_alloc = sizeof(void *);
+		// ydb_set_s call
+		int status = ydb_set_s(&varname, 2, &subs[0], &save_value);
+		assert(YDB_OK == status);
+		UNUSED(status);
+		out->view_total_iter_keys++;
+		return out;
 	} else if (LP_SET_OPERATION == plan->type) {
 		if (NULL != plan->extra_detail.lp_set_operation.physical_plan) {
 			/* This set operation has already been allocated. But do call generate_physical_plan() on the left and
@@ -588,16 +599,31 @@ int iterate_keys(PhysicalPlan *out, LogicalPlan *plan) {
 
 	assert(LP_KEYS == plan->type);
 	GET_LP(left, plan, 0, LP_KEY);
-	if (MAX_KEY_COUNT > out->total_iter_keys) {
-		out->iterKeys[out->total_iter_keys] = left->v.lp_key.key;
-	}
+	// out->iterKeys[out->total_iter_keys] = left->v.lp_key.key;
+	//  Add key pointer to iterkeys lvn
+	//  varname
+	ydb_buffer_t varname;
+	YDB_LITERAL_TO_BUFFER(OCTOLIT_ITERKEYS, &varname);
+	// subs out unique id,out total_iter_keys value, with key pointer being the result
+	ydb_buffer_t subs[2];
+	subs[0].buf_addr = (char *)&out;
+	subs[0].len_used = subs[0].len_alloc = sizeof(void *);
+	char keys_iter_str[INT32_TO_STRING_MAX];
+	subs[1].buf_addr = keys_iter_str;
+	subs[1].len_alloc = sizeof(keys_iter_str);
+	subs[1].len_used = snprintf(subs[1].buf_addr, subs[1].len_alloc, "%d", out->total_iter_keys);
+	ydb_buffer_t save_value;
+	save_value.buf_addr = (char *)&left->v.lp_key.key;
+	save_value.len_used = save_value.len_alloc = sizeof(void *);
+	// ydb_set_s call
+	int status = ydb_set_s(&varname, 2, &subs[0], &save_value);
+	assert(YDB_OK == status);
+	UNUSED(status);
 	out->total_iter_keys++;
+
 	if (NULL != plan->v.lp_default.operand[1]) {
 		GET_LP(right, plan, 1, LP_KEYS);
 		return iterate_keys(out, right);
-	} else if (MAX_KEY_COUNT <= out->total_iter_keys) {
-		ERROR(ERR_TOO_MANY_SELECT_KEYCOLS, out->total_iter_keys, MAX_KEY_COUNT);
-		return 1;
 	}
 	return 0;
 }
@@ -678,7 +704,8 @@ LogicalPlan *sub_query_check_and_generate_physical_plan(PhysicalPlanOptions *opt
 				unsigned int iter_key_index;
 
 				for (iter_key_index = 0; iter_key_index < cur->total_iter_keys; iter_key_index++) {
-					if (cur->iterKeys[iter_key_index]->unique_id == unique_id) {
+					// if (cur->iterKeys[iter_key_index]->unique_id == unique_id) {
+					if (get_iter_key(cur, iter_key_index)->unique_id == unique_id) {
 						/* Note down if WHERE clause is being processed */
 						*in_where_clause = cur->in_where_clause;
 						break;

@@ -319,6 +319,7 @@ add_library(libocto OBJECT
   physical/emit_physical_plan.c
   physical/emit_xref_plan.c
   physical/generate_physical_plan.c
+  physical/get_iter_key.c
   physical/get_num_key_cols_in_set_clause.c
   physical/get_physical_plan_from_unique_id.c
   physical/get_physical_plan_and_key_for_unique_id.c

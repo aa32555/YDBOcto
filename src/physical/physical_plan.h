@@ -42,7 +42,6 @@ typedef struct SetOperType {
 typedef struct PhysicalPlan {
 	char		    *plan_name, *filename;
 	struct PhysicalPlan *prev, *next;
-	SqlKey		    *iterKeys[MAX_KEY_COUNT]; /* These represent the keys we used to do the iteration */
 	SqlKey		    *outputKey;
 	LogicalPlan	    *where;		/* WHERE clause */
 	LogicalPlan	    *tablejoin;		/* FROM clause */
@@ -79,41 +78,40 @@ typedef struct PhysicalPlan {
 	int		     aggregate_function_or_group_by_or_having_specified; /* copy of same field from table_alias */
 	SetOperType	    *set_oper_list; /* Linked list of SET OPERATIONS to do on this plan at the end */
 	unsigned int	     view_total_iter_keys;
-	SqlKey		    *viewKeys[MAX_KEY_COUNT]; /* These represent the keys that map to this pplan */
-	struct PhysicalPlan *dnf_prev, *dnf_next;     /* Linked list of plans that are at the same LP_SET_DNF level */
-	LogicalPlan	    *lp_select_query;	      /* The owning LP_SELECT_QUERY or LP_TABLE_VALUE or LP_INSERT_INTO
-						       * or LP_DELETE_FROM or LP_UPDATE logical plan corresponding to this
-						       * physical plan.
-						       */
-	struct PhysicalPlan *dependent_plans_end;     /* Points to the last physical plan that was added to the linked list of
-						       * physical plans as part of the "generate_physical_plan()" that first
-						       * generated this "PhysicalPlan" structure. The linked list starting from
-						       * the current "PhysicalPlan" structure going back the "prev" links until
-						       * "dependent_plans_end" form a list of physical plans that need to be moved
-						       * ahead in case we encounter the need for this physical plan again during
-						       * "generate_physical_plan()". Moving these plans avoids the need for us to
-						       * generate multiple physical plans for the same logical plan i.e. allowing us
-						       * to have a 1-1 mapping between physical and logical plans.
-						       */
-	boolean_t in_where_clause;		      /* Used by generate_physical_plan() to convey to
-						       * sub_query_check_and_generate_physical_plan() that this particular
-						       * physical plan is currently processing a WHERE clause. Its set in
-						       * generate_physical_plan() before processing WHERE clause and
-						       * reset after processing it. We cannot use PhysicalPlanOptions to convey
-						       * this information because we need to specifically identify if a
-						       * particular physical plan is executing a WHERE clause or not.
-						       */
-	boolean_t key_lvn_can_be_zysqlnull; /* TRUE in case the query contains at least 1 LEFT JOIN and no RIGHT/FULL JOIN.
-					     * In this case, we can emit much better M code (YDBOcto#1006). See commit
-					     * message for more details on this field.
-					     */
-	int dnf_num;			    /* If this plan is part of a set of DNF sibling plans, this field indicates the
-					     * dnf sibling number. Is unique for each sibling plan. Currently helps generate
-					     * unique labels in the M code while emitting LEFT JOIN related code. This is
-					     * because each DNF plan could contain DIFFERENT M code depending on how each
-					     * of the DNF plans get optimized differently and therefore we cannot use one
-					     * common M code for all DNF plans. Could be used in other scenarios in the future.
-					     */
+	struct PhysicalPlan *dnf_prev, *dnf_next; /* Linked list of plans that are at the same LP_SET_DNF level */
+	LogicalPlan	    *lp_select_query;	  /* The owning LP_SELECT_QUERY or LP_TABLE_VALUE or LP_INSERT_INTO
+						   * or LP_DELETE_FROM or LP_UPDATE logical plan corresponding to this
+						   * physical plan.
+						   */
+	struct PhysicalPlan *dependent_plans_end; /* Points to the last physical plan that was added to the linked list of
+						   * physical plans as part of the "generate_physical_plan()" that first
+						   * generated this "PhysicalPlan" structure. The linked list starting from
+						   * the current "PhysicalPlan" structure going back the "prev" links until
+						   * "dependent_plans_end" form a list of physical plans that need to be moved
+						   * ahead in case we encounter the need for this physical plan again during
+						   * "generate_physical_plan()". Moving these plans avoids the need for us to
+						   * generate multiple physical plans for the same logical plan i.e. allowing us
+						   * to have a 1-1 mapping between physical and logical plans.
+						   */
+	boolean_t in_where_clause;		  /* Used by generate_physical_plan() to convey to
+						   * sub_query_check_and_generate_physical_plan() that this particular
+						   * physical plan is currently processing a WHERE clause. Its set in
+						   * generate_physical_plan() before processing WHERE clause and
+						   * reset after processing it. We cannot use PhysicalPlanOptions to convey
+						   * this information because we need to specifically identify if a
+						   * particular physical plan is executing a WHERE clause or not.
+						   */
+	boolean_t key_lvn_can_be_zysqlnull;	  /* TRUE in case the query contains at least 1 LEFT JOIN and no RIGHT/FULL JOIN.
+						   * In this case, we can emit much better M code (YDBOcto#1006). See commit
+						   * message for more details on this field.
+						   */
+	int dnf_num;				  /* If this plan is part of a set of DNF sibling plans, this field indicates the
+						   * dnf sibling number. Is unique for each sibling plan. Currently helps generate
+						   * unique labels in the M code while emitting LEFT JOIN related code. This is
+						   * because each DNF plan could contain DIFFERENT M code depending on how each
+						   * of the DNF plans get optimized differently and therefore we cannot use one
+						   * common M code for all DNF plans. Could be used in other scenarios in the future.
+						   */
 #ifndef NDEBUG
 	boolean_t emitting_octoLeftJoin_label; /* TRUE if we are emitting M code under the `octoLeftJoinNN` label. Used only by
 						* an assert currently. Hence kept under a `NDEBUG` flag.
@@ -177,5 +175,6 @@ PhysicalPlan *get_physical_plan_and_key_for_unique_id(PhysicalPlan *pplan, int u
 PhysicalPlan *emit_sql_statement(SqlStatement *stmt, char *plan_filename);
 int emit_physical_or_xref_plan(char *plan_filename, SqlStatement *stmt, char *tableName, char *columnName, PhysicalPlan *xref_plan);
 int emit_xref_plan(char *plan_filename, char *tableName, char *columnName, PhysicalPlan *xref_plan);
+SqlKey *get_iter_key(PhysicalPlan *pplan, int key_index);
 
 #endif

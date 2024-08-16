@@ -257,6 +257,8 @@
 #define OCTOLIT_DATE_TIME_ZUT		    "zut"
 #define OCTOLIT_DATE_TIME_FILEMAN	    "fileman"
 #define OCTOLIT_DATE_TIME_TEXT		    "text"
+#define OCTOLIT_ITERKEYS		    "%ydboctoiterkeys"
+#define OCTOLIT_VIEWKEYS		    "%ydboctoviewkeys"
 
 #define OCTOLIT_YDBOCTOVIEWDEPENDENCY "%ydboctoViewDependency"
 #define OCTOLIT_AIM_OCTO_CACHE	      "^%ydbAIMOctoCache"

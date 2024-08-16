@@ -110,7 +110,7 @@ teardown() {
 	[[ $(grep -c "GVUNDEF" octo_auto_upgrade.out) -eq 0 ]]
 }
 
-@test "TCV055: Verify that ERR_TOO_MANY_SELECT_KEYCOLS is seen when the number of view keys exceed MAX_KEY_COUNT" {
+@test "TCV055: Validate working of select query when number of view keys exceed MAX_KEY_COUNT" {
 	cp @PROJECT_SOURCE_DIR@/tests/fixtures/TCV055.m .
 	yottadb -run TCV055 >> input.sql
 	octo -f input.sql >& output.txt || true
